@@ -1,0 +1,195 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+import '../models/models.dart';
+
+const _defaultApiBase = 'https://api.revolt.chat';
+const _defaultWsUrl = 'wss://ws.revolt.chat';
+const _defaultAutumnBase = 'https://autumn.revolt.chat';
+
+class RevoltService {
+  String _apiBase = _defaultApiBase;
+  String _wsUrl = _defaultWsUrl;
+  String _autumnBase = _defaultAutumnBase;
+  String? _token;
+  WebSocketChannel? _ws;
+  StreamSubscription<dynamic>? _wsStreamSub;
+  StreamController<Map<String, dynamic>> _eventController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get events => _eventController.stream;
+
+  void setToken(String token) => _token = token;
+
+  void setServerUrl(String apiBase, String wsUrl) {
+    _apiBase = apiBase;
+    _wsUrl = wsUrl;
+  }
+
+  void setAutumnUrl(String autumnBase) => _autumnBase = autumnBase;
+
+  String get apiBase => _apiBase;
+  String get autumnBase => _autumnBase;
+
+  Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+        // ignore: use_null_aware_elements
+        if (_token != null) 'x-session-token': _token!,
+      };
+
+  // ── Node config ───────────────────────────────────────────────────────────
+
+  /// Fetches GET / and returns the node configuration.
+  /// The 'ws' field contains the correct WebSocket URL for this instance.
+  Future<Map<String, dynamic>> fetchNodeConfig() async {
+    final response = await http.get(Uri.parse(_apiBase));
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch server config');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> login(
+      String email, String password) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/auth/session/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
+    );
+    final data =
+        jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw Exception(data['type'] ?? 'Login failed');
+    }
+    return data;
+  }
+
+  Future<void> logout() async {
+    await http.post(
+      Uri.parse('$_apiBase/auth/session/logout'),
+      headers: _headers,
+    );
+  }
+
+  // ── Users ─────────────────────────────────────────────────────────────────
+
+  Future<RevoltUser> fetchSelf() async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/users/@me'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch current user');
+    }
+    return RevoltUser.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<RevoltUser> fetchUser(String userId) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/users/$userId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch user $userId');
+    }
+    return RevoltUser.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  // ── Messages ──────────────────────────────────────────────────────────────
+
+  Future<List<RevoltMessage>> fetchMessages(String channelId,
+      {int limit = 50}) async {
+    final response = await http.get(
+      Uri.parse(
+          '$_apiBase/channels/$channelId/messages?limit=$limit&sort=Latest'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+          'fetchMessages ${response.statusCode}: ${response.body}');
+    }
+    final body = jsonDecode(response.body);
+    final List<dynamic> list =
+        body is List ? body : (body as Map<String, dynamic>)['messages'] as List;
+    return list
+        .map((m) => RevoltMessage.fromJson(m as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<RevoltMessage> sendMessage(
+      String channelId, String content) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/channels/$channelId/messages'),
+      headers: _headers,
+      body: jsonEncode({'content': content}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to send message');
+    }
+    return RevoltMessage.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  // ── Voice ─────────────────────────────────────────────────────────────────
+
+  /// Returns {'token': '...', 'url': 'wss://...'} for LiveKit.
+  Future<Map<String, dynamic>> joinVoiceChannel(String channelId) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/channels/$channelId/join_call'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+          'joinVoiceChannel ${response.statusCode}: ${response.body}');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  // ── WebSocket ─────────────────────────────────────────────────────────────
+
+  void connectWebSocket() {
+    // Cancel any existing WS stream subscription before reconnecting
+    _wsStreamSub?.cancel();
+    _wsStreamSub = null;
+    // Recreate controller if it was previously closed
+    if (_eventController.isClosed) {
+      _eventController =
+          StreamController<Map<String, dynamic>>.broadcast();
+    }
+    _ws = WebSocketChannel.connect(Uri.parse(_wsUrl));
+    _ws!.sink
+        .add(jsonEncode({'type': 'Authenticate', 'token': _token}));
+    _wsStreamSub = _ws!.stream.listen(
+      (data) {
+        try {
+          final event =
+              jsonDecode(data as String) as Map<String, dynamic>;
+          if (!_eventController.isClosed) {
+            _eventController.add(event);
+          }
+        } catch (_) {}
+      },
+      onDone: () {},
+      onError: (_) {},
+    );
+  }
+
+  void disconnect() {
+    _wsStreamSub?.cancel();
+    _wsStreamSub = null;
+    _ws?.sink.close();
+    _ws = null;
+  }
+
+  void dispose() {
+    disconnect();
+    _eventController.close();
+  }
+}
