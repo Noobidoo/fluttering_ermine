@@ -69,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: const Color(0xFF16161A),
       title: channel != null
           ? Row(children: [
-              Icon(_channelIcon(channel.type),
+              Icon(_channelIcon(channel),
                   size: 18, color: Colors.white54),
               const SizedBox(width: 6),
               Text(state.channelDisplayName(channel),
@@ -86,14 +86,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  IconData _channelIcon(ChannelType t) => switch (t) {
-        ChannelType.textChannel => Icons.tag,
-        ChannelType.voiceChannel => Icons.volume_up_rounded,
-        ChannelType.directMessage => Icons.person_rounded,
-        ChannelType.group => Icons.group_rounded,
-        ChannelType.savedMessages => Icons.bookmark_rounded,
-        _ => Icons.chat_bubble_outline,
-      };
+  IconData _channelIcon(RevoltChannel channel) => switch (channel.type) {
+      ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
+      ChannelType.textChannel => Icons.tag,
+      ChannelType.directMessage => Icons.person_rounded,
+      ChannelType.group => Icons.group_rounded,
+      ChannelType.savedMessages => Icons.bookmark_rounded,
+      _ => Icons.chat_bubble_outline,
+    };
 }
 
 // ── Server rail ──────────────────────────────────────────────────────────────
@@ -272,9 +272,9 @@ class _ChannelTile extends StatelessWidget {
   final RevoltChannel channel;
   const _ChannelTile(this.channel);
 
-  IconData _icon(ChannelType t) => switch (t) {
+  IconData _icon(RevoltChannel channel) => switch (channel.type) {
+        ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
         ChannelType.textChannel => Icons.tag,
-        ChannelType.voiceChannel => Icons.volume_up_rounded,
         ChannelType.directMessage => Icons.person_rounded,
         ChannelType.group => Icons.group_rounded,
         ChannelType.savedMessages => Icons.bookmark_rounded,
@@ -296,7 +296,7 @@ class _ChannelTile extends StatelessWidget {
         selectedTileColor: const Color(0x207F5AF0),
         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
         leading: Icon(
-          _icon(channel.type),
+          _icon(channel),
           size: 18,
           color: selected ? const Color(0xFF7F5AF0) : Colors.white38,
         ),
@@ -311,8 +311,8 @@ class _ChannelTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         onTap: () {
-          if (channel.type == ChannelType.voiceChannel) {
-            state.joinVoiceChannel(channel);
+          if (channel.isVoice) {
+            state.selectVoiceChannel(channel);
           } else {
             state.selectChannel(channel);
           }
@@ -469,8 +469,12 @@ class _ChatPanel extends StatelessWidget {
     return Column(
       children: [
         _ChatHeader(channel),
-        Expanded(child: _MessageList(channel, scrollCtrl)),
-        _MessageInput(msgCtrl: msgCtrl),
+        if (channel.isVoice)
+          Expanded(child: _VoiceChannelView(channel))
+        else ...[  
+          Expanded(child: _MessageList(channel, scrollCtrl)),
+          _MessageInput(msgCtrl: msgCtrl),
+        ],
       ],
     );
   }
@@ -481,8 +485,8 @@ class _ChatHeader extends StatelessWidget {
   const _ChatHeader(this.channel);
 
   IconData _icon(ChannelType t) => switch (t) {
+        ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
         ChannelType.textChannel => Icons.tag,
-        ChannelType.voiceChannel => Icons.volume_up_rounded,
         ChannelType.directMessage => Icons.person_rounded,
         ChannelType.group => Icons.group_rounded,
         ChannelType.savedMessages => Icons.bookmark_rounded,
@@ -524,6 +528,98 @@ class _ChatHeader extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _VoiceChannelView extends StatelessWidget {
+  final RevoltChannel channel;
+  const _VoiceChannelView(this.channel);
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final isActive = state.activeVoiceChannel?.id == channel.id;
+
+    Widget controls;
+    if (isActive) {
+      controls = Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FilledButton.icon(
+            onPressed: () => context.read<AppState>().toggleMute(),
+            icon: Icon(state.isMuted ? Icons.mic_off : Icons.mic),
+            label: Text(state.isMuted ? 'Unmute' : 'Mute'),
+            style: FilledButton.styleFrom(
+              backgroundColor:
+                  state.isMuted ? Colors.redAccent : const Color(0xFF2CB67D),
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: () => context.read<AppState>().leaveVoiceChannel(),
+            icon: const Icon(Icons.call_end, color: Colors.redAccent),
+            label: const Text('Leave',
+                style: TextStyle(color: Colors.redAccent)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      );
+    } else if (state.isJoiningVoice) {
+      controls = const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 12),
+          Text('Connecting…', style: TextStyle(color: Colors.white38)),
+        ],
+      );
+    } else {
+      controls = FilledButton.icon(
+        onPressed: () => context.read<AppState>().joinVoiceChannel(channel),
+        icon: const Icon(Icons.call),
+        label: const Text('Join Voice'),
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF2CB67D),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+        ),
+      );
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isActive ? Icons.graphic_eq : Icons.volume_up_rounded,
+            size: 72,
+            color: isActive ? const Color(0xFF2CB67D) : Colors.white12,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isActive ? 'You are in this channel' : 'Voice Channel',
+            style: TextStyle(
+              fontSize: 18,
+              color: isActive ? const Color(0xFF2CB67D) : Colors.white38,
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (state.voiceError != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                state.voiceError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          controls,
         ],
       ),
     );

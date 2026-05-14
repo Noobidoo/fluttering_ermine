@@ -137,6 +137,33 @@ class RevoltService {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  // ── Channels ──────────────────────────────────────────────────────────────
+  Future<RevoltChannel> fetchChannel(String channelId) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/channels/$channelId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch channel $channelId');
+    }
+    return RevoltChannel.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async {
+    final responses = await Future.wait(channelIds.map((id) => http.get(
+          Uri.parse('$_apiBase/channels/$id'),
+          headers: _headers,
+        )));
+    return responses.map((response) {
+      if (response.statusCode != 200) {
+        throw Exception('Failed to fetch channel: ${response.body}');
+      }
+      return RevoltChannel.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    }).toList();
+  }
+
   // ── Voice ─────────────────────────────────────────────────────────────────
 
   /// Returns {'token': '...', 'url': 'wss://...'} for LiveKit.

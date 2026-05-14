@@ -76,7 +76,6 @@ class RevoltServer {
 
 enum ChannelType {
   textChannel,
-  voiceChannel,
   directMessage,
   group,
   savedMessages,
@@ -86,6 +85,7 @@ enum ChannelType {
 class RevoltChannel {
   final String id;
   final ChannelType type;
+  final bool isVoice;
   final String? name;
   final String? serverId;
   final List<String>? recipientIds;
@@ -95,6 +95,7 @@ class RevoltChannel {
   RevoltChannel({
     required this.id,
     required this.type,
+    this.isVoice = false,
     this.name,
     this.serverId,
     this.recipientIds,
@@ -106,7 +107,6 @@ class RevoltChannel {
     final typeStr = json['channel_type'] as String? ?? '';
     final type = switch (typeStr) {
       'TextChannel' => ChannelType.textChannel,
-      'VoiceChannel' => ChannelType.voiceChannel,
       'DirectMessage' => ChannelType.directMessage,
       'Group' => ChannelType.group,
       'SavedMessages' => ChannelType.savedMessages,
@@ -115,6 +115,8 @@ class RevoltChannel {
     return RevoltChannel(
       id: json['_id'] as String,
       type: type,
+      // Voice channels have a "voice" field that's an object, while text channels don't have it at all
+      isVoice: json['voice'] != null,
       name: json['name'] as String?,
       serverId: json['server'] as String?,
       recipientIds:

@@ -231,6 +231,7 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
     _allChannels = channels
         .map((c) => RevoltChannel.fromJson(c as Map<String, dynamic>))
         .toList();
+    
 
     if (_servers.isNotEmpty && _selectedServer == null && !_showDMs) {
       _selectedServer = _servers.first;
@@ -290,7 +291,25 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
     _selectedServer = server;
     _selectedChannel = null;
     _showDMs = false;
+    _fetchServerChannels(server);
     notifyListeners();
+  }
+
+  Future<void> _fetchServerChannels(RevoltServer server) async {
+    notifyListeners();
+    try {
+      final channels = await _service.fetchChannels(server.channelIds);
+      _allChannels = [
+        ..._allChannels.where((c) => c.serverId != server.id),
+        ...channels,
+      ];
+    } catch (e) {
+      debugPrint('[fetchServerChannels] ${server.id} failed: $e');
+      _channelErrors[server.id] = e.toString().replaceAll('Exception: ', '');
+    } finally {
+      _loadingChannels.remove(server.id);
+      notifyListeners();
+    }
   }
 
   void selectDMs() {
@@ -306,6 +325,11 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
     if (!_messages.containsKey(channel.id)) {
       await _loadMessages(channel.id);
     }
+  }
+
+  void selectVoiceChannel(RevoltChannel channel) {
+    _selectedChannel = channel;
+    notifyListeners();
   }
 
   Future<void> retryLoadMessages() async {
