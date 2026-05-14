@@ -36,7 +36,9 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
 
   // ── Voice state ───────────────────────────────────────────────────────────
   Room? _voiceRoom;
+  late EventsListener<RoomEvent> _voiceRoomListener;
   RevoltChannel? _activeVoiceChannel;
+  bool _isInVoice = false;
   bool _isMuted = false;
   bool _isJoiningVoice = false;
   String? _voiceError;
@@ -57,7 +59,7 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
 
   // Voice
   RevoltChannel? get activeVoiceChannel => _activeVoiceChannel;
-  bool get isInVoice => _voiceRoom != null && _voiceRoom!.connectionState == ConnectionState.connected;
+  bool get isInVoice => _isInVoice;
   bool get isMuted => _isMuted;
   bool get isJoiningVoice => _isJoiningVoice;
   String? get voiceError => _voiceError;
@@ -107,6 +109,17 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
       final token = prefs.getString(_tokenKey);
       if (token == null) return;
       _service.setToken(token);
+      // Refresh node config to get current voice node name
+      try {
+        final config = await _service.fetchNodeConfig();
+        final features = config['features'] as Map<String, dynamic>? ?? {};
+        final livekit = features['livekit'] as Map<String, dynamic>? ?? {};
+        final nodes = livekit['nodes'] as List<dynamic>? ?? [];
+        final voiceNode = nodes.isNotEmpty
+            ? (nodes.first as Map<String, dynamic>)['name'] as String?
+            : null;
+        _service.setVoiceNode(voiceNode);
+      } catch (_) {} // non-fatal: voice just won't work if this fails
       _currentUser = await _service.fetchSelf();
       _userCache[_currentUser!.id] = _currentUser!;
       _connectWebSocket();
@@ -124,12 +137,17 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
     _service.setServerUrl(apiBase, _defaultWsUrl); // temp until config fetched
     final config = await _service.fetchNodeConfig();
     final wsUrl = config['ws'] as String? ?? _defaultWsUrl;
-    final autumnUrl = (config['features'] as Map<String, dynamic>?)
-            ?['autumn'] as Map<String, dynamic>?
-        ?? {};
+    final features = config['features'] as Map<String, dynamic>? ?? {};
+    final autumnUrl = features['autumn'] as Map<String, dynamic>? ?? {};
     final autumnBase = autumnUrl['url'] as String? ?? 'https://autumn.revolt.chat';
+    final livekit = features['livekit'] as Map<String, dynamic>? ?? {};
+    final nodes = livekit['nodes'] as List<dynamic>? ?? [];
+    final voiceNode = nodes.isNotEmpty
+        ? (nodes.first as Map<String, dynamic>)['name'] as String?
+        : null;
     _service.setServerUrl(apiBase, wsUrl);
     _service.setAutumnUrl(autumnBase);
+    _service.setVoiceNode(voiceNode);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_apiBaseKey, apiBase);
     await prefs.setString(_wsUrlKey, wsUrl);
@@ -174,10 +192,14 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
       await _service.logout();
     } catch (_) {}
     _wsSub?.cancel();
-    _service.disconnect();
     await _voiceRoom?.disconnect();
+    await _voiceRoomListener.dispose();
+    await _voiceRoom?.disconnect();
+    _service.disconnect();
+
     _voiceRoom = null;
     _activeVoiceChannel = null;
+    _isInVoice = false;
     _isLoggedIn = false;
     _currentUser = null;
     _servers = [];
@@ -371,14 +393,56 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
     notifyListeners();
     try {
       final data = await _service.joinVoiceChannel(channel.id);
-      final url = data['url'] as String;
+      var url = data['url'] as String;
       final token = data['token'] as String;
+      // LiveKit requires a WebSocket URL; normalize https:// → wss://
+      if (url.startsWith('https://')) {
+        url = 'wss://${url.substring(8)}';
+      } else if (url.startsWith('http://')) {
+        url = 'ws://${url.substring(7)}';
+      }
       final room = Room();
-      await room.connect(url, token);
-      await room.localParticipant?.setMicrophoneEnabled(true);
-      _voiceRoom = room;
-      _activeVoiceChannel = channel;
+      _voiceRoomListener  = room.createListener();
+      _voiceRoomListener 
+        ..on<RoomConnectedEvent>((e) {
+          debugPrint('[voice] connected to room ${room.name}');
+          _voiceError = null;
+          _isInVoice = true;
+          _voiceRoom = e.room;
+          _activeVoiceChannel = channel;
+          notifyListeners();
+        })
+        ..on<RoomDisconnectedEvent>((e) {
+          debugPrint('[voice] disconnected from room ${room.name}');
+          _voiceRoom = null;
+          _activeVoiceChannel = null;
+          _isInVoice = false;
+          _isMuted = false;
+          _voiceError = 'Disconnected from voice';
+          notifyListeners();
+        })
+        ..on<RoomReconnectingEvent>((e) {
+          debugPrint('[voice] reconnecting to room ${room.name}...');
+          _voiceError = 'Reconnecting...';
+          _isJoiningVoice = true;
+          notifyListeners();
+        })
+        ..on<RoomReconnectedEvent>((e) {
+          debugPrint('[voice] reconnected to room ${room.name}');
+          _voiceError = null;
+          _isInVoice = true;
+          _isJoiningVoice = false;
+          notifyListeners();
+        });
+
+      // Attempt connection with a timeout to handle cases where the WS connection hangs indefinitely
+      await room.connect(url, token).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw Exception('Voice connection timed out'),
+      );
       _isMuted = false;
+
+        await room.localParticipant?.setMicrophoneEnabled(true);
     } catch (e) {
       debugPrint('[voice] join failed: $e');
       _voiceError = e.toString().replaceAll('Exception: ', '');
@@ -390,9 +454,7 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
 
   Future<void> leaveVoiceChannel() async {
     await _voiceRoom?.disconnect();
-    _voiceRoom = null;
-    _activeVoiceChannel = null;
-    _isMuted = false;
+    await _voiceRoomListener.dispose();
     notifyListeners();
   }
 
@@ -426,7 +488,7 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
       );
       if (otherId != null && otherId.isNotEmpty) {
         return _userCache[otherId]?.displayUsername ?? 'Direct Message';
-      }
+      } 
     }
     return 'Unknown Channel';
   }
@@ -434,6 +496,7 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
   @override
   void dispose() {
     _wsSub?.cancel();
+    _voiceRoomListener.dispose();  // add this
     _voiceRoom?.disconnect();
     _service.dispose();
     super.dispose();

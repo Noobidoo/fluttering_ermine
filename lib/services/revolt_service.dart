@@ -14,6 +14,7 @@ class RevoltService {
   String _apiBase = _defaultApiBase;
   String _wsUrl = _defaultWsUrl;
   String _autumnBase = _defaultAutumnBase;
+  String? _voiceNode;
   String? _token;
   WebSocketChannel? _ws;
   StreamSubscription<dynamic>? _wsStreamSub;
@@ -30,6 +31,8 @@ class RevoltService {
   }
 
   void setAutumnUrl(String autumnBase) => _autumnBase = autumnBase;
+
+  void setVoiceNode(String? node) => _voiceNode = node;
 
   String get apiBase => _apiBase;
   String get autumnBase => _autumnBase;
@@ -168,9 +171,13 @@ class RevoltService {
 
   /// Returns {'token': '...', 'url': 'wss://...'} for LiveKit.
   Future<Map<String, dynamic>> joinVoiceChannel(String channelId) async {
-    final response = await http.get(
+    if (_voiceNode == null) {
+      throw Exception('No voice node available for this server');
+    }
+    final response = await http.post(
       Uri.parse('$_apiBase/channels/$channelId/join_call'),
       headers: _headers,
+      body: jsonEncode({'node': _voiceNode, 'force_disconnect': true}),
     );
     if (response.statusCode != 200) {
       throw Exception(
