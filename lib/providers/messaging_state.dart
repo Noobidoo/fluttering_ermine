@@ -73,12 +73,16 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     switch (event['type'] as String?) {
       case 'Ready':
         _onReady(event);
+        break;
       case 'Message':
         _onMessage(event);
+        break;
       case 'MessageUpdate':
         _onMessageUpdate(event);
+        break;
       case 'MessageDelete':
         _onMessageDelete(event);
+        break;
     }
   }
 
@@ -88,6 +92,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       final user = RevoltUser.fromJson(u as Map<String, dynamic>);
       _userCache[user.id] = user;
     }
+
     notifyListeners();
   }
 

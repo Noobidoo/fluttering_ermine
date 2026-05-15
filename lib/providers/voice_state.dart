@@ -27,6 +27,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _isMuted = false;
   bool _isJoiningVoice = false;
   bool _isScreenSharing = false;
+  bool _leavingIntentionally = false;
   String? _voiceError;
 
   // ── Getters ───────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> joinVoiceChannel(RevoltChannel channel) async {
     if (_isJoiningVoice) return;
     if (_voiceRoom != null) await leaveVoiceChannel();
+    _leavingIntentionally = false;
     _isJoiningVoice = true;
     _voiceError = null;
     notifyListeners();
@@ -81,18 +83,24 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           debugPrint('[voice] connected to room ${room.name}');
           _voiceError = null;
           _isInVoice = true;
+          _isJoiningVoice = false;
           _voiceRoom = e.room;
           _activeVoiceChannel = channel;
           notifyListeners();
         })
         ..on<RoomDisconnectedEvent>((e) {
-          debugPrint('[voice] disconnected from room ${room.name}');
+          debugPrint('[voice] disconnected from room ${_voiceRoom?.name}');
           _voiceRoom = null;
           _activeVoiceChannel = null;
           _isInVoice = false;
+          _isJoiningVoice = false;
           _isMuted = false;
           _isScreenSharing = false;
-          _voiceError = 'Disconnected from voice';
+          if (!_leavingIntentionally) {
+            _voiceError = 'Disconnected from voice';
+          } else {
+            _voiceError = null;
+          }
           notifyListeners();
         })
         ..on<RoomReconnectingEvent>((e) {
@@ -113,10 +121,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         ..on<ParticipantConnectedEvent>((_) => notifyListeners())
         ..on<ParticipantDisconnectedEvent>((_) => notifyListeners());
 
-      await room.connect(url, token).timeout(
-        const Duration(seconds: 20),
-        onTimeout: () => throw Exception('Voice connection timed out'),
-      );
+      await room.connect(url, token);
       _isMuted = false;
       await room.localParticipant?.setMicrophoneEnabled(true);
     } catch (e) {
@@ -129,11 +134,11 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> leaveVoiceChannel() async {
-    await _voiceRoom?.disconnect();
+    _leavingIntentionally = true;
+    await _voiceRoom?.disconnect(); // fires RoomDisconnectedEvent → resets state + notifyListeners
     await _voiceRoomListener?.dispose();
     _voiceRoomListener = null;
-    _isScreenSharing = false;
-    notifyListeners();
+    // _leavingIntentionally stays true until next joinVoiceChannel
   }
 
   Future<void> toggleMute() async {
