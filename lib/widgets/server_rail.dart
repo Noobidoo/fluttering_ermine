@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_state.dart';
 import '../providers/server_state.dart';
+import '../screens/settings_screen.dart';
 
 class ServerRail extends StatelessWidget {
   const ServerRail({super.key});
@@ -51,6 +52,12 @@ class ServerRail extends StatelessWidget {
                 );
               },
             ),
+          ),
+          _RailIcon(
+            tooltip: 'Settings',
+            selected: false,
+            onTap: () => SettingsScreen.show(context),
+            child: const Icon(Icons.settings_outlined, size: 20, color: Colors.white54),
           ),
           _RailIcon(
             tooltip: 'Logout',

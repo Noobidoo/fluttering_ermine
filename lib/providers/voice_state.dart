@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:livekit_client/livekit_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/revolt_service.dart';
+import '../services/volume_helper.dart';
 
 class RemoteVideoStream {
   final VideoTrack track;
@@ -36,7 +38,9 @@ class VoiceParticipant {
 class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   final RevoltService _service;
 
-  VoiceState(this._service);
+  VoiceState(this._service) {
+    _loadSettings();
+  }
 
   Room? _voiceRoom;
   EventsListener<RoomEvent>? _voiceRoomListener;
@@ -48,6 +52,13 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _leavingIntentionally = false;
   String? _voiceError;
 
+  // ── Voice settings ────────────────────────────────────────────────────────
+
+  double _outputVolume = 1.0;
+  bool _noiseSuppression = true;
+  bool _echoCancellation = true;
+  bool _autoGainControl = true;
+
   // ── Getters ───────────────────────────────────────────────────────────────
 
   RevoltChannel? get activeVoiceChannel => _activeVoiceChannel;
@@ -56,6 +67,10 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool get isJoiningVoice => _isJoiningVoice;
   bool get isScreenSharing => _isScreenSharing;
   String? get voiceError => _voiceError;
+  double get outputVolume => _outputVolume;
+  bool get noiseSuppression => _noiseSuppression;
+  bool get echoCancellation => _echoCancellation;
+  bool get autoGainControl => _autoGainControl;
 
   List<RemoteVideoStream> get remoteVideoStreams {
     if (_voiceRoom == null) return const [];
@@ -167,7 +182,16 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
 
       await room.connect(url, token);
       _isMuted = false;
-      await room.localParticipant?.setMicrophoneEnabled(true);
+      await room.localParticipant?.setMicrophoneEnabled(
+        true,
+        audioCaptureOptions: AudioCaptureOptions(
+          noiseSuppression: _noiseSuppression,
+          echoCancellation: _echoCancellation,
+          autoGainControl: _autoGainControl,
+        ),
+      );
+      // Apply stored output volume to any already-connected remote participants
+      _applyOutputVolume();
     } catch (e) {
       debugPrint('[voice] join failed: $e');
       _voiceError = e.toString().replaceAll('Exception: ', '');
@@ -221,6 +245,50 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _isJoiningVoice = false;
     _isScreenSharing = false;
     _voiceError = null;
+    notifyListeners();
+  }
+
+  // ── Settings ────────────────────────────────────────────────────────────
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _outputVolume = prefs.getDouble('voice_output_volume') ?? 1.0;
+    _noiseSuppression = prefs.getBool('voice_noise_suppression') ?? true;
+    _echoCancellation = prefs.getBool('voice_echo_cancellation') ?? true;
+    _autoGainControl = prefs.getBool('voice_auto_gain_control') ?? true;
+    notifyListeners();
+  }
+
+  void _applyOutputVolume() {
+    applyLiveKitVolume(_outputVolume);
+  }
+
+  Future<void> setOutputVolume(double volume) async {
+    _outputVolume = volume.clamp(0.0, 1.0);
+    _applyOutputVolume();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('voice_output_volume', volume);
+    notifyListeners();
+  }
+
+  Future<void> setNoiseSuppression(bool value) async {
+    _noiseSuppression = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('voice_noise_suppression', value);
+    notifyListeners();
+  }
+
+  Future<void> setEchoCancellation(bool value) async {
+    _echoCancellation = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('voice_echo_cancellation', value);
+    notifyListeners();
+  }
+
+  Future<void> setAutoGainControl(bool value) async {
+    _autoGainControl = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('voice_auto_gain_control', value);
     notifyListeners();
   }
 

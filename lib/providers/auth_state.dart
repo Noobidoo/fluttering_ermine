@@ -133,6 +133,12 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
   }
 
+  Future<void> updateDisplayName(String name) async {
+    await _service.updateProfile(displayName: name.isEmpty ? '' : name);
+    _currentUser = await _service.fetchSelf();
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);

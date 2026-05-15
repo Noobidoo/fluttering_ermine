@@ -157,6 +157,19 @@ class RevoltService {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<void> updateProfile({String? displayName}) async {
+    final body = <String, dynamic>{};
+    if (displayName != null) body['display_name'] = displayName;
+    final response = await http.patch(
+      Uri.parse('$_apiBase/users/@me'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('updateProfile: ${response.statusCode}');
+    }
+  }
+
   // ── Messages ──────────────────────────────────────────────────────────────
 
   Future<List<RevoltMessage>> fetchMessages(String channelId,
