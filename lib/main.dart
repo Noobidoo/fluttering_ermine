@@ -17,7 +17,7 @@ void main() {
   final voiceState = VoiceState(service);
   final messagingState = MessagingState(service, serverState);
   final authState =
-      AuthState(service, serverState, messagingState, voiceState)..init();
+      AuthState(service, serverState, messagingState, voiceState);
 
   runApp(
     MultiProvider(
@@ -30,6 +30,10 @@ void main() {
       child: const FlutteringErmineApp(),
     ),
   );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    authState.init();
+  });
 }
 
 class FlutteringErmineApp extends StatelessWidget {

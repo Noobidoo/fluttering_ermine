@@ -15,6 +15,24 @@ class RemoteVideoStream {
   });
 }
 
+class VoiceParticipant {
+  final String identity;
+  final String? name;
+  final bool isLocal;
+  final bool isMuted;
+  const VoiceParticipant({
+    required this.identity,
+    this.name,
+    required this.isLocal,
+    required this.isMuted,
+  });
+
+  String get displayName {
+    if (name != null && name!.isNotEmpty) return name!;
+    return identity;
+  }
+}
+
 class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   final RevoltService _service;
 
@@ -56,6 +74,32 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       }
     }
     return streams;
+  }
+
+  List<VoiceParticipant> get voiceParticipants {
+    if (_voiceRoom == null) return const [];
+    final result = <VoiceParticipant>[];
+    final local = _voiceRoom!.localParticipant;
+    if (local != null) {
+      result.add(VoiceParticipant(
+        identity: local.identity,
+        name: local.name,
+        isLocal: true,
+        isMuted: _isMuted,
+      ));
+    }
+    for (final p in _voiceRoom!.remoteParticipants.values) {
+      final audioMuted = p.trackPublications.values
+          .where((pub) => pub.kind == TrackType.AUDIO)
+          .every((pub) => pub.muted);
+      result.add(VoiceParticipant(
+        identity: p.identity,
+        name: p.name,
+        isLocal: false,
+        isMuted: audioMuted,
+      ));
+    }
+    return result;
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

@@ -76,41 +76,114 @@ class _ChannelTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final server = context.watch<ServerState>();
     final messaging = context.watch<MessagingState>();
+    final voice = context.watch<VoiceState>();
+    final auth = context.watch<AuthState>();
     final selected = server.selectedChannel?.id == channel.id;
     final name = messaging.channelDisplayName(channel);
 
+    // Server-side voice participant tracking (shows for all channels)
+    final participantIds = channel.isVoice
+        ? server.voiceParticipantsFor(channel.id)
+        : const <String>[];
+
+    // LiveKit mute status (local connection) takes priority; fall back to server-side publishing state
+    final isActiveVoice =
+        channel.isVoice && voice.activeVoiceChannel?.id == channel.id;
+    final liveKitByIdentity = {
+      for (final p in (isActiveVoice ? voice.voiceParticipants : <VoiceParticipant>[])) p.identity: p,
+    };
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      child: ListTile(
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        selected: selected,
-        selectedTileColor: const Color(0x207F5AF0),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        leading: Icon(
-          _icon(),
-          size: 18,
-          color: selected ? const Color(0xFF7F5AF0) : Colors.white38,
-        ),
-        title: Text(
-          name,
-          style: TextStyle(
-            fontSize: 14,
-            color: selected ? Colors.white : Colors.white60,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            dense: true,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            selected: selected,
+            selectedTileColor: const Color(0x207F5AF0),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            leading: Icon(
+              _icon(),
+              size: 18,
+              color: selected ? const Color(0xFF7F5AF0) : Colors.white38,
+            ),
+            title: Text(
+              name,
+              style: TextStyle(
+                fontSize: 14,
+                color: selected ? Colors.white : Colors.white60,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            onTap: () {
+              if (channel.isVoice) {
+                server.selectVoiceChannel(channel);
+              } else {
+                server.selectChannel(channel);
+              }
+              if (Scaffold.of(context).isDrawerOpen) {
+                Navigator.of(context).pop();
+              }
+            },
           ),
-          overflow: TextOverflow.ellipsis,
-        ),
-        onTap: () {
-          if (channel.isVoice) {
-            server.selectVoiceChannel(channel);
-          } else {
-            server.selectChannel(channel);
-          }
-          if (Scaffold.of(context).isDrawerOpen) {
-            Navigator.of(context).pop();
-          }
-        },
+          if (participantIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 32, bottom: 4),
+              child: Column(
+                children: participantIds.map((userId) {
+                  final user = messaging.getUser(userId);
+                  final lkParticipant = liveKitByIdentity[userId];
+                  final isLocal = userId == auth.currentUser?.id;
+                  return _VoiceParticipantRow(
+                    displayName: user?.displayUsername ?? userId,
+                    isLocal: isLocal,
+                    isMuted: lkParticipant?.isMuted,
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VoiceParticipantRow extends StatelessWidget {
+  final String displayName;
+  final bool isLocal;
+  final bool? isMuted; // null = unknown (not connected via LiveKit)
+  const _VoiceParticipantRow({
+    required this.displayName,
+    required this.isLocal,
+    this.isMuted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(
+            isMuted == true ? Icons.mic_off : Icons.mic,
+            size: 12,
+            color: isMuted == true
+                ? Colors.redAccent
+                : const Color(0xFF2CB67D),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              displayName + (isLocal ? ' (you)' : ''),
+              style: const TextStyle(fontSize: 12, color: Colors.white54),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

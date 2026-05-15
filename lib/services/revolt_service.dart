@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -256,6 +257,7 @@ class RevoltService {
         try {
           final event =
               jsonDecode(data as String) as Map<String, dynamic>;
+          debugPrint('[WS] << ${event['type']}');
           if (!_eventController.isClosed) {
             _eventController.add(event);
           }
