@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
-import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
+import '../providers/messaging_state.dart';
+import '../providers/server_state.dart';
 import '../widgets/server_rail.dart';
 import '../widgets/channel_panel.dart';
 import '../widgets/chat_panel.dart';
@@ -65,15 +67,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
-    final channel = context.watch<AppState>().selectedChannel;
-    final state = context.watch<AppState>();
+    final channel = context.watch<ServerState>().selectedChannel;
+    final messaging = context.watch<MessagingState>();
     return AppBar(
       backgroundColor: const Color(0xFF16161A),
       title: channel != null
           ? Row(children: [
               Icon(_channelIcon(channel), size: 18, color: Colors.white54),
               const SizedBox(width: 6),
-              Text(state.channelDisplayName(channel),
+              Text(messaging.channelDisplayName(channel),
                   style: const TextStyle(fontSize: 16)),
             ])
           : const Text('Fluttering Ermine'),
@@ -81,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
         IconButton(
           icon: const Icon(Icons.logout),
           tooltip: 'Logout',
-          onPressed: () => context.read<AppState>().logout(),
+          onPressed: () => context.read<AuthState>().logout(),
         ),
       ],
     );

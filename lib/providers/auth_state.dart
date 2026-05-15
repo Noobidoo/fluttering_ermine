@@ -1,0 +1,163 @@
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/models.dart';
+import '../services/revolt_service.dart';
+import 'messaging_state.dart';
+import 'server_state.dart';
+import 'voice_state.dart';
+
+const _defaultWsUrl = 'wss://ws.revolt.chat';
+const _tokenKey = 'revolt_session_token';
+const _apiBaseKey = 'revolt_api_base';
+const _wsUrlKey = 'revolt_ws_url';
+const _autumnBaseKey = 'revolt_autumn_base';
+
+class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
+  final RevoltService _service;
+  final ServerState _serverState;
+  final MessagingState _messagingState;
+  final VoiceState _voiceState;
+
+  AuthState(
+    this._service,
+    this._serverState,
+    this._messagingState,
+    this._voiceState,
+  );
+
+  bool _isLoggedIn = false;
+  bool _isLoading = true;
+  String? _error;
+  RevoltUser? _currentUser;
+
+  // ── Getters ───────────────────────────────────────────────────────────────
+
+  bool get isLoggedIn => _isLoggedIn;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  String get serverUrl => _service.apiBase;
+  String get apiBase => _service.apiBase;
+  String get autumnBase => _service.autumnBase;
+  RevoltUser? get currentUser => _currentUser;
+
+  // ── Init / Auth ───────────────────────────────────────────────────────────
+
+  Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedApi = prefs.getString(_apiBaseKey);
+      final savedWs = prefs.getString(_wsUrlKey);
+      final savedAutumn = prefs.getString(_autumnBaseKey);
+      if (savedApi != null && savedWs != null) {
+        _service.setServerUrl(savedApi, savedWs);
+      }
+      if (savedAutumn != null) {
+        _service.setAutumnUrl(savedAutumn);
+      }
+      final token = prefs.getString(_tokenKey);
+      if (token == null) return;
+      _service.setToken(token);
+      try {
+        final config = await _service.fetchNodeConfig();
+        final features = config['features'] as Map<String, dynamic>? ?? {};
+        final livekit = features['livekit'] as Map<String, dynamic>? ?? {};
+        final nodes = livekit['nodes'] as List<dynamic>? ?? [];
+        final voiceNode = nodes.isNotEmpty
+            ? (nodes.first as Map<String, dynamic>)['name'] as String?
+            : null;
+        _service.setVoiceNode(voiceNode);
+      } catch (_) {}
+      _currentUser = await _service.fetchSelf();
+      _messagingState.setCurrentUserId(_currentUser!.id);
+      _connectWebSocket();
+      _isLoggedIn = true;
+    } catch (_) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> setServerUrl(String userInput) async {
+    final (apiBase, config) = await _service.discoverApiUrl(userInput);
+    final wsUrl = config['ws'] as String? ?? _defaultWsUrl;
+    final features = config['features'] as Map<String, dynamic>? ?? {};
+    final autumnUrl = features['autumn'] as Map<String, dynamic>? ?? {};
+    final autumnBase =
+        autumnUrl['url'] as String? ?? 'https://autumn.revolt.chat';
+    final livekit = features['livekit'] as Map<String, dynamic>? ?? {};
+    final nodes = livekit['nodes'] as List<dynamic>? ?? [];
+    final voiceNode = nodes.isNotEmpty
+        ? (nodes.first as Map<String, dynamic>)['name'] as String?
+        : null;
+    _service.setServerUrl(apiBase, wsUrl);
+    _service.setAutumnUrl(autumnBase);
+    _service.setVoiceNode(voiceNode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_apiBaseKey, apiBase);
+    await prefs.setString(_wsUrlKey, wsUrl);
+    await prefs.setString(_autumnBaseKey, autumnBase);
+    notifyListeners();
+  }
+
+  Future<void> login(String email, String password) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final result = await _service.login(email, password);
+      final resultType = result['result'] as String?;
+      if (resultType == 'MFA') {
+        throw Exception(
+            'Account has MFA/2FA enabled. Please use an app-password or disable MFA temporarily.');
+      }
+      if (resultType == 'Disabled') {
+        throw Exception('This account has been disabled.');
+      }
+      final token = result['token'] as String;
+      _service.setToken(token);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+      _currentUser = await _service.fetchSelf();
+      _messagingState.setCurrentUserId(_currentUser!.id);
+      _connectWebSocket();
+      _isLoggedIn = true;
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception: ', '');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
+    try {
+      await _service.logout();
+    } catch (_) {}
+    await _voiceState.clear();
+    _serverState.clear();
+    _messagingState.clear();
+    _service.disconnect();
+    _isLoggedIn = false;
+    _currentUser = null;
+    await prefs.remove(_apiBaseKey);
+    await prefs.remove(_wsUrlKey);
+    await prefs.remove(_autumnBaseKey);
+    _service.setServerUrl('https://api.revolt.chat', _defaultWsUrl);
+    _service.setAutumnUrl('https://autumn.revolt.chat');
+    notifyListeners();
+  }
+
+  // ── Internal ──────────────────────────────────────────────────────────────
+
+  void _connectWebSocket() {
+    _service.connectWebSocket();
+    _serverState.subscribeToEvents();
+    _messagingState.subscribeToEvents();
+  }
+}

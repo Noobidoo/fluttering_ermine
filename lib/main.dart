@@ -1,15 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'providers/app_state.dart';
+import 'providers/auth_state.dart';
+import 'providers/messaging_state.dart';
+import 'providers/server_state.dart';
+import 'providers/voice_state.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'services/revolt_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final service = RevoltService();
+  final serverState = ServerState(service);
+  final voiceState = VoiceState(service);
+  final messagingState = MessagingState(service, serverState);
+  final authState =
+      AuthState(service, serverState, messagingState, voiceState)..init();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppState()..init(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: authState),
+        ChangeNotifierProvider.value(value: serverState),
+        ChangeNotifierProvider.value(value: messagingState),
+        ChangeNotifierProvider.value(value: voiceState),
+      ],
       child: const FlutteringErmineApp(),
     ),
   );
@@ -48,14 +65,14 @@ class FlutteringErmineApp extends StatelessWidget {
           ),
         ),
       ),
-      home: Consumer<AppState>(
-        builder: (context, state, child) {
-          if (state.isLoading) {
+      home: Consumer<AuthState>(
+        builder: (context, auth, child) {
+          if (auth.isLoading) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          return state.isLoggedIn ? const HomeScreen() : const LoginScreen();
+          return auth.isLoggedIn ? const HomeScreen() : const LoginScreen();
         },
       ),
     );

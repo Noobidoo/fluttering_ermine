@@ -2,19 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
-import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
+import '../providers/messaging_state.dart';
+import '../providers/server_state.dart';
+import '../providers/voice_state.dart';
 
 class ChannelPanel extends StatelessWidget {
   const ChannelPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final channels = state.selectedServer != null
-        ? state.selectedServerChannels
-        : state.dmChannels;
-    final title = state.selectedServer?.name ??
-        (state.showDMs ? 'Direct Messages' : 'Fluttering Ermine');
+    final server = context.watch<ServerState>();
+    final voice = context.watch<VoiceState>();
+    final auth = context.watch<AuthState>();
+    final channels = server.selectedServer != null
+        ? server.selectedServerChannels
+        : server.dmChannels;
+    final title = server.selectedServer?.name ??
+        (server.showDMs ? 'Direct Messages' : 'Fluttering Ermine');
 
     return Container(
       color: const Color(0xFF141418),
@@ -45,8 +50,9 @@ class ChannelPanel extends StatelessWidget {
                     itemBuilder: (_, i) => _ChannelTile(channels[i]),
                   ),
           ),
-          if (state.currentUser != null) _UserBar(state.currentUser!),
-          if (state.isInVoice || state.isJoiningVoice) const _VoiceBar(),
+          if (auth.currentUser != null)
+            _UserBar(auth.currentUser!, auth.autumnBase, auth.apiBase),
+          if (voice.isInVoice || voice.isJoiningVoice) const _VoiceBar(),
         ],
       ),
     );
@@ -68,9 +74,10 @@ class _ChannelTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final selected = state.selectedChannel?.id == channel.id;
-    final name = state.channelDisplayName(channel);
+    final server = context.watch<ServerState>();
+    final messaging = context.watch<MessagingState>();
+    final selected = server.selectedChannel?.id == channel.id;
+    final name = messaging.channelDisplayName(channel);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -96,9 +103,9 @@ class _ChannelTile extends StatelessWidget {
         ),
         onTap: () {
           if (channel.isVoice) {
-            state.selectVoiceChannel(channel);
+            server.selectVoiceChannel(channel);
           } else {
-            state.selectChannel(channel);
+            server.selectChannel(channel);
           }
           if (Scaffold.of(context).isDrawerOpen) {
             Navigator.of(context).pop();
@@ -111,12 +118,12 @@ class _ChannelTile extends StatelessWidget {
 
 class _UserBar extends StatelessWidget {
   final RevoltUser user;
-  const _UserBar(this.user);
+  final String autumnBase;
+  final String apiBase;
+  const _UserBar(this.user, this.autumnBase, this.apiBase);
 
   @override
   Widget build(BuildContext context) {
-    final apiBase = context.read<AppState>().apiBase;
-    final autumnBase = context.read<AppState>().autumnBase;
     return Container(
       padding: const EdgeInsets.all(10),
       color: const Color(0xFF0D0D0F),
@@ -149,15 +156,16 @@ class _VoiceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final channelName = state.activeVoiceChannel != null
-        ? state.channelDisplayName(state.activeVoiceChannel!)
+    final voice = context.watch<VoiceState>();
+    final messaging = context.watch<MessagingState>();
+    final channelName = voice.activeVoiceChannel != null
+        ? messaging.channelDisplayName(voice.activeVoiceChannel!)
         : 'Connecting…';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       color: const Color(0xFF1A3A2A),
-      child: state.isJoiningVoice
+      child: voice.isJoiningVoice
           ? const Row(children: [
               SizedBox(
                   width: 14,
@@ -191,14 +199,14 @@ class _VoiceBar extends StatelessWidget {
                 ),
                 IconButton(
                   icon: Icon(
-                    state.isMuted ? Icons.mic_off : Icons.mic,
+                    voice.isMuted ? Icons.mic_off : Icons.mic,
                     size: 18,
-                    color: state.isMuted ? Colors.redAccent : Colors.white70,
+                    color: voice.isMuted ? Colors.redAccent : Colors.white70,
                   ),
-                  tooltip: state.isMuted ? 'Unmute' : 'Mute',
+                  tooltip: voice.isMuted ? 'Unmute' : 'Mute',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  onPressed: () => context.read<AppState>().toggleMute(),
+                  onPressed: () => context.read<VoiceState>().toggleMute(),
                 ),
                 const SizedBox(width: 4),
                 IconButton(
@@ -208,7 +216,7 @@ class _VoiceBar extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onPressed: () =>
-                      context.read<AppState>().leaveVoiceChannel(),
+                      context.read<VoiceState>().leaveVoiceChannel(),
                 ),
               ],
             ),

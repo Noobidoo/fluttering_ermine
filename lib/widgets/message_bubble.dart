@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
-import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
 
 class MessageBubble extends StatelessWidget {
   final RevoltMessage message;
@@ -42,9 +42,9 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    if (grouped) return _groupedBubble(state.autumnBase);
-    return _fullBubble(state.apiBase, state.autumnBase);
+    final auth = context.watch<AuthState>();
+    if (grouped) return _groupedBubble(auth.autumnBase);
+    return _fullBubble(auth.apiBase, auth.autumnBase);
   }
 
   Widget _fullBubble(String apiBase, String autumnBase) {

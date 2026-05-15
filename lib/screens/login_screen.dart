@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Sync field with any persisted server URL
-    final saved = context.read<AppState>().serverUrl;
+    final saved = context.read<AuthState>().serverUrl;
     if (_serverCtrl.text != saved) _serverCtrl.text = saved;
   }
 
@@ -39,14 +39,14 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty || password.isEmpty) return;
 
     final apiBase = _serverCtrl.text.trim().replaceAll(RegExp(r'/$'), '');
-    await context.read<AppState>().setServerUrl(apiBase);
+    await context.read<AuthState>().setServerUrl(apiBase);
     if (!mounted) return;
-    context.read<AppState>().login(email, password);
+    context.read<AuthState>().login(email, password);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
+    final state = context.watch<AuthState>();
 
     return Scaffold(
       body: Center(

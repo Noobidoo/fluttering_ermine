@@ -3,7 +3,10 @@ import 'package:livekit_client/livekit_client.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
-import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
+import '../providers/messaging_state.dart';
+import '../providers/server_state.dart';
+import '../providers/voice_state.dart';
 import 'message_bubble.dart';
 
 class ChatPanel extends StatelessWidget {
@@ -15,8 +18,7 @@ class ChatPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final channel = state.selectedChannel;
+    final channel = context.watch<ServerState>().selectedChannel;
 
     if (channel == null) {
       return const Center(
@@ -64,7 +66,7 @@ class _ChatHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
+    final messaging = context.watch<MessagingState>();
 
     return Container(
       height: 48,
@@ -78,7 +80,7 @@ class _ChatHeader extends StatelessWidget {
           Icon(_icon(), size: 20, color: Colors.white54),
           const SizedBox(width: 8),
           Text(
-            state.channelDisplayName(channel),
+            messaging.channelDisplayName(channel),
             style:
                 const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
@@ -108,9 +110,9 @@ class _VoiceChannelView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final isActive = state.activeVoiceChannel?.id == channel.id;
-    final streams = isActive ? state.remoteVideoStreams : <RemoteVideoStream>[];
+    final voice = context.watch<VoiceState>();
+    final isActive = voice.activeVoiceChannel?.id == channel.id;
+    final streams = isActive ? voice.remoteVideoStreams : <RemoteVideoStream>[];
 
     Widget controls;
     if (isActive) {
@@ -120,29 +122,29 @@ class _VoiceChannelView extends StatelessWidget {
         runSpacing: 8,
         children: [
           FilledButton.icon(
-            onPressed: () => context.read<AppState>().toggleMute(),
-            icon: Icon(state.isMuted ? Icons.mic_off : Icons.mic),
-            label: Text(state.isMuted ? 'Unmute' : 'Mute'),
+            onPressed: () => context.read<VoiceState>().toggleMute(),
+            icon: Icon(voice.isMuted ? Icons.mic_off : Icons.mic),
+            label: Text(voice.isMuted ? 'Unmute' : 'Mute'),
             style: FilledButton.styleFrom(
               backgroundColor:
-                  state.isMuted ? Colors.redAccent : const Color(0xFF2CB67D),
+                  voice.isMuted ? Colors.redAccent : const Color(0xFF2CB67D),
             ),
           ),
           FilledButton.icon(
-            onPressed: () => context.read<AppState>().toggleScreenShare(),
-            icon: Icon(state.isScreenSharing
+            onPressed: () => context.read<VoiceState>().toggleScreenShare(),
+            icon: Icon(voice.isScreenSharing
                 ? Icons.stop_screen_share
                 : Icons.screen_share),
             label: Text(
-                state.isScreenSharing ? 'Stop Sharing' : 'Share Screen'),
+                voice.isScreenSharing ? 'Stop Sharing' : 'Share Screen'),
             style: FilledButton.styleFrom(
-              backgroundColor: state.isScreenSharing
+              backgroundColor: voice.isScreenSharing
                   ? Colors.orangeAccent
                   : const Color(0xFF7F5AF0),
             ),
           ),
           OutlinedButton.icon(
-            onPressed: () => context.read<AppState>().leaveVoiceChannel(),
+            onPressed: () => context.read<VoiceState>().leaveVoiceChannel(),
             icon: const Icon(Icons.call_end, color: Colors.redAccent),
             label: const Text('Leave',
                 style: TextStyle(color: Colors.redAccent)),
@@ -152,7 +154,7 @@ class _VoiceChannelView extends StatelessWidget {
           ),
         ],
       );
-    } else if (state.isJoiningVoice) {
+    } else if (voice.isJoiningVoice) {
       controls = const Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -163,7 +165,7 @@ class _VoiceChannelView extends StatelessWidget {
       );
     } else {
       controls = FilledButton.icon(
-        onPressed: () => context.read<AppState>().joinVoiceChannel(channel),
+        onPressed: () => context.read<VoiceState>().joinVoiceChannel(channel),
         icon: const Icon(Icons.call),
         label: const Text('Join Voice'),
         style: FilledButton.styleFrom(
@@ -203,11 +205,11 @@ class _VoiceChannelView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                if (state.voiceError != null) ...[
+                if (voice.voiceError != null) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: Text(
-                      state.voiceError!,
+                      voice.voiceError!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                           color: Colors.redAccent, fontSize: 13),
@@ -312,14 +314,14 @@ class _MessageList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final messages = state.currentMessages;
+    final messaging = context.watch<MessagingState>();
+    final messages = messaging.currentMessages;
 
-    if (state.isLoadingMessages) {
+    if (messaging.isLoadingMessages) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (state.currentChannelError != null) {
+    if (messaging.currentChannelError != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -330,7 +332,7 @@ class _MessageList extends StatelessWidget {
                   size: 48, color: Colors.redAccent),
               const SizedBox(height: 12),
               Text(
-                state.currentChannelError!,
+                messaging.currentChannelError!,
                 textAlign: TextAlign.center,
                 style:
                     const TextStyle(color: Colors.white54, fontSize: 13),
@@ -338,7 +340,7 @@ class _MessageList extends StatelessWidget {
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: () =>
-                    context.read<AppState>().retryLoadMessages(),
+                    context.read<MessagingState>().retryLoadMessages(),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: FilledButton.styleFrom(
@@ -367,7 +369,7 @@ class _MessageList extends StatelessWidget {
         final grouped = prev != null && prev.authorId == msg.authorId;
         return MessageBubble(
           message: msg,
-          author: state.getUser(msg.authorId),
+          author: messaging.getUser(msg.authorId),
           grouped: grouped,
         );
       },
@@ -383,15 +385,14 @@ class _MessageInput extends StatelessWidget {
     final text = msgCtrl.text;
     if (text.trim().isEmpty) return;
     msgCtrl.clear();
-    context.read<AppState>().sendMessage(text);
+    context.read<MessagingState>().sendMessage(text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final name = state.selectedChannel != null
-        ? state.channelDisplayName(state.selectedChannel!)
-        : '';
+    final messaging = context.watch<MessagingState>();
+    final channel = context.watch<ServerState>().selectedChannel;
+    final name = channel != null ? messaging.channelDisplayName(channel) : '';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),

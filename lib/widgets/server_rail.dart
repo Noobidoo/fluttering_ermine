@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/app_state.dart';
+import '../providers/auth_state.dart';
+import '../providers/server_state.dart';
 
 class ServerRail extends StatelessWidget {
   const ServerRail({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
+    final server = context.watch<ServerState>();
+    final auth = context.watch<AuthState>();
 
     return Container(
       width: 68,
@@ -18,26 +20,26 @@ class ServerRail extends StatelessWidget {
           const SizedBox(height: 8),
           _RailIcon(
             tooltip: 'Direct Messages',
-            selected: state.showDMs,
-            onTap: state.selectDMs,
+            selected: server.showDMs,
+            onTap: server.selectDMs,
             child: const Icon(Icons.message_rounded, size: 22),
           ),
           const _Divider(),
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.zero,
-              itemCount: state.servers.length,
+              itemCount: server.servers.length,
               itemBuilder: (_, i) {
-                final srv = state.servers[i];
+                final srv = server.servers[i];
                 return _RailIcon(
                   tooltip: srv.name,
-                  selected: state.selectedServer?.id == srv.id,
-                  onTap: () => state.selectServer(srv),
-                  child: srv.iconUrlFor(state.autumnBase) != null
+                  selected: server.selectedServer?.id == srv.id,
+                  onTap: () => server.selectServer(srv),
+                  child: srv.iconUrlFor(auth.autumnBase) != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            srv.iconUrlFor(state.autumnBase)!,
+                            srv.iconUrlFor(auth.autumnBase)!,
                             width: 44,
                             height: 44,
                             fit: BoxFit.cover,
@@ -53,7 +55,7 @@ class ServerRail extends StatelessWidget {
           _RailIcon(
             tooltip: 'Logout',
             selected: false,
-            onTap: () => context.read<AppState>().logout(),
+            onTap: () => context.read<AuthState>().logout(),
             child: const Icon(Icons.logout, size: 20, color: Colors.redAccent),
           ),
           const SizedBox(height: 8),
