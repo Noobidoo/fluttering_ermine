@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:livekit_client/livekit_client.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
@@ -109,11 +110,14 @@ class _VoiceChannelView extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final isActive = state.activeVoiceChannel?.id == channel.id;
+    final streams = isActive ? state.remoteVideoStreams : <RemoteVideoStream>[];
 
     Widget controls;
     if (isActive) {
-      controls = Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      controls = Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
         children: [
           FilledButton.icon(
             onPressed: () => context.read<AppState>().toggleMute(),
@@ -124,7 +128,19 @@ class _VoiceChannelView extends StatelessWidget {
                   state.isMuted ? Colors.redAccent : const Color(0xFF2CB67D),
             ),
           ),
-          const SizedBox(width: 12),
+          FilledButton.icon(
+            onPressed: () => context.read<AppState>().toggleScreenShare(),
+            icon: Icon(state.isScreenSharing
+                ? Icons.stop_screen_share
+                : Icons.screen_share),
+            label: Text(
+                state.isScreenSharing ? 'Stop Sharing' : 'Share Screen'),
+            style: FilledButton.styleFrom(
+              backgroundColor: state.isScreenSharing
+                  ? Colors.orangeAccent
+                  : const Color(0xFF7F5AF0),
+            ),
+          ),
           OutlinedButton.icon(
             onPressed: () => context.read<AppState>().leaveVoiceChannel(),
             icon: const Icon(Icons.call_end, color: Colors.redAccent),
@@ -157,37 +173,132 @@ class _VoiceChannelView extends StatelessWidget {
       );
     }
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isActive ? Icons.graphic_eq : Icons.volume_up_rounded,
-            size: 72,
-            color: isActive ? const Color(0xFF2CB67D) : Colors.white12,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isActive ? 'You are in this channel' : 'Voice Channel',
-            style: TextStyle(
-              fontSize: 18,
-              color: isActive ? const Color(0xFF2CB67D) : Colors.white38,
+    return Column(
+      children: [
+        if (streams.isNotEmpty)
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: _VideoGrid(streams: streams),
             ),
           ),
-          const SizedBox(height: 24),
-          if (state.voiceError != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                state.voiceError!,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(color: Colors.redAccent, fontSize: 13),
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isActive ? Icons.graphic_eq : Icons.volume_up_rounded,
+                  size: 72,
+                  color: isActive ? const Color(0xFF2CB67D) : Colors.white12,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isActive ? 'You are in this channel' : 'Voice Channel',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color:
+                        isActive ? const Color(0xFF2CB67D) : Colors.white38,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                if (state.voiceError != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      state.voiceError!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.redAccent, fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                controls,
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VideoGrid extends StatelessWidget {
+  final List<RemoteVideoStream> streams;
+  const _VideoGrid({required this.streams});
+
+  @override
+  Widget build(BuildContext context) {
+    final crossAxisCount = streams.length <= 1
+        ? 1
+        : streams.length <= 4
+            ? 2
+            : 3;
+    return GridView.builder(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 16 / 9,
+      ),
+      itemCount: streams.length,
+      itemBuilder: (_, i) => _RemoteVideoTile(stream: streams[i]),
+    );
+  }
+}
+
+class _RemoteVideoTile extends StatelessWidget {
+  final RemoteVideoStream stream;
+  const _RemoteVideoTile({required this.stream});
+
+  @override
+  Widget build(BuildContext context) {
+    final isScreen = stream.source == TrackSource.screenShareVideo;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          VideoTrackRenderer(stream.track),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black54, Colors.transparent],
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isScreen ? Icons.screen_share : Icons.videocam,
+                    size: 14,
+                    color: Colors.white70,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      stream.participantIdentity,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-          ],
-          controls,
+          ),
         ],
       ),
     );

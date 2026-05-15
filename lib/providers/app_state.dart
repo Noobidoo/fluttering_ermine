@@ -9,6 +9,17 @@ import '../services/revolt_service.dart';
 
 const _defaultWsUrl = 'wss://ws.revolt.chat';
 
+class RemoteVideoStream {
+  final VideoTrack track;
+  final String participantIdentity;
+  final TrackSource source;
+  const RemoteVideoStream({
+    required this.track,
+    required this.participantIdentity,
+    required this.source,
+  });
+}
+
 const _tokenKey = 'revolt_session_token';
 const _apiBaseKey = 'revolt_api_base';
 const _wsUrlKey = 'revolt_ws_url';
@@ -41,6 +52,7 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
   bool _isInVoice = false;
   bool _isMuted = false;
   bool _isJoiningVoice = false;
+  bool _isScreenSharing = false;
   String? _voiceError;
 
   // ── Getters ───────────────────────────────────────────────────────────────
@@ -62,7 +74,26 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
   bool get isInVoice => _isInVoice;
   bool get isMuted => _isMuted;
   bool get isJoiningVoice => _isJoiningVoice;
+  bool get isScreenSharing => _isScreenSharing;
   String? get voiceError => _voiceError;
+  List<RemoteVideoStream> get remoteVideoStreams {
+    if (_voiceRoom == null) return const [];
+    final streams = <RemoteVideoStream>[];
+    for (final p in _voiceRoom!.remoteParticipants.values) {
+      for (final pub in p.trackPublications.values) {
+        if (pub.track is VideoTrack &&
+            (pub.source == TrackSource.camera ||
+                pub.source == TrackSource.screenShareVideo)) {
+          streams.add(RemoteVideoStream(
+            track: pub.track as VideoTrack,
+            participantIdentity: p.identity,
+            source: pub.source,
+          ));
+        }
+      }
+    }
+    return streams;
+  }
 
   List<RevoltChannel> get selectedServerChannels {
     if (_selectedServer == null) return [];
@@ -417,6 +448,7 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
           _activeVoiceChannel = null;
           _isInVoice = false;
           _isMuted = false;
+          _isScreenSharing = false;
           _voiceError = 'Disconnected from voice';
           notifyListeners();
         })
@@ -432,7 +464,11 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
           _isInVoice = true;
           _isJoiningVoice = false;
           notifyListeners();
-        });
+        })
+        ..on<TrackSubscribedEvent>((_) => notifyListeners())
+        ..on<TrackUnsubscribedEvent>((_) => notifyListeners())
+        ..on<ParticipantConnectedEvent>((_) => notifyListeners())
+        ..on<ParticipantDisconnectedEvent>((_) => notifyListeners());
 
       // Attempt connection with a timeout to handle cases where the WS connection hangs indefinitely
       await room.connect(url, token).timeout(
@@ -454,6 +490,7 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
   Future<void> leaveVoiceChannel() async {
     await _voiceRoom?.disconnect();
     await _voiceRoomListener.dispose();
+    _isScreenSharing = false;
     notifyListeners();
   }
 
@@ -461,6 +498,24 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
     if (_voiceRoom == null) return;
     _isMuted = !_isMuted;
     await _voiceRoom!.localParticipant?.setMicrophoneEnabled(!_isMuted);
+    notifyListeners();
+  }
+
+  Future<void> toggleScreenShare() async {
+    if (_voiceRoom?.localParticipant == null) return;
+    _isScreenSharing = !_isScreenSharing;
+    try {
+      await _voiceRoom!.localParticipant!.setScreenShareEnabled(
+        _isScreenSharing,
+        screenShareCaptureOptions: _isScreenSharing
+            ? const ScreenShareCaptureOptions(captureScreenAudio: true)
+            : null,
+      );
+    } catch (e) {
+      debugPrint('[voice] screen share failed: $e');
+      _isScreenSharing = !_isScreenSharing;
+      _voiceError = e.toString().replaceAll('Exception: ', '');
+    }
     notifyListeners();
   }
 
