@@ -133,9 +133,8 @@ class AppState extends ChangeNotifier  with DiagnosticableTreeMixin{
     }
   }
 
-  Future<void> setServerUrl(String apiBase) async {
-    _service.setServerUrl(apiBase, _defaultWsUrl); // temp until config fetched
-    final config = await _service.fetchNodeConfig();
+  Future<void> setServerUrl(String userInput) async {
+    final (apiBase, config) = await _service.discoverApiUrl(userInput);
     final wsUrl = config['ws'] as String? ?? _defaultWsUrl;
     final features = config['features'] as Map<String, dynamic>? ?? {};
     final autumnUrl = features['autumn'] as Map<String, dynamic>? ?? {};

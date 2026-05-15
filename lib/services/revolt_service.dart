@@ -55,6 +55,57 @@ class RevoltService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
+  /// Resolves a user-supplied URL to the canonical API base URL.
+  ///
+  /// Strategy:
+  /// 1. Try `GET <base>/.well-known/revolt` — if it returns `{"api": "..."}`,
+  ///    use that URL as the API base.
+  /// 2. Fall back to treating the input URL as the API base directly.
+  ///
+  /// Returns a record of (resolvedApiBase, nodeConfig).
+  Future<(String, Map<String, dynamic>)> discoverApiUrl(String input) async {
+    // Normalise: strip trailing slash, ensure scheme
+    var base = input.trim().replaceAll(RegExp(r'/+$'), '');
+    if (!base.startsWith('http://') && !base.startsWith('https://')) {
+      base = 'https://$base';
+    }
+
+    // 1. Try .well-known/revolt
+    try {
+      final wellKnownResponse = await http
+          .get(Uri.parse('$base/.well-known/revolt'))
+          .timeout(const Duration(seconds: 8));
+      if (wellKnownResponse.statusCode == 200) {
+        final data = jsonDecode(wellKnownResponse.body);
+        if (data is Map && data.containsKey('api')) {
+          final apiBase = data['api'] as String;
+          final configResponse = await http
+              .get(Uri.parse(apiBase))
+              .timeout(const Duration(seconds: 8));
+          if (configResponse.statusCode == 200) {
+            final config = jsonDecode(configResponse.body) as Map<String, dynamic>;
+            if (config.containsKey('revolt')) {
+              return (apiBase, config);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fall back: treat the input as the API base directly
+    final configResponse = await http
+        .get(Uri.parse(base))
+        .timeout(const Duration(seconds: 8));
+    if (configResponse.statusCode != 200) {
+      throw Exception('Could not find a Revolt API at "$input"');
+    }
+    final config = jsonDecode(configResponse.body) as Map<String, dynamic>;
+    if (!config.containsKey('revolt')) {
+      throw Exception('"$input" does not appear to be a Revolt server');
+    }
+    return (base, config);
+  }
+
   // ── Auth ──────────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> login(
