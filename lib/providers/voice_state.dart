@@ -22,11 +22,13 @@ class VoiceParticipant {
   final String? name;
   final bool isLocal;
   final bool isMuted;
+  final bool isSpeaking;
   const VoiceParticipant({
     required this.identity,
     this.name,
     required this.isLocal,
     required this.isMuted,
+    this.isSpeaking = false,
   });
 
   String get displayName {
@@ -101,6 +103,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         name: local.name,
         isLocal: true,
         isMuted: _isMuted,
+        isSpeaking: local.isSpeaking,
       ));
     }
     for (final p in _voiceRoom!.remoteParticipants.values) {
@@ -112,6 +115,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         name: p.name,
         isLocal: false,
         isMuted: audioMuted,
+        isSpeaking: p.isSpeaking,
       ));
     }
     return result;
@@ -178,7 +182,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         ..on<TrackSubscribedEvent>((_) => notifyListeners())
         ..on<TrackUnsubscribedEvent>((_) => notifyListeners())
         ..on<ParticipantConnectedEvent>((_) => notifyListeners())
-        ..on<ParticipantDisconnectedEvent>((_) => notifyListeners());
+        ..on<ParticipantDisconnectedEvent>((_) => notifyListeners())
+        ..on<ActiveSpeakersChangedEvent>((_) => notifyListeners());
 
       await room.connect(url, token);
       _isMuted = false;

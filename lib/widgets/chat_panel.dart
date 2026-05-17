@@ -3,18 +3,25 @@ import 'package:livekit_client/livekit_client.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
-import '../providers/auth_state.dart';
 import '../providers/messaging_state.dart';
 import '../providers/server_state.dart';
 import '../providers/voice_state.dart';
 import 'message_bubble.dart';
 
-class ChatPanel extends StatelessWidget {
+class ChatPanel extends StatefulWidget {
   final TextEditingController msgCtrl;
   final ScrollController scrollCtrl;
 
   const ChatPanel(
       {required this.msgCtrl, required this.scrollCtrl, super.key});
+
+  @override
+  State<ChatPanel> createState() => _ChatPanelState();
+}
+
+class _ChatPanelState extends State<ChatPanel> {
+  bool _showVoice = true;
+  bool _splitMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -39,21 +46,143 @@ class ChatPanel extends StatelessWidget {
 
     return Column(
       children: [
-        _ChatHeader(channel),
-        if (channel.isVoice)
-          Expanded(child: _VoiceChannelView(channel))
-        else ...[
-          Expanded(child: _MessageList(channel, scrollCtrl)),
-          _MessageInput(msgCtrl: msgCtrl),
+        _ChatHeader(
+          channel,
+          actions: channel.isVoice
+              ? [
+                  IconButton(
+                    icon: Icon(
+                      _splitMode
+                          ? Icons.tab_rounded
+                          : Icons.view_agenda_rounded,
+                      size: 18,
+                    ),
+                    tooltip: _splitMode ? 'Tab layout' : 'Split layout',
+                    color: Colors.white38,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () =>
+                        setState(() => _splitMode = !_splitMode),
+                  ),
+                ]
+              : const [],
+        ),
+        if (channel.isVoice) ...[
+          if (_splitMode) ...[
+            SizedBox(height: 260, child: _VoiceChannelView(channel)),
+            const Divider(height: 1, thickness: 1, color: Color(0xFF2A2A30)),
+            Expanded(child: _MessageList(channel, widget.scrollCtrl)),
+            _MessageInput(msgCtrl: widget.msgCtrl),
+          ] else ...[
+            _VoiceTabBar(
+              showVoice: _showVoice,
+              onToggle: (v) => setState(() => _showVoice = v),
+            ),
+            if (_showVoice)
+              Expanded(child: _VoiceChannelView(channel))
+            else ...[
+              Expanded(child: _MessageList(channel, widget.scrollCtrl)),
+              _MessageInput(msgCtrl: widget.msgCtrl),
+            ],
+          ],
+        ] else ...[
+          Expanded(child: _MessageList(channel, widget.scrollCtrl)),
+          _MessageInput(msgCtrl: widget.msgCtrl),
         ],
       ],
     );
   }
 }
 
+class _VoiceTabBar extends StatelessWidget {
+  final bool showVoice;
+  final ValueChanged<bool> onToggle;
+  const _VoiceTabBar({required this.showVoice, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    const active = Color(0xFF7F5AF0);
+    const inactive = Color(0xFF2A2A30);
+    const textActive = Colors.white;
+    const textInactive = Colors.white38;
+
+    return Container(
+      height: 36,
+      color: const Color(0xFF16161A),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onToggle(true),
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: showVoice ? active : inactive,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.volume_up_rounded,
+                        size: 14,
+                        color: showVoice ? active : textInactive),
+                    const SizedBox(width: 6),
+                    Text('Voice',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: showVoice ? textActive : textInactive,
+                        )),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onToggle(false),
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: !showVoice ? active : inactive,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.tag,
+                        size: 14,
+                        color: !showVoice ? active : textInactive),
+                    const SizedBox(width: 6),
+                    Text('Chat',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: !showVoice ? textActive : textInactive,
+                        )),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ChatHeader extends StatelessWidget {
   final RevoltChannel channel;
-  const _ChatHeader(this.channel);
+  final List<Widget> actions;
+  const _ChatHeader(this.channel, {this.actions = const []});
 
   IconData _icon() => switch (channel.type) {
         ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
@@ -79,24 +208,37 @@ class _ChatHeader extends StatelessWidget {
         children: [
           Icon(_icon(), size: 20, color: Colors.white54),
           const SizedBox(width: 8),
-          Text(
-            messaging.channelDisplayName(channel),
-            style:
-                const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          if (channel.description != null &&
-              channel.description!.isNotEmpty) ...[
-            const SizedBox(width: 12),
-            Container(width: 1, height: 20, color: Colors.white24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                channel.description!,
-                style:
-                    const TextStyle(color: Colors.white38, fontSize: 13),
-                overflow: TextOverflow.ellipsis,
-              ),
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    messaging.channelDisplayName(channel),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (channel.description != null &&
+                    channel.description!.isNotEmpty) ...[
+                  const SizedBox(width: 12),
+                  Container(width: 1, height: 20, color: Colors.white24),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      channel.description!,
+                      style: const TextStyle(
+                          color: Colors.white38, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ],
             ),
+          ),
+          if (actions.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            ...actions,
           ],
         ],
       ),

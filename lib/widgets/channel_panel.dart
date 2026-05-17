@@ -86,6 +86,11 @@ class _ChannelTile extends StatelessWidget {
         ? server.voiceParticipantsFor(channel.id)
         : const <String>[];
 
+    // Ensure voice participants are in user cache (they may never have sent a message)
+    if (participantIds.isNotEmpty) {
+      messaging.ensureUsersCached(List<String>.from(participantIds));
+    }
+
     // LiveKit mute status (local connection) takes priority; fall back to server-side publishing state
     final isActiveVoice =
         channel.isVoice && voice.activeVoiceChannel?.id == channel.id;
@@ -142,6 +147,8 @@ class _ChannelTile extends StatelessWidget {
                     displayName: user?.displayUsername ?? userId,
                     isLocal: isLocal,
                     isMuted: lkParticipant?.isMuted,
+                    isSpeaking: lkParticipant?.isSpeaking ?? false,
+                    avatarUrl: user?.avatarUrlFor(auth.autumnBase, auth.apiBase),
                   );
                 }).toList(),
               ),
@@ -155,31 +162,73 @@ class _ChannelTile extends StatelessWidget {
 class _VoiceParticipantRow extends StatelessWidget {
   final String displayName;
   final bool isLocal;
-  final bool? isMuted; // null = unknown (not connected via LiveKit)
+  final bool? isMuted;
+  final bool isSpeaking;
+  final String? avatarUrl;
   const _VoiceParticipantRow({
     required this.displayName,
     required this.isLocal,
     this.isMuted,
+    this.isSpeaking = false,
+    this.avatarUrl,
   });
 
   @override
   Widget build(BuildContext context) {
+    const speakingColor = Color(0xFF2CB67D);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSpeaking ? speakingColor : Colors.transparent,
+                width: 2,
+              ),
+              boxShadow: isSpeaking
+                  ? [BoxShadow(
+                      color: speakingColor.withValues(alpha: 0.5),
+                      blurRadius: 6,
+                    )]
+                  : null,
+            ),
+            child: CircleAvatar(
+              radius: 10,
+              backgroundImage:
+                  avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+              backgroundColor: const Color(0xFF7F5AF0),
+              onBackgroundImageError:
+                  avatarUrl != null ? (_, _) {} : null,
+              child: avatarUrl == null
+                  ? Text(
+                      displayName.isNotEmpty
+                          ? displayName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                          fontSize: 9, color: Colors.white),
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 5),
           Icon(
             isMuted == true ? Icons.mic_off : Icons.mic,
-            size: 12,
-            color: isMuted == true
-                ? Colors.redAccent
-                : const Color(0xFF2CB67D),
+            size: 11,
+            color: isMuted == true ? Colors.redAccent : speakingColor,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           Expanded(
             child: Text(
               displayName + (isLocal ? ' (you)' : ''),
-              style: const TextStyle(fontSize: 12, color: Colors.white54),
+              style: TextStyle(
+                fontSize: 12,
+                color: isSpeaking ? Colors.white70 : Colors.white54,
+                fontWeight:
+                    isSpeaking ? FontWeight.w600 : FontWeight.normal,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),

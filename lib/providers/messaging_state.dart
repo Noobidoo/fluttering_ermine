@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../models/models.dart';
 import '../services/revolt_service.dart';
@@ -83,6 +84,13 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'MessageDelete':
         _onMessageDelete(event);
         break;
+      case 'UserUpdate':
+        _onUserUpdate(event);
+        break;
+      default:
+        // Debug print unhandled events, but only in debug mode to avoid spamming release logs
+        debugPrint('Unhandled WS event: ${event['type']}');
+        break;
     }
   }
 
@@ -152,6 +160,27 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       _userCache[user.id] = user;
       notifyListeners();
     }).catchError((_) {});
+  }
+
+  void _onUserUpdate(Map<String, dynamic> event) {
+    final userId = event['id'] as String?;
+    if (userId == null) return;
+    // Evict old avatar URL from Flutter image cache before re-fetching
+    final old = _userCache[userId];
+    if (old != null) {
+      final oldUrl = old.avatarUrlFor(_service.autumnBase, _service.apiBase);
+      PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
+    }
+    _service.fetchUser(userId).then((user) {
+      _userCache[user.id] = user;
+      notifyListeners();
+    }).catchError((_) {});
+  }
+
+  void ensureUsersCached(List<String> userIds) {
+    for (final id in userIds) {
+      _ensureUserCached(id);
+    }
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

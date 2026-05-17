@@ -72,6 +72,9 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'VoiceChannelLeave':
         _onVoiceChannelLeave(event);
         break;
+      case 'VoiceChannelMove':
+        _onVoiceChannelMove(event);
+        break;
       case 'UserVoiceStateUpdate':
         _onUserVoiceStateUpdate(event);
         break;
@@ -137,11 +140,31 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     // { id: channelId, user: userId }
     final channelId = event['id'] as String?;
     final userId = event['user'] as String?;
-    debugPrint('[ServerState] VoiceChannelLeave channel=$channelId user=$userId');
+    debugPrint('[ServerState] VoiceChannelLeave channel=$channelId user=$userId raw=$event');
     if (channelId == null || userId == null) return;
     _voiceChannelMembers[channelId]?.remove(userId);
     _voiceChannelMembers.removeWhere((_, list) => list.isEmpty);
     _voicePublishing.remove(userId);
+    notifyListeners();
+  }
+
+  void _onVoiceChannelMove(Map<String, dynamic> event) {
+    // { user: userId, from: channelId, to: channelId, state: ... }
+    final userId = event['user'] as String?;
+    final from = event['from'] as String?;
+    final to = event['to'] as String?;
+    debugPrint('[ServerState] VoiceChannelMove user=$userId from=$from to=$to');
+    if (userId == null) return;
+    if (from != null) {
+      _voiceChannelMembers[from]?.remove(userId);
+      _voiceChannelMembers.removeWhere((_, list) => list.isEmpty);
+    }
+    if (to != null) {
+      _voiceChannelMembers.putIfAbsent(to, () => []);
+      if (!_voiceChannelMembers[to]!.contains(userId)) {
+        _voiceChannelMembers[to]!.add(userId);
+      }
+    }
     notifyListeners();
   }
 

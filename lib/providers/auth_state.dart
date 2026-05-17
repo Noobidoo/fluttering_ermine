@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
@@ -165,5 +166,22 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     _service.connectWebSocket();
     _serverState.subscribeToEvents();
     _messagingState.subscribeToEvents();
+    _service.events.listen(_handleEvent);
+  }
+
+  void _handleEvent(Map<String, dynamic> event) {
+    if (event['type'] != 'UserUpdate') return;
+    final id = event['id'] as String?;
+    if (id == null || id != _currentUser?.id) return;
+    // Evict old avatar from Flutter image cache before re-fetching
+    if (_currentUser != null) {
+      final oldUrl = _currentUser!.avatarUrlFor(_service.autumnBase, _service.apiBase);
+      PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
+    }
+    // Our own profile changed — re-fetch to get latest avatar/display name
+    _service.fetchSelf().then((user) {
+      _currentUser = user;
+      notifyListeners();
+    }).catchError((_) {});
   }
 }

@@ -272,7 +272,17 @@ class RevoltService {
               jsonDecode(data as String) as Map<String, dynamic>;
           debugPrint('[WS] << ${event['type']}');
           if (!_eventController.isClosed) {
-            _eventController.add(event);
+            // Unwrap Bulk packets so all consumers see individual events.
+            if (event['type'] == 'Bulk') {
+              final batch = (event['v'] as List<dynamic>?) ?? [];
+              for (final e in batch) {
+                final sub = e as Map<String, dynamic>;
+                debugPrint('[WS] << (bulk) ${sub['type']}');
+                _eventController.add(sub);
+              }
+            } else {
+              _eventController.add(event);
+            }
           }
         } catch (_) {}
       },
