@@ -12,13 +12,13 @@
 - [x] Message deletion — confirm dialog → `DELETE /channels/{id}/messages/{id}`
 - [x] Reply to message — reply bar above input, reply preview quote in bubble; `replies` field on `RevoltMessage`
 - [x] Typing indicators — `BeginTyping` WS pulse (debounced 2.5 s); `TypingStart`/`TypingStop` handlers; typing row in `_MessageInput`
-- [ ] **Emoji reactions** — React item in context menu → emoji picker popup; reaction chips below message body
+- [x] **Emoji reactions** — React item in context menu → emoji picker popup; reaction chips below message body
   - `PUT /channels/{channelId}/messages/{messageId}/reactions/{emoji}` (add)
   - `DELETE /channels/{channelId}/messages/{messageId}/reactions/{emoji}` (remove own)
   - Add `reactions: Map<String, int>` to `RevoltMessage.fromJson`
   - WS event `MessageReact` / `MessageUnreact` updates the map
   - Relevant files: `revolt_message.dart`, `revolt_service.dart`, `messaging_state.dart`, `message_bubble.dart`
-- [ ] **File / image attachment upload**
+- [x] **File / image attachment upload**
   - Add `file_picker` to `pubspec.yaml` (not present yet)
   - Pick file → `POST https://{autumnBase}/attachments` (multipart) → get `id` back
   - Pass `attachments: [id]` in `POST /channels/{channelId}/messages`

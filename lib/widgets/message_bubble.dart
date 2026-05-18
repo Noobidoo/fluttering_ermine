@@ -6,7 +6,21 @@ import '../models/models.dart';
 import '../providers/auth_state.dart';
 import '../providers/messaging_state.dart';
 
-enum _MsgAction { reply, edit, delete, copy }
+enum _MsgAction { reply, react, edit, delete, copy }
+
+// Curated list of common Unicode emojis for the picker
+const _kCommonEmojis = [
+  '👍', '👎', '❤️', '😂', '😮', '😢', '😡', '🎉',
+  '🔥', '✅', '❌', '⭐', '🙏', '👀', '💯', '🚀',
+  '😀', '😃', '😄', '😁', '😅', '🤣', '😊', '😇',
+  '🥰', '😍', '🤩', '😘', '😜', '🤔', '🤭', '😎',
+  '😴', '🥳', '😤', '😭', '😱', '🤯', '🥺', '😏',
+  '👋', '🤝', '✌️', '🤞', '🙌', '👏', '🫂', '💪',
+  '🐱', '🐶', '🦊', '🐻', '🐼', '🐨', '🦁', '🐸',
+  '🍕', '🍔', '🍣', '🍜', '☕', '🍺', '🥂', '🍭',
+  '⚽', '🏀', '🎮', '🎵', '🎸', '🎹', '🎲', '🃏',
+  '🌍', '🌈', '⚡', '❄️', '🌊', '🍀', '🌸', '🌻',
+];
 
 class MessageBubble extends StatefulWidget {
   final RevoltMessage message;
@@ -122,6 +136,64 @@ class _MessageBubbleState extends State<MessageBubble> {
     );
   }
 
+  void _showEmojiPicker(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black45,
+      builder: (ctx) => Dialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: SizedBox(
+          width: 320,
+          height: 340,
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Add Reaction',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white70)),
+                ),
+              ),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 8,
+                    mainAxisSpacing: 4,
+                    crossAxisSpacing: 4,
+                  ),
+                  itemCount: _kCommonEmojis.length,
+                  itemBuilder: (_, i) => InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      if (!context.mounted) return;
+                      context.read<MessagingState>().addReaction(
+                            widget.message.channelId,
+                            widget.message.id,
+                            _kCommonEmojis[i],
+                          );
+                    },
+                    child: Center(
+                      child: Text(_kCommonEmojis[i],
+                          style: const TextStyle(fontSize: 20)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _openContextMenu(BuildContext context, Offset globalPosition) {
     final auth = context.read<AuthState>();
     final isOwn = widget.message.authorId == auth.currentUser?.id;
@@ -140,6 +212,10 @@ class _MessageBubbleState extends State<MessageBubble> {
         const PopupMenuItem(
           value: _MsgAction.reply,
           child: _MenuItem(Icons.reply_rounded, 'Reply'),
+        ),
+        const PopupMenuItem(
+          value: _MsgAction.react,
+          child: _MenuItem(Icons.add_reaction_outlined, 'React'),
         ),
         if (isOwn)
           const PopupMenuItem(
@@ -165,6 +241,8 @@ class _MessageBubbleState extends State<MessageBubble> {
       switch (action) {
         case _MsgAction.reply:
           context.read<MessagingState>().setReplyTarget(widget.message);
+        case _MsgAction.react:
+          _showEmojiPicker(context);
         case _MsgAction.edit:
           _startEdit();
         case _MsgAction.delete:
@@ -210,6 +288,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                   onReply: () => context
                       .read<MessagingState>()
                       .setReplyTarget(widget.message),
+                  onReact: () => _showEmojiPicker(context),
                   onEdit: isOwn ? _startEdit : null,
                   onMore: (pos) => _openContextMenu(context, pos),
                 ),
@@ -301,6 +380,25 @@ class _MessageBubbleState extends State<MessageBubble> {
           ),
         for (final file in widget.message.attachments)
           _AttachmentWidget(file: file, autumnBase: autumnBase),
+        if (widget.message.reactions.isNotEmpty)
+          _ReactionsRow(
+            reactions: widget.message.reactions,
+            currentUserId:
+                context.read<AuthState>().currentUser?.id ?? '',
+            onToggle: (emoji) {
+              final uid =
+                  context.read<AuthState>().currentUser?.id ?? '';
+              final messaging = context.read<MessagingState>();
+              if (widget.message.reactions[emoji]?.contains(uid) ==
+                  true) {
+                messaging.removeReaction(
+                    widget.message.channelId, widget.message.id, emoji);
+              } else {
+                messaging.addReaction(
+                    widget.message.channelId, widget.message.id, emoji);
+              }
+            },
+          ),
       ],
     );
   }
@@ -311,12 +409,14 @@ class _MessageBubbleState extends State<MessageBubble> {
 class _HoverBar extends StatelessWidget {
   final bool isOwn;
   final VoidCallback onReply;
+  final VoidCallback onReact;
   final VoidCallback? onEdit;
   final void Function(Offset) onMore;
 
   const _HoverBar({
     required this.isOwn,
     required this.onReply,
+    required this.onReact,
     this.onEdit,
     required this.onMore,
   });
@@ -337,6 +437,7 @@ class _HoverBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _HoverBtn(Icons.reply_rounded, 'Reply', onReply),
+          _HoverBtn(Icons.add_reaction_outlined, 'React', onReact),
           if (onEdit != null) _HoverBtn(Icons.edit_rounded, 'Edit', onEdit!),
           _HoverMoreBtn(onMore),
         ],
@@ -551,6 +652,100 @@ class _ReplyPreview extends StatelessWidget {
     );
   }
 }
+
+// ── Reaction chips ────────────────────────────────────────────────────────────
+
+class _ReactionsRow extends StatelessWidget {
+  final Map<String, List<String>> reactions;
+  final String currentUserId;
+  final void Function(String emoji) onToggle;
+
+  const _ReactionsRow({
+    required this.reactions,
+    required this.currentUserId,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: reactions.entries.map((e) {
+          final emoji = e.key;
+          final count = e.value.length;
+          final mine = e.value.contains(currentUserId);
+          return _ReactionChip(
+            emoji: emoji,
+            count: count,
+            mine: mine,
+            onTap: () => onToggle(emoji),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _ReactionChip extends StatelessWidget {
+  final String emoji;
+  final int count;
+  final bool mine;
+  final VoidCallback onTap;
+
+  const _ReactionChip({
+    required this.emoji,
+    required this.count,
+    required this.mine,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: mine
+              ? const Color(0x337F5AF0)
+              : const Color(0xFF2A2A30),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: mine
+                ? const Color(0xFF7F5AF0)
+                : const Color(0xFF3A3A42),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+            Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 12,
+                color: mine
+                    ? const Color(0xFFCBBDF7)
+                    : Colors.white54,
+                fontWeight:
+                    mine ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Attachment ────────────────────────────────────────────────────────────────
 
 class _AttachmentWidget extends StatelessWidget {
   final RevoltFile file;

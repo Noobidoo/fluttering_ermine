@@ -9,6 +9,8 @@ import 'server_state.dart';
 
 class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   final RevoltService _service;
+  /// Exposed so widgets can call low-level service operations (e.g. upload).
+  RevoltService get service => _service;
   final ServerState _serverState;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
 
@@ -112,6 +114,15 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'TypingStop':
         _onTypingStop(event);
         break;
+      case 'MessageReact':
+        _onMessageReact(event);
+        break;
+      case 'MessageUnreact':
+        _onMessageUnreact(event);
+        break;
+      case 'MessageRemoveReaction':
+        _onMessageRemoveReaction(event);
+        break;
       case 'UserUpdate':
         _onUserUpdate(event);
         break;
@@ -190,6 +201,66 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     }).catchError((_) {});
   }
 
+  void _onMessageReact(Map<String, dynamic> event) {
+    final channelId = event['channel_id'] as String?;
+    final messageId = event['id'] as String?;
+    final userId = event['user_id'] as String?;
+    final emojiId = event['emoji_id'] as String?;
+    if (channelId == null || messageId == null ||
+        userId == null || emojiId == null) return;
+    final list = _messages[channelId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.id == messageId);
+    if (idx < 0) return;
+    final msg = list[idx];
+    final newReactions = msg.reactions.map(
+        (k, v) => MapEntry(k, List<String>.from(v)));
+    newReactions.putIfAbsent(emojiId, () => []);
+    if (!newReactions[emojiId]!.contains(userId)) {
+      newReactions[emojiId]!.add(userId);
+    }
+    list[idx] = msg.copyWith(reactions: newReactions);
+    notifyListeners();
+  }
+
+  void _onMessageUnreact(Map<String, dynamic> event) {
+    final channelId = event['channel_id'] as String?;
+    final messageId = event['id'] as String?;
+    final userId = event['user_id'] as String?;
+    final emojiId = event['emoji_id'] as String?;
+    if (channelId == null || messageId == null ||
+        userId == null || emojiId == null) return;
+    final list = _messages[channelId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.id == messageId);
+    if (idx < 0) return;
+    final msg = list[idx];
+    final newReactions = msg.reactions.map(
+        (k, v) => MapEntry(k, List<String>.from(v)));
+    newReactions[emojiId]?.remove(userId);
+    if (newReactions[emojiId]?.isEmpty == true) {
+      newReactions.remove(emojiId);
+    }
+    list[idx] = msg.copyWith(reactions: newReactions);
+    notifyListeners();
+  }
+
+  void _onMessageRemoveReaction(Map<String, dynamic> event) {
+    final channelId = event['channel_id'] as String?;
+    final messageId = event['id'] as String?;
+    final emojiId = event['emoji_id'] as String?;
+    if (channelId == null || messageId == null || emojiId == null) return;
+    final list = _messages[channelId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.id == messageId);
+    if (idx < 0) return;
+    final msg = list[idx];
+    final newReactions = Map<String, List<String>>.from(msg.reactions)
+      ..remove(emojiId);
+    list[idx] = msg.copyWith(reactions: newReactions);
+    notifyListeners();
+  }
+
   void _onTypingStart(Map<String, dynamic> event) {
     final channelId = event['channel'] as String?;
     final userId = event['id'] as String?;
@@ -260,20 +331,38 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(String content,
+      {List<String> attachmentIds = const []}) async {
     final channel = _serverState.selectedChannel;
-    if (channel == null || content.trim().isEmpty) return;
+    if (channel == null || (content.trim().isEmpty && attachmentIds.isEmpty))
+      return;
     final replyId = _replyTarget?.id;
     _replyTarget = null;
     notifyListeners();
-    final msg = await _service.sendMessage(channel.id, content.trim(),
-        replyToId: replyId);
+    final msg = await _service.sendMessage(
+      channel.id,
+      content.trim(),
+      replyToId: replyId,
+      attachmentIds: attachmentIds,
+    );
     final list = _messages.putIfAbsent(msg.channelId, () => []);
     if (!list.any((m) => m.id == msg.id)) {
       list.insert(0, msg);
       _ensureUserCached(msg.authorId);
       notifyListeners();
     }
+  }
+
+  Future<void> addReaction(
+      String channelId, String messageId, String emoji) async {
+    await _service.addReaction(channelId, messageId, emoji);
+    // WS MessageReact will update local state
+  }
+
+  Future<void> removeReaction(
+      String channelId, String messageId, String emoji) async {
+    await _service.removeReaction(channelId, messageId, emoji);
+    // WS MessageUnreact will update local state
   }
 
   Future<void> editMessage(

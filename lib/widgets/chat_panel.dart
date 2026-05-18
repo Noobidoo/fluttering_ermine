@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:provider/provider.dart';
@@ -563,6 +564,10 @@ class _MessageInput extends StatefulWidget {
 }
 
 class _MessageInputState extends State<_MessageInput> {
+  // Pending attachments: list of (autumnId, displayName)
+  final List<(String, String)> _pendingAttachments = [];
+  bool _uploading = false;
+
   @override
   void initState() {
     super.initState();
@@ -581,11 +586,39 @@ class _MessageInputState extends State<_MessageInput> {
     }
   }
 
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(withData: true);
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) return;
+    setState(() => _uploading = true);
+    try {
+      final service = context.read<MessagingState>().service;
+      final id = await service.uploadAttachment(
+          file.bytes!, file.name);
+      setState(() {
+        _pendingAttachments.add((id, file.name));
+      });
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
   void _send(BuildContext context) {
     final text = widget.msgCtrl.text;
-    if (text.trim().isEmpty) return;
+    final ids = _pendingAttachments.map((a) => a.$1).toList();
+    if (text.trim().isEmpty && ids.isEmpty) return;
     widget.msgCtrl.clear();
-    context.read<MessagingState>().sendMessage(text);
+    setState(() => _pendingAttachments.clear());
+    context
+        .read<MessagingState>()
+        .sendMessage(text, attachmentIds: ids);
   }
 
   @override
@@ -610,11 +643,53 @@ class _MessageInputState extends State<_MessageInput> {
             author: messaging.getUser(replyTarget.authorId),
             onDismiss: messaging.clearReplyTarget,
           ),
+        // Pending attachment chips
+        if (_pendingAttachments.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: _pendingAttachments.map((a) {
+                return Chip(
+                  backgroundColor: const Color(0xFF242428),
+                  side: const BorderSide(color: Color(0xFF3A3A42)),
+                  label: Text(a.$2,
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.white70)),
+                  deleteIcon: const Icon(Icons.close,
+                      size: 14, color: Colors.white38),
+                  onDeleted: () =>
+                      setState(() => _pendingAttachments.remove(a)),
+                );
+              }).toList(),
+            ),
+          ),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              // Attach button
+              _uploading
+                  ? const Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF7F5AF0))),
+                    )
+                  : IconButton(
+                      onPressed: _pickFile,
+                      icon: const Icon(Icons.attach_file_rounded),
+                      color: Colors.white38,
+                      tooltip: 'Attach file',
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                    ),
+              const SizedBox(width: 4),
               Expanded(
                 child: TextField(
                   controller: widget.msgCtrl,

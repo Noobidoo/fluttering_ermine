@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -192,12 +193,19 @@ class RevoltService {
   }
 
   Future<RevoltMessage> sendMessage(
-      String channelId, String content, {String? replyToId}) async {
+    String channelId,
+    String content, {
+    String? replyToId,
+    List<String> attachmentIds = const [],
+  }) async {
     final body = <String, dynamic>{'content': content};
     if (replyToId != null) {
       body['replies'] = [
         {'id': replyToId, 'mention': true}
       ];
+    }
+    if (attachmentIds.isNotEmpty) {
+      body['attachments'] = attachmentIds;
     }
     final response = await http.post(
       Uri.parse('$_apiBase/channels/$channelId/messages'),
@@ -236,6 +244,44 @@ class RevoltService {
   /// Sends a BeginTyping pulse over the WebSocket.
   void sendTyping(String channelId) {
     _ws?.sink.add(jsonEncode({'type': 'BeginTyping', 'channel': channelId}));
+  }
+
+  Future<void> addReaction(
+      String channelId, String messageId, String emoji) async {
+    await http.put(
+      Uri.parse(
+          '$_apiBase/channels/$channelId/messages/$messageId/reactions/${Uri.encodeComponent(emoji)}'),
+      headers: _headers,
+    );
+  }
+
+  Future<void> removeReaction(
+      String channelId, String messageId, String emoji) async {
+    await http.delete(
+      Uri.parse(
+          '$_apiBase/channels/$channelId/messages/$messageId/reactions/${Uri.encodeComponent(emoji)}'),
+      headers: _headers,
+    );
+  }
+
+  /// Uploads a file to Autumn and returns the file ID.
+  Future<String> uploadAttachment(
+      Uint8List bytes, String filename) async {
+    final uri = Uri.parse('$_autumnBase/attachments');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['x-session-token'] = _token ?? ''
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+      ));
+    final streamed = await request.send();
+    if (streamed.statusCode != 200) {
+      throw Exception('Upload failed (${streamed.statusCode})');
+    }
+    final body = await streamed.stream.bytesToString();
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    return json['id'] as String;
   }
 
   // ── Channels ──────────────────────────────────────────────────────────────
