@@ -22,6 +22,7 @@ class ChatPanel extends StatefulWidget {
 class _ChatPanelState extends State<ChatPanel> {
   bool _showVoice = true;
   bool _splitMode = false;
+  bool _maximized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +45,44 @@ class _ChatPanelState extends State<ChatPanel> {
       );
     }
 
+    // Maximized: full-area voice view with a floating restore button.
+    if (_maximized && channel.isVoice && !_splitMode) {
+      return Stack(
+        children: [
+          _VoiceChannelView(channel),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Material(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(6),
+              child: IconButton(
+                icon: const Icon(Icons.fullscreen_exit, size: 20),
+                color: Colors.white70,
+                tooltip: 'Restore',
+                onPressed: () => setState(() => _maximized = false),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         _ChatHeader(
           channel,
           actions: channel.isVoice
               ? [
+                  if (!_splitMode && _showVoice)
+                    IconButton(
+                      icon: const Icon(Icons.fullscreen, size: 18),
+                      tooltip: 'Maximize streams',
+                      color: Colors.white38,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => setState(() => _maximized = true),
+                    ),
                   IconButton(
                     icon: Icon(
                       _splitMode
@@ -61,8 +94,10 @@ class _ChatPanelState extends State<ChatPanel> {
                     color: Colors.white38,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    onPressed: () =>
-                        setState(() => _splitMode = !_splitMode),
+                    onPressed: () => setState(() {
+                      _splitMode = !_splitMode;
+                      if (_splitMode) _maximized = false;
+                    }),
                   ),
                 ]
               : const [],
@@ -519,14 +554,37 @@ class _MessageList extends StatelessWidget {
   }
 }
 
-class _MessageInput extends StatelessWidget {
+class _MessageInput extends StatefulWidget {
   final TextEditingController msgCtrl;
   const _MessageInput({required this.msgCtrl});
 
+  @override
+  State<_MessageInput> createState() => _MessageInputState();
+}
+
+class _MessageInputState extends State<_MessageInput> {
+  @override
+  void initState() {
+    super.initState();
+    widget.msgCtrl.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.msgCtrl.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    if (context.mounted) {
+      context.read<MessagingState>().sendTypingIndicator();
+    }
+  }
+
   void _send(BuildContext context) {
-    final text = msgCtrl.text;
+    final text = widget.msgCtrl.text;
     if (text.trim().isEmpty) return;
-    msgCtrl.clear();
+    widget.msgCtrl.clear();
     context.read<MessagingState>().sendMessage(text);
   }
 
@@ -535,40 +593,125 @@ class _MessageInput extends StatelessWidget {
     final messaging = context.watch<MessagingState>();
     final channel = context.watch<ServerState>().selectedChannel;
     final name = channel != null ? messaging.channelDisplayName(channel) : '';
+    final typingIds = channel != null
+        ? messaging.typingUsersFor(channel.id).toList()
+        : <String>[];
+    final replyTarget = messaging.replyTarget;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (typingIds.isNotEmpty)
+          _TypingIndicator(userIds: typingIds, messaging: messaging),
+        if (replyTarget != null)
+          _ReplyBar(
+            message: replyTarget,
+            author: messaging.getUser(replyTarget.authorId),
+            onDismiss: messaging.clearReplyTarget,
+          ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: widget.msgCtrl,
+                  maxLines: 6,
+                  minLines: 1,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: 'Message $name',
+                    filled: true,
+                    fillColor: const Color(0xFF242428),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                  ),
+                  onSubmitted: (_) => _send(context),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => _send(context),
+                icon: const Icon(Icons.send_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF7F5AF0),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Reply bar ─────────────────────────────────────────────────────────────────
+
+class _ReplyBar extends StatelessWidget {
+  final RevoltMessage message;
+  final RevoltUser? author;
+  final VoidCallback onDismiss;
+
+  const _ReplyBar({
+    required this.message,
+    this.author,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = author?.displayUsername ?? message.authorId;
+    final preview = message.content?.trim() ?? '';
+    final truncated =
+        preview.length > 60 ? '${preview.substring(0, 60)}…' : preview;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1A20),
+        border: Border(
+          left: BorderSide(color: Color(0xFF7F5AF0), width: 3),
+        ),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          const Icon(Icons.reply_rounded,
+              size: 14, color: Color(0xFF7F5AF0)),
+          const SizedBox(width: 6),
           Expanded(
-            child: TextField(
-              controller: msgCtrl,
-              maxLines: 6,
-              minLines: 1,
-              textInputAction: TextInputAction.newline,
-              decoration: InputDecoration(
-                hintText: 'Message $name',
-                filled: true,
-                fillColor: const Color(0xFF242428),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+            child: RichText(
+              overflow: TextOverflow.ellipsis,
+              text: TextSpan(children: [
+                TextSpan(
+                  text: '$name  ',
+                  style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFCBBDF7),
+                      fontWeight: FontWeight.w600),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-              ),
-              onSubmitted: (_) => _send(context),
+                TextSpan(
+                  text: truncated.isEmpty ? '(attachment)' : truncated,
+                  style:
+                      const TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ]),
             ),
           ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () => _send(context),
-            icon: const Icon(Icons.send_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF7F5AF0),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.all(12),
+          InkWell(
+            onTap: onDismiss,
+            borderRadius: BorderRadius.circular(4),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child:
+                  Icon(Icons.close, size: 14, color: Colors.white38),
             ),
           ),
         ],
@@ -576,3 +719,44 @@ class _MessageInput extends StatelessWidget {
     );
   }
 }
+
+// ── Typing indicator ──────────────────────────────────────────────────────────
+
+class _TypingIndicator extends StatelessWidget {
+  final List<String> userIds;
+  final MessagingState messaging;
+
+  const _TypingIndicator(
+      {required this.userIds, required this.messaging});
+
+  @override
+  Widget build(BuildContext context) {
+    String text;
+    if (userIds.length == 1) {
+      final name =
+          messaging.getUser(userIds[0])?.displayUsername ?? userIds[0];
+      text = '$name is typing…';
+    } else if (userIds.length == 2) {
+      final a =
+          messaging.getUser(userIds[0])?.displayUsername ?? userIds[0];
+      final b =
+          messaging.getUser(userIds[1])?.displayUsername ?? userIds[1];
+      text = '$a and $b are typing…';
+    } else {
+      text = 'Several people are typing…';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 0, 16, 2),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          color: Colors.white54,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    );
+  }
+}
+

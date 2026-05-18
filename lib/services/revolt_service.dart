@@ -192,17 +192,50 @@ class RevoltService {
   }
 
   Future<RevoltMessage> sendMessage(
-      String channelId, String content) async {
+      String channelId, String content, {String? replyToId}) async {
+    final body = <String, dynamic>{'content': content};
+    if (replyToId != null) {
+      body['replies'] = [
+        {'id': replyToId, 'mention': true}
+      ];
+    }
     final response = await http.post(
       Uri.parse('$_apiBase/channels/$channelId/messages'),
       headers: _headers,
-      body: jsonEncode({'content': content}),
+      body: jsonEncode(body),
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to send message');
     }
     return RevoltMessage.fromJson(
         jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> editMessage(
+      String channelId, String messageId, String content) async {
+    final response = await http.patch(
+      Uri.parse('$_apiBase/channels/$channelId/messages/$messageId'),
+      headers: _headers,
+      body: jsonEncode({'content': content}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to edit message');
+    }
+  }
+
+  Future<void> deleteMessage(String channelId, String messageId) async {
+    final response = await http.delete(
+      Uri.parse('$_apiBase/channels/$channelId/messages/$messageId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception('Failed to delete message');
+    }
+  }
+
+  /// Sends a BeginTyping pulse over the WebSocket.
+  void sendTyping(String channelId) {
+    _ws?.sink.add(jsonEncode({'type': 'BeginTyping', 'channel': channelId}));
   }
 
   // ── Channels ──────────────────────────────────────────────────────────────

@@ -19,6 +19,12 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   final Map<String, List<RevoltMessage>> _messages = {};
   final Map<String, String> _channelErrors = {};
   final Set<String> _loadingChannels = {};
+  // Reply compose state
+  RevoltMessage? _replyTarget;
+  // Typing state: channelId -> set of user IDs currently typing
+  final Map<String, Set<String>> _typingUsers = {};
+  // Debounce: last time we sent BeginTyping per channel
+  final Map<String, DateTime> _lastTypingSent = {};
 
   MessagingState(this._service, this._serverState) {
     _serverState.addListener(_onServerStateChanged);
@@ -43,6 +49,22 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   RevoltUser? getUser(String id) => _userCache[id];
+
+  RevoltMessage? get replyTarget => _replyTarget;
+
+  /// Returns the set of user IDs currently typing in [channelId].
+  Set<String> typingUsersFor(String channelId) =>
+      Set.unmodifiable(_typingUsers[channelId] ?? {});
+
+  /// Looks up a cached message by ID within a channel.
+  RevoltMessage? getMessageById(String channelId, String messageId) {
+    final list = _messages[channelId];
+    if (list == null) return null;
+    for (final m in list) {
+      if (m.id == messageId) return m;
+    }
+    return null;
+  }
 
   // ── Channel display ───────────────────────────────────────────────────────
 
@@ -83,6 +105,12 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
         break;
       case 'MessageDelete':
         _onMessageDelete(event);
+        break;
+      case 'TypingStart':
+        _onTypingStart(event);
+        break;
+      case 'TypingStop':
+        _onTypingStop(event);
         break;
       case 'UserUpdate':
         _onUserUpdate(event);
@@ -162,6 +190,27 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     }).catchError((_) {});
   }
 
+  void _onTypingStart(Map<String, dynamic> event) {
+    final channelId = event['channel'] as String?;
+    final userId = event['id'] as String?;
+    if (channelId == null || userId == null) return;
+    if (userId == _currentUserId) return;
+    _typingUsers.putIfAbsent(channelId, () => {}).add(userId);
+    _ensureUserCached(userId);
+    notifyListeners();
+  }
+
+  void _onTypingStop(Map<String, dynamic> event) {
+    final channelId = event['channel'] as String?;
+    final userId = event['id'] as String?;
+    if (channelId == null || userId == null) return;
+    _typingUsers[channelId]?.remove(userId);
+    if (_typingUsers[channelId]?.isEmpty == true) {
+      _typingUsers.remove(channelId);
+    }
+    notifyListeners();
+  }
+
   void _onUserUpdate(Map<String, dynamic> event) {
     final userId = event['id'] as String?;
     if (userId == null) return;
@@ -183,18 +232,59 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
   }
 
+  // ── Reply compose ─────────────────────────────────────────────────────────
+
+  void setReplyTarget(RevoltMessage msg) {
+    _replyTarget = msg;
+    notifyListeners();
+  }
+
+  void clearReplyTarget() {
+    if (_replyTarget == null) return;
+    _replyTarget = null;
+    notifyListeners();
+  }
+
+  // ── Typing indicator ──────────────────────────────────────────────────────
+
+  /// Sends a BeginTyping pulse at most once every 2.5 seconds.
+  void sendTypingIndicator() {
+    final channel = _serverState.selectedChannel;
+    if (channel == null) return;
+    final now = DateTime.now();
+    final last = _lastTypingSent[channel.id];
+    if (last != null && now.difference(last).inMilliseconds < 2500) return;
+    _lastTypingSent[channel.id] = now;
+    _service.sendTyping(channel.id);
+  }
+
   // ── Actions ───────────────────────────────────────────────────────────────
 
   Future<void> sendMessage(String content) async {
     final channel = _serverState.selectedChannel;
     if (channel == null || content.trim().isEmpty) return;
-    final msg = await _service.sendMessage(channel.id, content.trim());
+    final replyId = _replyTarget?.id;
+    _replyTarget = null;
+    notifyListeners();
+    final msg = await _service.sendMessage(channel.id, content.trim(),
+        replyToId: replyId);
     final list = _messages.putIfAbsent(msg.channelId, () => []);
     if (!list.any((m) => m.id == msg.id)) {
       list.insert(0, msg);
       _ensureUserCached(msg.authorId);
       notifyListeners();
     }
+  }
+
+  Future<void> editMessage(
+      String channelId, String messageId, String content) async {
+    await _service.editMessage(channelId, messageId, content);
+    // WS MessageUpdate will update local state
+  }
+
+  Future<void> deleteMessage(String channelId, String messageId) async {
+    await _service.deleteMessage(channelId, messageId);
+    // WS MessageDelete will update local state
   }
 
   Future<void> retryLoadMessages() async {
@@ -234,6 +324,9 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     _userCache.clear();
     _channelErrors.clear();
     _loadingChannels.clear();
+    _replyTarget = null;
+    _typingUsers.clear();
+    _lastTypingSent.clear();
     _currentUserId = null;
     _prevSelectedChannel = null;
     notifyListeners();
