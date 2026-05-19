@@ -207,7 +207,9 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     final userId = event['user_id'] as String?;
     final emojiId = event['emoji_id'] as String?;
     if (channelId == null || messageId == null ||
-        userId == null || emojiId == null) return;
+        userId == null || emojiId == null) {
+      return;
+    }
     final list = _messages[channelId];
     if (list == null) return;
     final idx = list.indexWhere((m) => m.id == messageId);
@@ -229,7 +231,9 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     final userId = event['user_id'] as String?;
     final emojiId = event['emoji_id'] as String?;
     if (channelId == null || messageId == null ||
-        userId == null || emojiId == null) return;
+        userId == null || emojiId == null) {
+      return;
+    }
     final list = _messages[channelId];
     if (list == null) return;
     final idx = list.indexWhere((m) => m.id == messageId);
@@ -334,8 +338,9 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> sendMessage(String content,
       {List<String> attachmentIds = const []}) async {
     final channel = _serverState.selectedChannel;
-    if (channel == null || (content.trim().isEmpty && attachmentIds.isEmpty))
+    if (channel == null || (content.trim().isEmpty && attachmentIds.isEmpty)) {
       return;
+    }
     final replyId = _replyTarget?.id;
     _replyTarget = null;
     notifyListeners();

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:provider/provider.dart';
@@ -309,7 +312,27 @@ class _VoiceChannelView extends StatelessWidget {
             ),
           ),
           FilledButton.icon(
-            onPressed: () => context.read<VoiceState>().toggleScreenShare(),
+            onPressed: () async {
+              final voiceState = context.read<VoiceState>();
+              if (voice.isScreenSharing) {
+                voiceState.stopScreenShare();
+                return;
+              }
+              // On desktop, show a source picker before enabling screen share.
+              if (!kIsWeb &&
+                  (Platform.isWindows ||
+                      Platform.isLinux ||
+                      Platform.isMacOS)) {
+                final dynamic source = await showDialog(
+                  context: context,
+                  builder: (context) => ScreenSelectDialog(),
+                );
+                if (source == null) return;
+                voiceState.startDesktopScreenShare(source.id as String);
+              } else {
+                voiceState.toggleScreenShare();
+              }
+            },
             icon: Icon(voice.isScreenSharing
                 ? Icons.stop_screen_share
                 : Icons.screen_share),

@@ -52,6 +52,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _isMuted = false;
   bool _isJoiningVoice = false;
   bool _isScreenSharing = false;
+  LocalVideoTrack? _screenShareTrack;
   bool _leavingIntentionally = false;
   String? _voiceError;
 
@@ -143,6 +144,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       final data = await _service.joinVoiceChannel(channel.id);
       var url = data['url'] as String;
       final token = data['token'] as String;
+      // DEBUG: copy these into https://meet.livekit.io to join as a browser observer
+      debugPrint('[voice:debug] LiveKit URL  : $url');
+      debugPrint('[voice:debug] LiveKit token: $token');
       if (url.startsWith('https://')) {
         url = 'wss://${url.substring(8)}';
       } else if (url.startsWith('http://')) {
@@ -168,6 +172,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           _isJoiningVoice = false;
           _isMuted = false;
           _isScreenSharing = false;
+          _screenShareTrack = null;
           if (!_leavingIntentionally) {
             _voiceError = 'Disconnected from voice';
           } else {
@@ -217,10 +222,19 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   Future<void> leaveVoiceChannel() async {
     _leavingIntentionally = true;
-    await _voiceRoom?.disconnect(); // fires RoomDisconnectedEvent → resets state + notifyListeners
+    await _voiceRoom?.disconnect();
     await _voiceRoomListener?.dispose();
     _voiceRoomListener = null;
-    // _leavingIntentionally stays true until next joinVoiceChannel
+    // Reset state here in case RoomDisconnectedEvent fired after listener was disposed
+    _voiceRoom = null;
+    _activeVoiceChannel = null;
+    _isInVoice = false;
+    _isJoiningVoice = false;
+    _isMuted = false;
+    _isScreenSharing = false;
+    _screenShareTrack = null;
+    _voiceError = null;
+    notifyListeners();
   }
 
   Future<void> toggleMute() async {
@@ -230,6 +244,47 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
+  Future<void> startDesktopScreenShare(String sourceId) async {
+    if (_voiceRoom?.localParticipant == null) return;
+    try {
+      final tracks = await LocalVideoTrack.createScreenShareTracksWithAudio(
+        ScreenShareCaptureOptions(
+          sourceId: sourceId,
+          captureScreenAudio: true,
+          maxFrameRate: 15.0,
+        ),
+      );
+      for (final track in tracks) {
+        if (track is LocalVideoTrack) {
+          _screenShareTrack = track;
+          await _voiceRoom!.localParticipant!.publishVideoTrack(track);
+        } else if (track is LocalAudioTrack) {
+          await _voiceRoom!.localParticipant!.publishAudioTrack(track);
+        }
+      }
+      _isScreenSharing = true;
+    } catch (e) {
+      debugPrint('[voice] screen share failed: $e');
+      _screenShareTrack = null;
+      _voiceError = e.toString().replaceAll('Exception: ', '');
+    }
+    notifyListeners();
+  }
+
+  Future<void> stopScreenShare() async {
+    if (_voiceRoom?.localParticipant == null) return;
+    try {
+      await _voiceRoom!.localParticipant!.setScreenShareEnabled(false);
+      _screenShareTrack = null;
+      _isScreenSharing = false;
+    } catch (e) {
+      debugPrint('[voice] stop screen share failed: $e');
+      _voiceError = e.toString().replaceAll('Exception: ', '');
+    }
+    notifyListeners();
+  }
+
+  /// Used for non-desktop platforms (mobile/web) where no source picker is needed.
   Future<void> toggleScreenShare() async {
     if (_voiceRoom?.localParticipant == null) return;
     _isScreenSharing = !_isScreenSharing;
@@ -258,6 +313,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _isMuted = false;
     _isJoiningVoice = false;
     _isScreenSharing = false;
+    _screenShareTrack = null;
     _voiceError = null;
     notifyListeners();
   }
