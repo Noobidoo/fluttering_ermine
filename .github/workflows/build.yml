@@ -13,6 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version label
+        id: version
+        run: |
+          TAG=$(git tag --points-at HEAD | head -n1)
+          if [ -n "$TAG" ]; then
+            echo "label=$TAG" >> "$GITHUB_OUTPUT"
+          else
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+            echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -30,7 +43,7 @@ jobs:
       - name: Upload Web artifact
         uses: actions/upload-artifact@v4
         with:
-          name: web-build
+          name: web-build-${{ steps.version.outputs.label }}
           path: build/web/
           retention-days: 14
 
@@ -39,6 +52,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version label
+        id: version
+        run: |
+          TAG=$(git tag --points-at HEAD | head -n1)
+          if [ -n "$TAG" ]; then
+            echo "label=$TAG" >> "$GITHUB_OUTPUT"
+          else
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+            echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install Linux build dependencies
         run: |
@@ -70,7 +96,7 @@ jobs:
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-build
+          name: linux-build-${{ steps.version.outputs.label }}
           path: build/linux/x64/release/bundle/
           retention-days: 14
 
@@ -79,6 +105,20 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version label
+        id: version
+        shell: bash
+        run: |
+          TAG=$(git tag --points-at HEAD | head -n1)
+          if [ -n "$TAG" ]; then
+            echo "label=$TAG" >> "$GITHUB_OUTPUT"
+          else
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+            echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -99,7 +139,7 @@ jobs:
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
+          name: windows-build-${{ steps.version.outputs.label }}
           path: build/windows/x64/runner/Release/
           retention-days: 14
 
@@ -108,6 +148,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version label
+        id: version
+        run: |
+          TAG=$(git tag --points-at HEAD | head -n1)
+          if [ -n "$TAG" ]; then
+            echo "label=$TAG" >> "$GITHUB_OUTPUT"
+          else
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+            echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -143,6 +196,6 @@ jobs:
       - name: Upload Android artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-debug-apk
+          name: android-debug-apk-${{ steps.version.outputs.label }}
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
