@@ -259,7 +259,13 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           _screenShareTrack = track;
           await _voiceRoom!.localParticipant!.publishVideoTrack(track);
         } else if (track is LocalAudioTrack) {
-          await _voiceRoom!.localParticipant!.publishAudioTrack(track);
+          await _voiceRoom!.localParticipant!.publishAudioTrack(
+            track,
+            publishOptions: const AudioPublishOptions(
+              encoding: AudioEncoding.presetMusicHighQualityStereo,
+              dtx: false,
+            ),
+          );
         }
       }
       _isScreenSharing = true;
