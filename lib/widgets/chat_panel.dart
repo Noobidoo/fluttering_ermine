@@ -666,7 +666,12 @@ class _MessageInputState extends State<_MessageInput> {
             ),
           ),
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            16 + MediaQuery.of(context).padding.bottom,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [

@@ -34,23 +34,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Sidebar(
-              selected: _section,
-              onSelect: (s) => setState(() => _section = s),
-            ),
-            Expanded(
-              child: ColoredBox(
-                color: const Color(0xFF1E1E26),
-                child: _section == _Section.profile
-                    ? const _ProfileSection()
-                    : const _VoiceSection(),
+        child: size.width < 500
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ColoredBox(
+                    color: const Color(0xFF16161A),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _NavItem(
+                            icon: Icons.person_outline,
+                            label: 'Profile',
+                            selected: _section == _Section.profile,
+                            onTap: () =>
+                                setState(() => _section = _Section.profile),
+                          ),
+                        ),
+                        Expanded(
+                          child: _NavItem(
+                            icon: Icons.mic_none_rounded,
+                            label: 'Voice',
+                            selected: _section == _Section.voice,
+                            onTap: () =>
+                                setState(() => _section = _Section.voice),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ColoredBox(
+                      color: const Color(0xFF1E1E26),
+                      child: _section == _Section.profile
+                          ? const _ProfileSection()
+                          : const _VoiceSection(),
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Sidebar(
+                    selected: _section,
+                    onSelect: (s) => setState(() => _section = s),
+                  ),
+                  Expanded(
+                    child: ColoredBox(
+                      color: const Color(0xFF1E1E26),
+                      child: _section == _Section.profile
+                          ? const _ProfileSection()
+                          : const _VoiceSection(),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

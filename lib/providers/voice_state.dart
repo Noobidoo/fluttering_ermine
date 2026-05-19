@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:livekit_client/livekit_client.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
@@ -125,6 +126,14 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   Future<void> joinVoiceChannel(RevoltChannel channel) async {
     if (_isJoiningVoice) return;
+
+    final micStatus = await Permission.microphone.request();
+    if (!micStatus.isGranted) {
+      _voiceError = 'Microphone permission denied';
+      notifyListeners();
+      return;
+    }
+
     if (_voiceRoom != null) await leaveVoiceChannel();
     _leavingIntentionally = false;
     _isJoiningVoice = true;
