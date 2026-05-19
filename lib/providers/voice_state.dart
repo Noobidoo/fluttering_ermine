@@ -201,14 +201,32 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
 
       await room.connect(url, token);
       _isMuted = false;
-      await room.localParticipant?.setMicrophoneEnabled(
-        true,
-        audioCaptureOptions: AudioCaptureOptions(
-          noiseSuppression: _noiseSuppression,
-          echoCancellation: _echoCancellation,
-          autoGainControl: _autoGainControl,
-        ),
-      );
+      final lp = room.localParticipant;
+      if (lp == null) {
+        debugPrint('[voice] localParticipant is null after connect');
+        throw Exception('Failed to get local participant');
+      }
+      try {
+        await lp.setMicrophoneEnabled(
+          true,
+          audioCaptureOptions: AudioCaptureOptions(
+            noiseSuppression: _noiseSuppression,
+            echoCancellation: _echoCancellation,
+            autoGainControl: _autoGainControl,
+          ),
+        );
+        debugPrint('[voice] mic enabled, published tracks: ${lp.trackPublications.length}');
+      } catch (micErr) {
+        debugPrint('[voice] mic enable failed: $micErr');
+        // Try again with default options — some Windows setups reject custom constraints
+        try {
+          await lp.setMicrophoneEnabled(true);
+          debugPrint('[voice] mic enabled with default options');
+        } catch (micErr2) {
+          debugPrint('[voice] mic enable with defaults also failed: $micErr2');
+          _voiceError = 'Microphone error: $micErr2';
+        }
+      }
       // Apply stored output volume to any already-connected remote participants
       _applyOutputVolume();
     } catch (e) {
