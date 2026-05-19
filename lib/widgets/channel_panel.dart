@@ -21,7 +21,7 @@ class ChannelPanel extends StatelessWidget {
     final title = server.selectedServer?.name ??
         (server.showDMs ? 'Direct Messages' : 'Fluttering Ermine');
 
-    return Container(
+    return Material(
       color: const Color(0xFF141418),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
