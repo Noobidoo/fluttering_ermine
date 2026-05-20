@@ -126,6 +126,13 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'UserUpdate':
         _onUserUpdate(event);
         break;
+      // Voice events handled by ServerState — ignore here.
+      case 'VoiceChannelJoin':
+      case 'VoiceChannelLeave':
+      case 'VoiceChannelMove':
+      case 'UserVoiceStateUpdate':
+      case 'ServerMemberUpdate':
+        break;
       default:
         // Debug print unhandled events, but only in debug mode to avoid spamming release logs
         debugPrint('Unhandled WS event: ${event['type']}');

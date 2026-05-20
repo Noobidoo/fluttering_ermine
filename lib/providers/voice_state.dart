@@ -193,7 +193,24 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           _isJoiningVoice = false;
           notifyListeners();
         })
-        ..on<TrackSubscribedEvent>((_) => notifyListeners())
+        ..on<TrackSubscribedEvent>((e) {
+          if (e.track is RemoteAudioTrack &&
+              e.publication.source == TrackSource.screenShareAudio) {
+            e.track.events.listen((trackEvent) {
+              if (trackEvent is AudioReceiverStatsEvent) {
+                final s = trackEvent.stats;
+                debugPrint('[voice:rx] screen audio | '
+                    '${trackEvent.currentBitrate.toStringAsFixed(1)} kbps | '
+                    'jitter=${s.jitter?.toStringAsFixed(4) ?? '-'} | '
+                    'lost=${s.packetsLost ?? '-'} | '
+                    'concealed=${s.concealedSamples ?? '-'} '
+                    '(${s.concealmentEvents ?? '-'} events) | '
+                    'jitterBufDelay=${s.jitterBufferDelay?.toStringAsFixed(0) ?? '-'}');
+              }
+            });
+          }
+          notifyListeners();
+        })
         ..on<TrackUnsubscribedEvent>((_) => notifyListeners())
         ..on<ParticipantConnectedEvent>((_) => notifyListeners())
         ..on<ParticipantDisconnectedEvent>((_) => notifyListeners())
@@ -284,6 +301,15 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
               dtx: false,
             ),
           );
+          // Log audio bitrate every stats cycle to diagnose quality issues.
+          track.events.listen((event) {
+            if (event is AudioSenderStatsEvent) {
+              final level = event.stats.audioSourceStats?.audioLevel ?? 0.0;
+              debugPrint('[voice] screen audio: '
+                  '${event.currentBitrate.toStringAsFixed(1)} kbps, '
+                  'level=${level.toStringAsFixed(3)}');
+            }
+          });
         }
       }
       _isScreenSharing = true;
