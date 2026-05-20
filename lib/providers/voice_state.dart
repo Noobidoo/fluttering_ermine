@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -157,6 +158,13 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _voiceRoomListener!
         ..on<RoomConnectedEvent>((e) {
           debugPrint('[voice] connected to room ${room.name}');
+          // Override Android audio mode: LiveKit defaults to communication
+          // (voice call mode with AEC/NS) which destroys music/screen-share audio.
+          // Media mode leaves Android's audio processing off.
+          if (defaultTargetPlatform == TargetPlatform.android) {
+            rtc.Helper.setAndroidAudioConfiguration(
+                rtc.AndroidAudioConfiguration.media);
+          }
           _voiceError = null;
           _isInVoice = true;
           _isJoiningVoice = false;
@@ -205,7 +213,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
                     'lost=${s.packetsLost ?? '-'} | '
                     'concealed=${s.concealedSamples ?? '-'} '
                     '(${s.concealmentEvents ?? '-'} events) | '
-                    'jitterBufDelay=${s.jitterBufferDelay?.toStringAsFixed(0) ?? '-'}');
+                    'audioEnergy=${s.totalAudioEnergy?.toStringAsFixed(4) ?? '-'} | '
+                    'track.enabled=${e.track.mediaStreamTrack.enabled}');
               }
             });
           }
