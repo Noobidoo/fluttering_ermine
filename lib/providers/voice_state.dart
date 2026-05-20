@@ -270,6 +270,15 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   Future<void> leaveVoiceChannel() async {
     _leavingIntentionally = true;
+    // Stop screen share BEFORE disconnecting so the loopback capturer is
+    // cleanly shut down before the peer connection tears down the AudioSendStream.
+    if (_isScreenSharing && _voiceRoom?.localParticipant != null) {
+      try {
+        await _voiceRoom!.localParticipant!.setScreenShareEnabled(false);
+      } catch (_) {}
+      _isScreenSharing = false;
+      _screenShareTrack = null;
+    }
     await _voiceRoom?.disconnect();
     await _voiceRoomListener?.dispose();
     _voiceRoomListener = null;
@@ -302,19 +311,15 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           maxFrameRate: 15.0,
         ),
       );
+      final publishFutures = <Future>[];
       for (final track in tracks) {
         if (track is LocalVideoTrack) {
           _screenShareTrack = track;
-          await _voiceRoom!.localParticipant!.publishVideoTrack(track);
-        } else if (track is LocalAudioTrack) {
-          await _voiceRoom!.localParticipant!.publishAudioTrack(
-            track,
-            publishOptions: const AudioPublishOptions(
-              encoding: AudioEncoding.presetMusicHighQualityStereo,
-              dtx: false,
-            ),
+          publishFutures.add(
+            _voiceRoom!.localParticipant!.publishVideoTrack(track),
           );
-          // Log audio bitrate every stats cycle to diagnose quality issues.
+        } else if (track is LocalAudioTrack) {
+          // Attach stats listener before publishing so no events are missed.
           track.events.listen((event) {
             if (event is AudioSenderStatsEvent) {
               final level = event.stats.audioSourceStats?.audioLevel ?? 0.0;
@@ -323,8 +328,18 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
                   'level=${level.toStringAsFixed(3)}');
             }
           });
+          publishFutures.add(
+            _voiceRoom!.localParticipant!.publishAudioTrack(
+              track,
+              publishOptions: const AudioPublishOptions(
+                encoding: AudioEncoding.presetMusic,
+                dtx: false,
+              ),
+            ),
+          );
         }
       }
+      await Future.wait(publishFutures);
       _isScreenSharing = true;
     } catch (e) {
       debugPrint('[voice] screen share failed: $e');
