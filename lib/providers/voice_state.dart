@@ -129,11 +129,15 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> joinVoiceChannel(RevoltChannel channel) async {
     if (_isJoiningVoice) return;
 
-    final micStatus = await Permission.microphone.request();
-    if (!micStatus.isGranted) {
-      _voiceError = 'Microphone permission denied';
-      notifyListeners();
-      return;
+    // permission_handler has no Linux implementation; the OS handles mic
+    // access natively (PipeWire/PulseAudio prompts when the stream opens).
+    if (!defaultTargetPlatform.name.toLowerCase().contains('linux')) {
+      final micStatus = await Permission.microphone.request();
+      if (!micStatus.isGranted) {
+        _voiceError = 'Microphone permission denied';
+        notifyListeners();
+        return;
+      }
     }
 
     if (_voiceRoom != null) await leaveVoiceChannel();

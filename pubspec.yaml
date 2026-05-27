@@ -14,6 +14,10 @@ dependencies:
   provider: ^6.1.2
   shared_preferences: ^2.3.4
   livekit_client: ^2.7.0
+  connectivity_plus_linux_portal:
+    git:
+      url: https://github.com/EchoEllet/dart-packages.git
+      path: packages/connectivity_plus_linux_portal
   file_picker: ^8.1.6
   permission_handler: ^11.3.1
 

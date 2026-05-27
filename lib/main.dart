@@ -1,3 +1,5 @@
+import 'package:connectivity_plus_linux_portal/connectivity_plus_linux_portal.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +13,9 @@ import 'services/revolt_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux) {
+    ConnectivityPlusLinuxPortalPlugin.registerWith();
+  }
 
   final service = RevoltService();
   final serverState = ServerState(service);
