@@ -152,6 +152,16 @@ void main() {
       expect(state.voiceParticipantsFor('chan2'), contains('user2'));
     });
 
+    test('VoiceChannelLeave for a user not in the channel is a silent no-op', () {
+      svc.push(readyEvent(voiceMembers: {'chan1': ['user2']}));
+
+      // user1 was never in chan1 — late/duplicate WS event, should not throw
+      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
+
+      // user2 is unaffected
+      expect(state.voiceParticipantsFor('chan1'), contains('user2'));
+    });
+
     test('VoiceChannelMove removes user from source and adds to destination', () {
       svc.push(readyEvent(voiceMembers: {'chan1': ['user1']}));
 
