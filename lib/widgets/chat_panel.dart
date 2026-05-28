@@ -458,13 +458,13 @@ class _RemoteVideoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isScreen = stream.source == TrackSource.screenShareVideo;
+    final isScreen = stream.videoSource == TrackSource.screenShareVideo;
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          VideoTrackRenderer(stream.track),
+          VideoTrackRenderer(stream.videoTrack),
           Positioned(
             bottom: 0,
             left: 0,

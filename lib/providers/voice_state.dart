@@ -9,13 +9,18 @@ import '../services/revolt_service.dart';
 import '../services/volume_helper.dart';
 
 class RemoteVideoStream {
-  final VideoTrack track;
+  final VideoTrack videoTrack;
+  final AudioTrack? audioTrack;
   final String participantIdentity;
-  final TrackSource source;
+  final TrackSource videoSource;
+  final TrackSource? audioSource;
   const RemoteVideoStream({
-    required this.track,
+    required this.videoTrack,
     required this.participantIdentity,
-    required this.source,
+    required this.videoSource,
+    this.audioTrack,
+    this.audioSource,
+
   });
 }
 
@@ -53,8 +58,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _isMuted = false;
   bool _isJoiningVoice = false;
   bool _isScreenSharing = false;
-  LocalVideoTrack? _screenShareTrack;
-  bool _leavingIntentionally = false;
   String? _voiceError;
 
   // ── Voice settings ────────────────────────────────────────────────────────
@@ -86,9 +89,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
             (pub.source == TrackSource.camera ||
                 pub.source == TrackSource.screenShareVideo)) {
           streams.add(RemoteVideoStream(
-            track: pub.track as VideoTrack,
+            videoTrack: pub.track as VideoTrack,
             participantIdentity: p.identity,
-            source: pub.source,
+            videoSource: pub.source,
           ));
         }
       }
@@ -141,7 +144,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
 
     if (_voiceRoom != null) await leaveVoiceChannel();
-    _leavingIntentionally = false;
     _isJoiningVoice = true;
     _voiceError = null;
     notifyListeners();
@@ -162,6 +164,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _voiceRoomListener!
         ..on<RoomConnectedEvent>((e) {
           debugPrint('[voice] connected to room ${room.name}');
+          debugPrint('[voice] Channel ${channel.id} has ${e.room.remoteParticipants.length + (e.room.localParticipant != null ? 1 : 0)} remote participants');
           // Override Android audio mode: LiveKit defaults to communication
           // (voice call mode with AEC/NS) which destroys music/screen-share audio.
           // Media mode leaves Android's audio processing off.
@@ -177,19 +180,14 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           notifyListeners();
         })
         ..on<RoomDisconnectedEvent>((e) {
-          debugPrint('[voice] disconnected from room ${_voiceRoom?.name}');
+          debugPrint('[voice] disconnected from channel ${channel.id}');
           _voiceRoom = null;
           _activeVoiceChannel = null;
           _isInVoice = false;
           _isJoiningVoice = false;
           _isMuted = false;
           _isScreenSharing = false;
-          _screenShareTrack = null;
-          if (!_leavingIntentionally) {
-            _voiceError = 'Disconnected from voice';
-          } else {
-            _voiceError = null;
-          }
+          _voiceError = 'Disconnected from voice';
           notifyListeners();
         })
         ..on<RoomReconnectingEvent>((e) {
@@ -226,7 +224,10 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         })
         ..on<TrackUnsubscribedEvent>((_) => notifyListeners())
         ..on<ParticipantConnectedEvent>((_) => notifyListeners())
-        ..on<ParticipantDisconnectedEvent>((_) => notifyListeners())
+        ..on<ParticipantDisconnectedEvent>((_){
+            debugPrint('[voice] participant left, ${_voiceRoom?.remoteParticipants.length} remote participants remain');
+            notifyListeners();
+          })
         ..on<ActiveSpeakersChangedEvent>((_) => notifyListeners());
 
       await room.connect(url, token);
@@ -269,7 +270,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> leaveVoiceChannel() async {
-    _leavingIntentionally = true;
+    debugPrint('[voice] Leaving room ${_voiceRoom?.name}');
     await _voiceRoom?.disconnect();
     await _voiceRoomListener?.dispose();
     _voiceRoomListener = null;
@@ -280,7 +281,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _isJoiningVoice = false;
     _isMuted = false;
     _isScreenSharing = false;
-    _screenShareTrack = null;
     _voiceError = null;
     notifyListeners();
   }
@@ -304,7 +304,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       );
       for (final track in tracks) {
         if (track is LocalVideoTrack) {
-          _screenShareTrack = track;
           await _voiceRoom!.localParticipant!.publishVideoTrack(track);
         } else if (track is LocalAudioTrack) {
           await _voiceRoom!.localParticipant!.publishAudioTrack(
@@ -328,7 +327,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _isScreenSharing = true;
     } catch (e) {
       debugPrint('[voice] screen share failed: $e');
-      _screenShareTrack = null;
       _voiceError = e.toString().replaceAll('Exception: ', '');
     }
     notifyListeners();
@@ -338,7 +336,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (_voiceRoom?.localParticipant == null) return;
     try {
       await _voiceRoom!.localParticipant!.setScreenShareEnabled(false);
-      _screenShareTrack = null;
       _isScreenSharing = false;
     } catch (e) {
       debugPrint('[voice] stop screen share failed: $e');
@@ -376,7 +373,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _isMuted = false;
     _isJoiningVoice = false;
     _isScreenSharing = false;
-    _screenShareTrack = null;
     _voiceError = null;
     notifyListeners();
   }
