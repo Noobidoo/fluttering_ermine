@@ -6,6 +6,11 @@ on:
   #pull_request:
   #  branches: [main, master]
   workflow_dispatch:
+    inputs:
+      upgrade_lock:
+        description: 'Upgrade flutter_webrtc to latest SHA before building'
+        type: boolean
+        default: false
 
 jobs:
   build-web:
@@ -35,7 +40,12 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          if [ "${{ inputs.upgrade_lock }}" = "true" ]; then
+            flutter pub upgrade flutter_webrtc
+          else
+            flutter pub get
+          fi
 
       - name: Build Web (release)
         run: flutter build web --release
@@ -88,7 +98,12 @@ jobs:
         run: flutter config --enable-linux-desktop
 
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          if [ "${{ inputs.upgrade_lock }}" = "true" ]; then
+            flutter pub upgrade flutter_webrtc
+          else
+            flutter pub get
+          fi
 
       - name: Build Linux (release)
         run: flutter build linux --release
