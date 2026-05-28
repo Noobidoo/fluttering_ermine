@@ -166,6 +166,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     _service.connectWebSocket();
     _serverState.subscribeToEvents();
     _messagingState.subscribeToEvents();
+    _voiceState.subscribeToEvents();
     _service.events.listen(_handleEvent);
   }
 

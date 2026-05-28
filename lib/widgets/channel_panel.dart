@@ -81,9 +81,9 @@ class _ChannelTile extends StatelessWidget {
     final selected = server.selectedChannel?.id == channel.id;
     final name = messaging.channelDisplayName(channel);
 
-    // Server-side voice participant tracking (shows for all channels)
+    // Voice participant tracking (shows for all voice channels)
     final participantIds = channel.isVoice
-        ? server.voiceParticipantsFor(channel.id)
+        ? voice.voiceParticipantsFor(channel.id)
         : const <String>[];
 
     // Ensure voice participants are in user cache (they may never have sent a message)

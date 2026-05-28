@@ -130,7 +130,7 @@ Map<String, dynamic> msgEvent({
       'author': author,
       'content': content,
       'timestamp': '2024-01-01T00:00:00.000Z',
-      if (replies != null) 'replies': replies,
+      'replies': ?replies,
       if (reactions != null)
         'reactions': {
           for (final e in reactions.entries) e.key: e.value,

@@ -1,30 +1,18 @@
-// Unit tests for VoiceState and the integration gap between VoiceState and
-// ServerState that causes participant list staleness bugs.
+// Unit tests for VoiceState: initial state, leaveVoiceChannel no-op, and
+// WS-driven voice channel membership events.
 //
-// Bug 1 — Local user ghost:
-//   leaveVoiceChannel() resets VoiceState but never touches
-//   ServerState._voiceChannelMembers. If the server doesn't echo a
-//   VoiceChannelLeave WS event back to the departing client (it doesn't),
-//   the local user's entry stays in the sidebar forever.
-//
-// Bug 2 — Remote participant ghost:
-//   ParticipantDisconnectedEvent fires → VoiceState.notifyListeners() →
-//   widget rebuilds → sidebar reads server.voiceParticipantsFor() which
-//   still has the user because no WS VoiceChannelLeave has arrived yet
-//   (network cut, abrupt drop, server lag).
-//
-// Tests marked [FAILS] assert the desired/fixed behaviour and will fail
-// with the current code until the bugs are resolved.
+// LiveKit disconnect paths (RoomDisconnectedEvent, ParticipantDisconnectedEvent)
+// call _removeParticipant internally; those require a real LiveKit Room and
+// are not unit-tested here.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fluttering_ermine/providers/server_state.dart';
 import 'package:fluttering_ermine/providers/voice_state.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 Map<String, dynamic> _readyEvent({
   Map<String, List<String>> voiceMembers = const {},
@@ -53,14 +41,12 @@ void main() {
   });
 
   late FakeRevoltService svc;
-  late ServerState serverState;
   late VoiceState voiceState;
 
   setUp(() {
     svc = FakeRevoltService();
-    serverState = ServerState(svc);
-    serverState.subscribeToEvents();
     voiceState = VoiceState(svc);
+    voiceState.subscribeToEvents();
   });
 
   tearDown(() => svc.close());
@@ -99,62 +85,64 @@ void main() {
       expect(voiceState.activeVoiceChannel, isNull);
     });
   });
+  // ── WS voice channel membership ────────────────────────────────────────────────────
 
-  // ── BUG 1: Local user ghost in ServerState sidebar ────────────────────────
-  //
-  // When the local client calls leaveVoiceChannel(), the server sends a
-  // VoiceChannelLeave to all *remaining* participants — not back to the
-  // departing client itself.  VoiceState has no reference to ServerState, so
-  // it cannot clear _voiceChannelMembers.  The sidebar entry never disappears.
-  //
-  // Fix options:
-  //   • Pass ServerState (or a callback) into VoiceState and call it on leave.
-  //   • Have the service send a synthetic VoiceChannelLeave on the local stream.
-  //
-  // [FAILS] — flip the expectation once the bug is fixed.
+  group('VoiceState – voice channel events', () {
+    test('Ready seeds voice membership from voice_states', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
+      expect(voiceState.voiceParticipantsFor('chan1'), contains('user1'));
+    });
 
-  group('BUG 1 – local user ghost after leaveVoiceChannel', () {
-    test('[FAILS] local user is removed from ServerState participant list on leave', () async {
-      // Add local user to ServerState via WS Ready (simulates being in a call).
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['localUser']}));
-      expect(serverState.voiceParticipantsFor('chan1'), contains('localUser'));
+    test('VoiceChannelJoin adds user to channel participant list', () {
+      svc.push(_readyEvent());
+      svc.push({'type': 'VoiceChannelJoin', 'id': 'chan1', 'state': {'id': 'user1'}});
+      expect(voiceState.voiceParticipantsFor('chan1'), contains('user1'));
+    });
 
-      // Local user disconnects.  VoiceState resets but ServerState is untouched.
-      await voiceState.leaveVoiceChannel();
+    test('VoiceChannelJoin is idempotent (no duplicates)', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
+      svc.push({'type': 'VoiceChannelJoin', 'id': 'chan1', 'state': {'id': 'user1'}});
+      expect(voiceState.voiceParticipantsFor('chan1').length, 1);
+    });
 
-      // DESIRED — currently fails because no mechanism clears the entry:
-      expect(serverState.voiceParticipantsFor('chan1'),
-          isNot(contains('localUser')));
+    test('VoiceChannelLeave removes the user from the channel', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1', 'user2']}));
+      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
+      expect(voiceState.voiceParticipantsFor('chan1'), isNot(contains('user1')));
+      expect(voiceState.voiceParticipantsFor('chan1'), contains('user2'));
+    });
+
+    test('VoiceChannelLeave on last user empties the channel entry', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
+      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
+      expect(voiceState.voiceParticipantsFor('chan1'), isEmpty);
+    });
+
+    test('VoiceChannelLeave does not affect other channels', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1'], 'chan2': ['user2']}));
+      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
+      expect(voiceState.voiceParticipantsFor('chan2'), contains('user2'));
+    });
+
+    test('VoiceChannelLeave for unknown user is a no-op', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['user2']}));
+      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
+      expect(voiceState.voiceParticipantsFor('chan1'), contains('user2'));
+    });
+
+    test('VoiceChannelMove removes from source and adds to destination', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
+      svc.push({'type': 'VoiceChannelMove', 'user': 'user1', 'from': 'chan1', 'to': 'chan2'});
+      expect(voiceState.voiceParticipantsFor('chan1'), isNot(contains('user1')));
+      expect(voiceState.voiceParticipantsFor('chan2'), contains('user1'));
+    });
+
+    test('VoiceChannelLeave notifies listeners', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
+      var notified = false;
+      voiceState.addListener(() => notified = true);
+      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'u1'});
+      expect(notified, isTrue);
     });
   });
-
-  // ── BUG 2: Remote participant ghost — client is in the room ───────────────
-  //
-  // The sidebar always reads from ServerState.voiceParticipantsFor(), which is
-  // updated only by WS VoiceChannelLeave events.  When a remote participant
-  // drops (network cut, abrupt quit), LiveKit fires ParticipantDisconnectedEvent
-  // and VoiceState.notifyListeners() is called — but ServerState is never
-  // updated.  The sidebar rebuilds and still shows the ghost because
-  // voiceParticipantsFor() returns stale data.
-  //
-  // Partial fix available: on ParticipantDisconnectedEvent, remove the
-  // participant's identity from ServerState._voiceChannelMembers (requires
-  // VoiceState → ServerState coupling, or a shared event bus).
-  //
-  // [FAILS] — flip the expectation once the bug is fixed.
-
-  group('BUG 2 – remote participant ghost (client in room, no WS event)', () {
-    test('[FAILS] participant is removed from ServerState when LiveKit fires ParticipantDisconnectedEvent without a WS event', () {
-      // Remote participant is in the channel per the last WS Ready snapshot.
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['remoteUser']}));
-
-      // In production: LiveKit fires ParticipantDisconnectedEvent here.
-      // VoiceState.notifyListeners() is called, but no WS VoiceChannelLeave
-      // arrives (abrupt network drop / server lag).
-      // With the fix, this expectation should pass:
-      expect(serverState.voiceParticipantsFor('chan1'),
-          isNot(contains('remoteUser')));
-    });
-  });
-
 }
