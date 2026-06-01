@@ -823,13 +823,18 @@ class _AttachmentWidget extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: ConstrainedBox(
-              constraints:
-                  const BoxConstraints(maxWidth: 400, maxHeight: 300),
+              constraints: const BoxConstraints(
+                minWidth: 120,
+                minHeight: 80,
+                maxWidth: 400,
+                maxHeight: 300,
+              ),
               child: Image.network(
                 file.urlFor(autumnBase),
                 fit: BoxFit.contain,
                 errorBuilder: (ctx, err, stack) =>
-                    const SizedBox.shrink(),
+                    const Icon(Icons.broken_image,
+                        size: 48, color: Colors.white24),
               ),
             ),
           ),
