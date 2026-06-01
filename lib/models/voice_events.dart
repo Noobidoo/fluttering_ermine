@@ -1,7 +1,5 @@
-/// Domain events for voice channel state changes.
-/// These events unify WebSocket and LiveKit event sources into a clean interface.
-library;
-
+// Domain events for voice channel state changes.
+// These events unify WebSocket and LiveKit event sources into a clean interface.
 import 'package:livekit_client/livekit_client.dart';
 
 // ── Voice Channel Membership Events ──────────────────────────────────────────
@@ -19,11 +17,12 @@ class VoiceChannelJoinEvent {
 
 /// A user left a voice channel.
 class VoiceChannelLeaveEvent {
-  final String channelId;
+  /// Null channelId signals removal from all channels.
+  final String? channelId;
   final String userId;
 
   const VoiceChannelLeaveEvent({
-    required this.channelId,
+    this.channelId,
     required this.userId,
   });
 }

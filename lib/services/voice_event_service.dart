@@ -164,7 +164,7 @@ class VoiceEventService {
       debugPrint('[VoiceEventService] ServerMemberUpdate: user $userId cleared from voice');
       // Emit a special leave event with null channelId to signal "remove from all"
       _membershipController.add(VoiceChannelLeaveEvent(
-        channelId: '', // Empty string signals "all channels"
+        channelId: null, // null signals "remove from all channels"
         userId: userId,
       ));
       return;

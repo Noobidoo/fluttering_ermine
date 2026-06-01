@@ -181,14 +181,14 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       notifyListeners();
     } else if (event is VoiceChannelLeaveEvent) {
       debugPrint('[VoiceState] VoiceChannelLeave channel=${event.channelId} user=${event.userId}');
-      if (event.channelId.isEmpty) {
-        // Empty channelId signals removal from all channels
+      if (event.channelId == null) {
+        // null channelId signals removal from all channels
         for (final list in _voiceChannelMembers.values) {
           list.remove(event.userId);
         }
         _voiceChannelMembers.removeWhere((_, list) => list.isEmpty);
       } else {
-        _removeParticipant(event.channelId, event.userId);
+        _removeParticipant(event.channelId!, event.userId);
       }
       _voicePublishing.remove(event.userId);
       notifyListeners();
@@ -381,22 +381,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         debugPrint('[voice] localParticipant is null after connect');
         throw Exception('Failed to get local participant');
       }
-      debugPrint('[voice] localParticipant identity=${lp.identity}, enabling mic...');
-      // try {
-      //   await lp.setMicrophoneEnabled(
-      //     true,
-      //     audioCaptureOptions: AudioCaptureOptions(
-      //             noiseSuppression: _noiseSuppression,
-      //             echoCancellation: _echoCancellation,
-      //             autoGainControl: _autoGainControl,
-      //           ),
-      //   );
-      //   debugPrint('[voice] mic enabled, published tracks: ${lp.trackPublications.length}');
-      // } catch (micErr) {
-      //   debugPrint('[voice] mic enable failed: $micErr');
-      // }
-      // Apply stored output volume to any already-connected remote participants
-      //_applyOutputVolume();
+      debugPrint('[voice] localParticipant identity=${lp.identity}');
     } catch (e) {
       debugPrint('[voice] join failed: $e');
       _voiceError = e.toString().replaceAll('Exception: ', '');
