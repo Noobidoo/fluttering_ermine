@@ -610,20 +610,20 @@ class _MessageInputState extends State<_MessageInput> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(withData: true);
+    final service = context.read<MessagingState>().service;
+    final result = await FilePicker.pickFiles(withData: true);
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
     if (file.bytes == null) return;
     setState(() => _uploading = true);
     try {
-      final service = context.read<MessagingState>().service;
       final id = await service.uploadAttachment(
           file.bytes!, file.name);
       setState(() {
         _pendingAttachments.add((id, file.name));
       });
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Upload failed: $e')),
         );

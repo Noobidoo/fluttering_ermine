@@ -81,9 +81,9 @@ class _ChannelTile extends StatelessWidget {
     final selected = server.selectedChannel?.id == channel.id;
     final name = messaging.channelDisplayName(channel);
 
-    // Server-side voice participant tracking (shows for all channels)
+    // Voice participant tracking (shows for all voice channels)
     final participantIds = channel.isVoice
-        ? server.voiceParticipantsFor(channel.id)
+        ? voice.voiceParticipantsFor(channel.id)
         : const <String>[];
 
     // Ensure voice participants are in user cache (they may never have sent a message)
@@ -144,10 +144,12 @@ class _ChannelTile extends StatelessWidget {
                   final lkParticipant = liveKitByIdentity[userId];
                   final isLocal = userId == auth.currentUser?.id;
                   return _VoiceParticipantRow(
+                    identity: userId,
                     displayName: user?.displayUsername ?? userId,
                     isLocal: isLocal,
                     isMuted: lkParticipant?.isMuted,
                     isSpeaking: lkParticipant?.isSpeaking ?? false,
+                    isScreenSharing: lkParticipant?.isScreenSharing ?? false,
                     avatarUrl: user?.avatarUrlFor(auth.autumnBase, auth.apiBase),
                   );
                 }).toList(),
@@ -160,21 +162,26 @@ class _ChannelTile extends StatelessWidget {
 }
 
 class _VoiceParticipantRow extends StatelessWidget {
+  final String identity;
   final String displayName;
   final bool isLocal;
   final bool? isMuted;
   final bool isSpeaking;
+  final bool isScreenSharing;
   final String? avatarUrl;
   const _VoiceParticipantRow({
+    required this.identity,
     required this.displayName,
     required this.isLocal,
     this.isMuted,
     this.isSpeaking = false,
+    this.isScreenSharing = false,
     this.avatarUrl,
   });
 
   @override
   Widget build(BuildContext context) {
+    final voice = context.watch<VoiceState>();
     const speakingColor = Color(0xFF2CB67D);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -232,6 +239,53 @@ class _VoiceParticipantRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (!isLocal && isScreenSharing)
+            GestureDetector(
+              onTap: () =>
+                  voice.toggleScreenShareSubscription(identity),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: voice.isScreenShareSubscribed(identity)
+                      ? const Color(0xFF7F5AF0)
+                      : const Color(0xFF2A2A30),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: voice.isScreenShareSubscribed(identity)
+                        ? const Color(0xFF7F5AF0)
+                        : const Color(0xFF3A3A42),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      voice.isScreenShareSubscribed(identity)
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      size: 10,
+                      color: voice.isScreenShareSubscribed(identity)
+                          ? Colors.white
+                          : Colors.white54,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      voice.isScreenShareSubscribed(identity)
+                          ? 'Hide'
+                          : 'Watch',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: voice.isScreenShareSubscribed(identity)
+                            ? Colors.white
+                            : Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -342,6 +396,6 @@ class _VoiceBar extends StatelessWidget {
                 ),
               ],
             ),
-    );
-  }
+     );
+   }
 }

@@ -1,10 +1,10 @@
-// Tests for WebSocket event handling in ServerState and MessagingState.
+// Tests for WebSocket event handling in MessagingState.
 //
-// Covers the exact bugs that were reported:
-//   - VoiceChannelLeave not removing users from the participant list
-//   - UserUpdate not refreshing the user cache (avatar / display name)
-//   - VoiceChannelMove not moving users between channels
-//   - VoiceChannelJoin adding users to the list
+// Voice channel membership events (VoiceChannelJoin/Leave/Move) are tested in
+// voice_state_test.dart since VoiceState now owns that data.
+// Covers:
+//   - UserUpdate refreshing the user cache (avatar / display name)
+//   - UserUpdate for unknown users, ensureUsersCached
 
 import 'dart:async';
 
@@ -83,100 +83,6 @@ RevoltUser fakeUser(String id, {String username = 'user'}) => RevoltUser(
 void main() {
   // PaintingBinding is needed for imageCache.evict inside MessagingState.
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  // ── ServerState: voice membership events ────────────────────────────────
-
-  group('ServerState – voice channel events', () {
-    late _FakeService svc;
-    late ServerState state;
-
-    setUp(() {
-      svc = _FakeService();
-      state = ServerState(svc);
-      state.subscribeToEvents();
-    });
-
-    tearDown(() => svc.close());
-
-    test('VoiceChannelJoin adds user to channel participant list', () {
-      svc.push(readyEvent());
-      svc.push({
-        'type': 'VoiceChannelJoin',
-        'id': 'chan1',
-        'state': {'id': 'user1'},
-      });
-
-      expect(state.voiceParticipantsFor('chan1'), contains('user1'));
-    });
-
-    test('VoiceChannelJoin is idempotent (no duplicates)', () {
-      svc.push(readyEvent(voiceMembers: {'chan1': ['user1']}));
-      svc.push({
-        'type': 'VoiceChannelJoin',
-        'id': 'chan1',
-        'state': {'id': 'user1'},
-      });
-
-      expect(state.voiceParticipantsFor('chan1').length, 1);
-    });
-
-    test('VoiceChannelLeave removes the user from the channel', () {
-      svc.push(readyEvent(voiceMembers: {
-        'chan1': ['user1', 'user2']
-      }));
-
-      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
-
-      final participants = state.voiceParticipantsFor('chan1');
-      expect(participants, isNot(contains('user1')));
-      expect(participants, contains('user2'));
-    });
-
-    test('VoiceChannelLeave on last user empties the channel entry', () {
-      svc.push(readyEvent(voiceMembers: {'chan1': ['user1']}));
-      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
-
-      expect(state.voiceParticipantsFor('chan1'), isEmpty);
-    });
-
-    test('VoiceChannelLeave with wrong channel ID does not affect other channels', () {
-      svc.push(readyEvent(voiceMembers: {
-        'chan1': ['user1'],
-        'chan2': ['user2'],
-      }));
-
-      // user1 leaves chan1 (correct)
-      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
-
-      expect(state.voiceParticipantsFor('chan1'), isNot(contains('user1')));
-      expect(state.voiceParticipantsFor('chan2'), contains('user2'));
-    });
-
-    test('VoiceChannelLeave for a user not in the channel is a silent no-op', () {
-      svc.push(readyEvent(voiceMembers: {'chan1': ['user2']}));
-
-      // user1 was never in chan1 — late/duplicate WS event, should not throw
-      svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
-
-      // user2 is unaffected
-      expect(state.voiceParticipantsFor('chan1'), contains('user2'));
-    });
-
-    test('VoiceChannelMove removes user from source and adds to destination', () {
-      svc.push(readyEvent(voiceMembers: {'chan1': ['user1']}));
-
-      svc.push({
-        'type': 'VoiceChannelMove',
-        'user': 'user1',
-        'from': 'chan1',
-        'to': 'chan2',
-        'state': {'id': 'user1'},
-      });
-
-      expect(state.voiceParticipantsFor('chan1'), isNot(contains('user1')));
-      expect(state.voiceParticipantsFor('chan2'), contains('user1'));
-    });
-  });
 
   // ── MessagingState: UserUpdate ──────────────────────────────────────────
 

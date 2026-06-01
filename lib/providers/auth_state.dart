@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/revolt_service.dart';
+import '../services/voice_event_service.dart';
 import 'messaging_state.dart';
 import 'server_state.dart';
 import 'voice_state.dart';
@@ -19,12 +20,14 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   final ServerState _serverState;
   final MessagingState _messagingState;
   final VoiceState _voiceState;
+  final VoiceEventService _voiceEventService;
 
   AuthState(
     this._service,
     this._serverState,
     this._messagingState,
     this._voiceState,
+    this._voiceEventService,
   );
 
   bool _isLoggedIn = false;
@@ -166,6 +169,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     _service.connectWebSocket();
     _serverState.subscribeToEvents();
     _messagingState.subscribeToEvents();
+    _voiceEventService.subscribeToWebSocketEvents();
+    _voiceState.subscribeToVoiceEvents();
     _service.events.listen(_handleEvent);
   }
 
