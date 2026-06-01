@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../providers/auth_state.dart';
@@ -761,20 +762,75 @@ class _AttachmentWidget extends StatelessWidget {
         lower.endsWith('.webp');
   }
 
+  void _openImage(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Center(
+                child: Image.network(
+                  file.urlFor(autumnBase),
+                  fit: BoxFit.contain,
+                  loadingBuilder: (ctx, child, progress) =>
+                      progress == null
+                          ? child
+                          : const Center(
+                              child: CircularProgressIndicator()),
+                  errorBuilder: (ctx, err, stack) =>
+                      const Icon(Icons.broken_image,
+                          size: 64, color: Colors.white38),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.close,
+                    color: Colors.white70, size: 28),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openFile(BuildContext context) async {
+    final url = file.urlFor(autumnBase);
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isImage) {
       return Padding(
         padding: const EdgeInsets.only(top: 6),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(maxWidth: 400, maxHeight: 300),
-            child: Image.network(
-              file.urlFor(autumnBase),
-              fit: BoxFit.contain,
-              errorBuilder: (ctx, err, stack) => const SizedBox.shrink(),
+        child: GestureDetector(
+          onTap: () => _openImage(context),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints:
+                  const BoxConstraints(maxWidth: 400, maxHeight: 300),
+              child: Image.network(
+                file.urlFor(autumnBase),
+                fit: BoxFit.contain,
+                errorBuilder: (ctx, err, stack) =>
+                    const SizedBox.shrink(),
+              ),
             ),
           ),
         ),
@@ -782,23 +838,26 @@ class _AttachmentWidget extends StatelessWidget {
     }
     return Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF242428),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.attach_file,
-                size: 16, color: Colors.white54),
-            const SizedBox(width: 8),
-            Text(file.filename,
-                style: const TextStyle(
-                    fontSize: 13, color: Color(0xFF7F5AF0))),
-          ],
+      child: GestureDetector(
+        onTap: () => _openFile(context),
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF242428),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.attach_file,
+                  size: 16, color: Colors.white54),
+              const SizedBox(width: 8),
+              Text(file.filename,
+                  style: const TextStyle(
+                      fontSize: 13, color: Color(0xFF7F5AF0))),
+            ],
+          ),
         ),
       ),
     );

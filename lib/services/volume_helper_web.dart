@@ -1,5 +1,3 @@
-import 'dart:js_interop';
-
 import 'package:web/web.dart' as web;
 
 /// Sets the volume of all active LiveKit audio elements on the web page.
