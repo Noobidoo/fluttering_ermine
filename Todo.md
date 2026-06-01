@@ -67,6 +67,8 @@
 
 ## Phase 5 — Voice Completeness
 
+- [ ] **Rework layout for calls** — `RenderFlex overflowed by 46 pixels on the bottom` when a call starts; audit `_VoiceChannelView` column/row constraints, wrap scrollable content in `Expanded`/`Flexible` or `SingleChildScrollView`, ensure the layout doesn't overflow on smaller screens
+- [ ] **Participant list not updating on leave** — when a participant leaves the call the tile/list does not remove them; ensure `ParticipantDisconnected` LiveKit event (or equivalent `room.participants` stream) triggers a `setState`/`notifyListeners` in `VoiceState` so `_VoiceChannelView` rebuilds and drops the departed participant. Also affects the **local user** — after leaving/disconnecting, the local client's own entry remains in the sidebar list; clear local participant state and remove the local entry on `Room.disconnected` / `onDisconnected` callback
 - [ ] **Audio device selection** — enumerate `MediaDevices` (web) / platform channel (native); pass `deviceId` in `AudioCaptureOptions`; store in `VoiceState` / prefs
 - [ ] **Camera / video toggle** — `room.localParticipant.setCameraEnabled(bool)`; local video preview tile in `_VoiceChannelView`
 - [ ] **Noise suppression** — verify `noiseSuppression: true` in `AudioCaptureOptions` is wired through `VoiceState` → `RoomOptions` (settings toggle exists but may be disconnected)

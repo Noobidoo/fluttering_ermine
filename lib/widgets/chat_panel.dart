@@ -611,7 +611,7 @@ class _MessageInputState extends State<_MessageInput> {
 
   Future<void> _pickFile() async {
     final service = context.read<MessagingState>().service;
-    final result = await FilePicker.platform.pickFiles(withData: true);
+    final result = await FilePicker.pickFiles(withData: true);
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
     if (file.bytes == null) return;

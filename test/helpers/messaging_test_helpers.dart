@@ -9,7 +9,7 @@ import 'dart:typed_data';
 import 'package:fluttering_ermine/models/models.dart';
 import 'package:fluttering_ermine/services/revolt_service.dart';
 
-// ── Fake RevoltService ────────────────────────────────────────────────────────
+// ΓöÇΓöÇ Fake RevoltService ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 class FakeRevoltService extends RevoltService {
   final _ctrl =
@@ -51,7 +51,7 @@ class FakeRevoltService extends RevoltService {
       _userStubs[userId] ??
       RevoltUser(id: userId, username: 'stub', discriminator: '0000');
 
-  /// Never completes — prevents _loadMessages from overwriting WS-pushed messages.
+  /// Never completes ΓÇö prevents _loadMessages from overwriting WS-pushed messages.
   @override
   Future<List<RevoltMessage>> fetchMessages(String channelId,
           {int limit = 50}) =>
@@ -112,7 +112,7 @@ class FakeRevoltService extends RevoltService {
   void close() => _ctrl.close();
 }
 
-// ── Builder helpers ───────────────────────────────────────────────────────────
+// ΓöÇΓöÇ Builder helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 /// WS payload for a new Message event (mirrors RevoltMessage.fromJson fields).
 Map<String, dynamic> msgEvent({

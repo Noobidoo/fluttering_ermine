@@ -18,9 +18,8 @@ dependencies:
     git:
       url: https://github.com/EchoEllet/dart-packages.git
       path: packages/connectivity_plus_linux_portal
-  file_picker: ^8.1.6
-  permission_handler: ^11.3.1
-  image_picker: ^1.2.2
+  file_picker: ^11.0.2
+  permission_handler: ^12.0.1
   web: ^1.1.1
 
 dependency_overrides:

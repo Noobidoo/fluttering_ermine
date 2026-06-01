@@ -11,6 +11,17 @@
             "deviceId": "web-server",
             "request": "launch",
             "type": "dart"
+        },
+        {
+            "name": "Debug Flutter Native C++",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/windows/x64/runner/Debug/fluttering_ermine.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
         }
     ]
 }

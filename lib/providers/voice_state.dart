@@ -61,6 +61,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _isMuted = false;
   bool _isJoiningVoice = false;
   bool _isScreenSharing = false;
+  // ignore: unused_field
+  LocalVideoTrack? _screenShareTrack;
   String? _voiceError;
 
   // -- Voice channel membership (WS-sourced + LiveKit instant updates) -------
@@ -274,6 +276,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           _isJoiningVoice = false;
           _isMuted = false;
           _isScreenSharing = false;
+          _screenShareTrack = null;
           switch (e.reason) {
             case DisconnectReason.clientInitiated:
               _voiceError = null;
@@ -407,20 +410,33 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     debugPrint('[voice:leave] leaveVoiceChannel called, room=${_voiceRoom?.name}');
     _leaveCalledAmount++;
     debugPrint('[voice:leave] _leaveCalledAmount=$_leaveCalledAmount');
+    // Stop screen share BEFORE disconnecting so the loopback capturer is
+    // cleanly shut down before the peer connection tears down the AudioSendStream.
+    if (_isScreenSharing && _voiceRoom?.localParticipant != null) {
+      try {
+        await _voiceRoom!.localParticipant!.setScreenShareEnabled(false);
+      } catch (_) {}
+      _isScreenSharing = false;
+      _screenShareTrack = null;
+    }
     try {
       await _voiceRoom?.disconnect();
       debugPrint('[voice:leave] disconnect() returned');
     } catch (e) {
       debugPrint('[voice:leave] disconnect failed: $e');
-      _voiceRoom = null;
-      _activeVoiceChannel = null;
-      _isInVoice = false;
-      _isMuted = false;
-      _isScreenSharing = false;
-      _voiceError = null;
-      notifyListeners();
     }
+    await _voiceRoomListener?.dispose();
+    _voiceRoomListener = null;
+    _voiceRoom = null;
+    _activeVoiceChannel = null;
+    _isInVoice = false;
+    _isJoiningVoice = false;
+    _isMuted = false;
+    _isScreenSharing = false;
+    _screenShareTrack = null;
+    _voiceError = null;
     _leaveCalledAmount = 0;
+    notifyListeners();
   }
 
   /// Subscribes or unsubscribes from [identity]'s screen share.
@@ -486,18 +502,15 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           maxFrameRate: 15.0,
         ),
       );
+      _screenShareTrack = null;
+      final publishFutures = <Future>[];
       for (final track in tracks) {
         if (track is LocalVideoTrack) {
-          await _voiceRoom!.localParticipant!.publishVideoTrack(track);
-        } else if (track is LocalAudioTrack) {
-          await _voiceRoom!.localParticipant!.publishAudioTrack(
-            track,
-            publishOptions: const AudioPublishOptions(
-              encoding: AudioEncoding.presetMusicHighQualityStereo,
-              dtx: false,
-            ),
+          _screenShareTrack = track;
+          publishFutures.add(
+            _voiceRoom!.localParticipant!.publishVideoTrack(track),
           );
-          // Log audio bitrate every stats cycle to diagnose quality issues.
+        } else if (track is LocalAudioTrack) {
           track.events.listen((event) {
             if (event is AudioSenderStatsEvent) {
               final level = event.stats.audioSourceStats?.audioLevel ?? 0.0;
@@ -506,11 +519,22 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
                   'level=${level.toStringAsFixed(3)}');
             }
           });
+          publishFutures.add(
+            _voiceRoom!.localParticipant!.publishAudioTrack(
+              track,
+              publishOptions: const AudioPublishOptions(
+                encoding: AudioEncoding.presetMusic,
+                dtx: false,
+              ),
+            ),
+          );
         }
       }
+      await Future.wait(publishFutures);
       _isScreenSharing = true;
     } catch (e) {
       debugPrint('[voice] screen share failed: $e');
+      _screenShareTrack = null;
       _voiceError = e.toString().replaceAll('Exception: ', '');
     }
     notifyListeners();
@@ -520,6 +544,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (_voiceRoom?.localParticipant == null) return;
     try {
       await _voiceRoom!.localParticipant!.setScreenShareEnabled(false);
+      _screenShareTrack = null;
       _isScreenSharing = false;
     } catch (e) {
       debugPrint('[voice] stop screen share failed: $e');
@@ -557,6 +582,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _isMuted = false;
     _isJoiningVoice = false;
     _isScreenSharing = false;
+    _screenShareTrack = null;
     _voiceError = null;
     _subscribedScreenShares.clear();
     notifyListeners();
