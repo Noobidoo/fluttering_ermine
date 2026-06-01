@@ -13,7 +13,7 @@ void applyLiveKitVolume(double volume) {
   final audioEls = container.querySelectorAll('audio');
   for (var i = 0; i < audioEls.length; i++) {
     final el = audioEls.item(i);
-    if (el != null && el.instanceOfString('HTMLAudioElement')) {
+    if (el != null) {
       (el as web.HTMLAudioElement).volume = clamped;
     }
   }
