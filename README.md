@@ -88,6 +88,10 @@ Core messaging is mostly complete. Remaining work is tracked in two documents:
 - **Todo.md** covers the next phases: unread tracking, member lists, profiles, server management, voice polish, and general polish.
 - **ROADMAP.md** covers post-MVP features aiming for Discord parity: rich messages, social graph, notification system, theme system, and more.
 
+## Credits
+
+Portions of this codebase were generated with assistance from AI tools.
+
 ## License
 
 This project is licensed under the GNU Affero General Public License v3.0. See the [LICENSE](LICENSE) file for details.
