@@ -6,50 +6,13 @@
 //   - UserUpdate refreshing the user cache (avatar / display name)
 //   - UserUpdate for unknown users, ensureUsersCached
 
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fluttering_ermine/models/models.dart';
 import 'package:fluttering_ermine/providers/messaging_state.dart';
 import 'package:fluttering_ermine/providers/server_state.dart';
-import 'package:fluttering_ermine/services/revolt_service.dart';
 
-// ── Minimal fake RevoltService ───────────────────────────────────────────────
-
-class _FakeService extends RevoltService {
-  // sync:true so events are delivered immediately when add() is called,
-  // making tests straightforward without awaiting microtasks.
-  final _ctrl = StreamController<Map<String, dynamic>>.broadcast(sync: true);
-  final Map<String, RevoltUser> _userStubs = {};
-
-  @override
-  Stream<Map<String, dynamic>> get events => _ctrl.stream;
-
-  @override
-  void connectWebSocket() {} // no-op – tests inject events manually
-
-  @override
-  String get apiBase => 'https://api.example.test';
-
-  @override
-  String get autumnBase => 'https://autumn.example.test';
-
-  /// Inject a raw WS event into both subscribed providers.
-  void push(Map<String, dynamic> event) => _ctrl.add(event);
-
-  /// Register a user to be returned by [fetchUser].
-  void stubUser(RevoltUser user) => _userStubs[user.id] = user;
-
-  @override
-  Future<RevoltUser> fetchUser(String userId) async {
-    final u = _userStubs[userId];
-    if (u == null) throw Exception('No stub for user $userId');
-    return u;
-  }
-
-  void close() => _ctrl.close();
-}
+import '../helpers/messaging_test_helpers.dart';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,12 +50,12 @@ void main() {
   // ── MessagingState: UserUpdate ──────────────────────────────────────────
 
   group('MessagingState – UserUpdate event', () {
-    late _FakeService svc;
+    late FakeRevoltService svc;
     late ServerState serverState;
     late MessagingState state;
 
     setUp(() {
-      svc = _FakeService();
+      svc = FakeRevoltService();
       serverState = ServerState(svc);
       serverState.subscribeToEvents();
       state = MessagingState(svc, serverState);

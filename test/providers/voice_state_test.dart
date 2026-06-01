@@ -17,19 +17,25 @@ import '../helpers/messaging_test_helpers.dart';
 
 Map<String, dynamic> _readyEvent({
   Map<String, List<String>> voiceMembers = const {},
-}) =>
-    {
-      'type': 'Ready',
-      'servers': [],
-      'channels': [],
-      'users': [],
-      'voice_states': voiceMembers.entries
-          .map((e) => {
-                'id': e.key,
-                'participants': e.value.map((uid) => {'id': uid}).toList(),
-              })
-          .toList(),
-    };
+  Set<String> publishingUsers = const {},
+}) {
+  final voiceStates = voiceMembers.entries.map((e) {
+    final participants = e.value.map((uid) {
+      if (publishingUsers.contains(uid)) {
+        return <String, dynamic>{'id': uid, 'is_publishing': true};
+      }
+      return <String, dynamic>{'id': uid};
+    }).toList();
+    return <String, dynamic>{'id': e.key, 'participants': participants};
+  }).toList();
+  return {
+    'type': 'Ready',
+    'servers': <dynamic>[],
+    'channels': <dynamic>[],
+    'users': <dynamic>[],
+    'voice_states': voiceStates,
+  };
+}
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -66,12 +72,55 @@ void main() {
       expect(voiceState.voiceError, isNull);
     });
 
+    test('default values for screen share and settings getters', () {
+      expect(voiceState.isScreenSharing, isFalse);
+      expect(voiceState.isScreenShareSubscribed('any'), isFalse);
+      expect(voiceState.voicePublishingFor('any'), isNull);
+      expect(voiceState.outputVolume, 1.0);
+      expect(voiceState.noiseSuppression, isTrue);
+      expect(voiceState.echoCancellation, isTrue);
+      expect(voiceState.autoGainControl, isTrue);
+    });
+
     test('voiceParticipants is empty when not connected to a room', () {
       expect(voiceState.voiceParticipants, isEmpty);
     });
 
     test('remoteVideoStreams is empty when not connected to a room', () {
       expect(voiceState.remoteVideoStreams, isEmpty);
+    });
+  });
+
+  // ── VoiceParticipant model ──────────────────────────────────────────────────
+
+  group('VoiceParticipant', () {
+    test('displayName returns name when set', () {
+      final p = VoiceParticipant(
+        identity: 'u1',
+        name: 'Alice',
+        isLocal: false,
+        isMuted: false,
+      );
+      expect(p.displayName, 'Alice');
+    });
+
+    test('displayName falls back to identity when name is empty', () {
+      final p = VoiceParticipant(
+        identity: 'u1',
+        name: '',
+        isLocal: false,
+        isMuted: false,
+      );
+      expect(p.displayName, 'u1');
+    });
+
+    test('displayName falls back to identity when name is null', () {
+      final p = VoiceParticipant(
+        identity: 'u1',
+        isLocal: false,
+        isMuted: false,
+      );
+      expect(p.displayName, 'u1');
     });
   });
 
@@ -89,12 +138,54 @@ void main() {
       expect(voiceState.activeVoiceChannel, isNull);
     });
   });
-  // ── WS voice channel membership ────────────────────────────────────────────────────
+
+  // ── toggleMute without LiveKit Room ───────────────────────────────────────
+
+  group('VoiceState – toggleMute without Room', () {
+    test('toggleMute is no-op when no Room is connected', () async {
+      await voiceState.toggleMute();
+      expect(voiceState.isMuted, isFalse);
+    });
+  });
+
+  // ── clear / dispose ───────────────────────────────────────────────────────
+
+  group('VoiceState – lifecycle', () {
+    test('clear resets state without throwing when no Room is active', () async {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
+      expect(voiceState.voiceParticipantsFor('chan1'), isNotEmpty);
+
+      await voiceState.clear();
+
+      expect(voiceState.isInVoice, isFalse);
+      expect(voiceState.activeVoiceChannel, isNull);
+      expect(voiceState.isMuted, isFalse);
+      expect(voiceState.isJoiningVoice, isFalse);
+      expect(voiceState.isScreenSharing, isFalse);
+      expect(voiceState.voiceError, isNull);
+      // channel membership is preserved by clear (only clears subs + LiveKit state)
+    });
+
+    test('dispose does not throw', () {
+      expect(() => voiceState.dispose(), returnsNormally);
+    });
+  });
+
+  // ── WS voice channel membership ───────────────────────────────────────────
 
   group('VoiceState – voice channel events', () {
     test('Ready seeds voice membership from voice_states', () {
       svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
       expect(voiceState.voiceParticipantsFor('chan1'), contains('user1'));
+    });
+
+    test('Ready seeds publishing state from voice_states', () {
+      svc.push(_readyEvent(
+        voiceMembers: {'chan1': ['u1', 'u2']},
+        publishingUsers: {'u1'},
+      ));
+      expect(voiceState.voicePublishingFor('u1'), isTrue);
+      expect(voiceState.voicePublishingFor('u2'), isNull);
     });
 
     test('VoiceChannelJoin adds user to channel participant list', () {
@@ -134,6 +225,22 @@ void main() {
       expect(voiceState.voiceParticipantsFor('chan1'), contains('user2'));
     });
 
+    test('ServerMemberUpdate with VoiceChannel clear removes user from all channels and clears publishing', () {
+      svc.push(_readyEvent(
+        voiceMembers: {'a': ['u1', 'u2'], 'b': ['u1']},
+        publishingUsers: {'u1'},
+      ));
+      expect(voiceState.voicePublishingFor('u1'), isTrue);
+      svc.push({
+        'type': 'ServerMemberUpdate',
+        'id': {'server': 's1', 'user': 'u1'},
+        'clear': ['VoiceChannel'],
+      });
+      expect(voiceState.voiceParticipantsFor('a'), ['u2']);
+      expect(voiceState.voiceParticipantsFor('b'), isEmpty);
+      expect(voiceState.voicePublishingFor('u1'), isNull);
+    });
+
     test('VoiceChannelMove removes from source and adds to destination', () {
       svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
       svc.push({'type': 'VoiceChannelMove', 'user': 'user1', 'from': 'chan1', 'to': 'chan2'});
@@ -141,11 +248,103 @@ void main() {
       expect(voiceState.voiceParticipantsFor('chan2'), contains('user1'));
     });
 
+    test('VoiceChannelMove with null from only adds to destination', () {
+      svc.push(_readyEvent(voiceMembers: {'chan2': []}));
+      svc.push({'type': 'VoiceChannelMove', 'user': 'user1', 'from': null, 'to': 'chan2'});
+      expect(voiceState.voiceParticipantsFor('chan2'), contains('user1'));
+    });
+
+    test('VoiceChannelMove with null to only removes from source', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
+      svc.push({'type': 'VoiceChannelMove', 'user': 'user1', 'from': 'chan1', 'to': null});
+      expect(voiceState.voiceParticipantsFor('chan1'), isEmpty);
+    });
+
     test('VoiceChannelLeave notifies listeners', () {
       svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
       var notified = false;
       voiceState.addListener(() => notified = true);
       svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'u1'});
+      expect(notified, isTrue);
+    });
+
+    test('UserVoiceStateUpdate updates publishing state', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
+      svc.push({
+        'type': 'UserVoiceStateUpdate',
+        'id': 'u1',
+        'data': {'is_publishing': true},
+      });
+      expect(voiceState.voicePublishingFor('u1'), isTrue);
+    });
+
+    test('UserVoiceStateUpdate sets false when user stops publishing', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
+      svc.push({
+        'type': 'UserVoiceStateUpdate',
+        'id': 'u1',
+        'data': {'is_publishing': true},
+      });
+      svc.push({
+        'type': 'UserVoiceStateUpdate',
+        'id': 'u1',
+        'data': {'is_publishing': false},
+      });
+      expect(voiceState.voicePublishingFor('u1'), isFalse);
+    });
+
+    test('UserVoiceStateUpdate notifies listeners', () {
+      svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
+      var notified = false;
+      voiceState.addListener(() => notified = true);
+      svc.push({
+        'type': 'UserVoiceStateUpdate',
+        'id': 'u1',
+        'data': {'is_publishing': true},
+      });
+      expect(notified, isTrue);
+    });
+  });
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+
+  group('VoiceState – settings', () {
+    test('setOutputVolume updates volume and notifies', () async {
+      var notified = false;
+      voiceState.addListener(() => notified = true);
+      await voiceState.setOutputVolume(0.5);
+      expect(voiceState.outputVolume, 0.5);
+      expect(notified, isTrue);
+    });
+
+    test('setOutputVolume clamps to 0.0 – 1.0', () async {
+      await voiceState.setOutputVolume(-1.0);
+      expect(voiceState.outputVolume, 0.0);
+      await voiceState.setOutputVolume(2.0);
+      expect(voiceState.outputVolume, 1.0);
+    });
+
+    test('setNoiseSuppression updates setting and notifies', () async {
+      var notified = false;
+      voiceState.addListener(() => notified = true);
+      await voiceState.setNoiseSuppression(false);
+      expect(voiceState.noiseSuppression, isFalse);
+      expect(notified, isTrue);
+    });
+
+    test('setEchoCancellation updates setting and notifies', () async {
+      var notified = false;
+      voiceState.addListener(() => notified = true);
+      await voiceState.setEchoCancellation(false);
+      expect(voiceState.echoCancellation, isFalse);
+      expect(notified, isTrue);
+    });
+
+    test('setAutoGainControl updates setting and notifies', () async {
+      var notified = false;
+      voiceState.addListener(() => notified = true);
+      await voiceState.setAutoGainControl(false);
+      expect(voiceState.autoGainControl, isFalse);
       expect(notified, isTrue);
     });
   });

@@ -108,10 +108,10 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'MessageDelete':
         _onMessageDelete(event);
         break;
-      case 'TypingStart':
+      case 'ChannelStartTyping':
         _onTypingStart(event);
         break;
-      case 'TypingStop':
+      case 'ChannelStopTyping':
         _onTypingStop(event);
         break;
       case 'MessageReact':
@@ -273,8 +273,8 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   void _onTypingStart(Map<String, dynamic> event) {
-    final channelId = event['channel'] as String?;
-    final userId = event['id'] as String?;
+    final channelId = event['id'] as String?;
+    final userId = event['user'] as String?;
     if (channelId == null || userId == null) return;
     if (userId == _currentUserId) return;
     _typingUsers.putIfAbsent(channelId, () => {}).add(userId);
@@ -283,8 +283,8 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   void _onTypingStop(Map<String, dynamic> event) {
-    final channelId = event['channel'] as String?;
-    final userId = event['id'] as String?;
+    final channelId = event['id'] as String?;
+    final userId = event['user'] as String?;
     if (channelId == null || userId == null) return;
     _typingUsers[channelId]?.remove(userId);
     if (_typingUsers[channelId]?.isEmpty == true) {

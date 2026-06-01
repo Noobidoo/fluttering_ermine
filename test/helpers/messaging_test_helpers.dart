@@ -109,6 +109,15 @@ class FakeRevoltService extends RevoltService {
   Future<String> uploadAttachment(Uint8List bytes, String filename) async =>
       'stub-file-id';
 
+  final Map<String, RevoltChannel> _channelStubs = {};
+
+  void stubChannel(RevoltChannel channel) =>
+      _channelStubs[channel.id] = channel;
+
+  @override
+  Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async =>
+      channelIds.map((id) => _channelStubs[id]!).toList();
+
   void close() => _ctrl.close();
 }
 

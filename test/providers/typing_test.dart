@@ -1,4 +1,4 @@
-// Tests for TypingStart / TypingStop WS events and sendTypingIndicator debounce.
+// Tests for ChannelStartTyping / ChannelStopTyping WS events and sendTypingIndicator debounce.
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,59 +24,61 @@ void main() {
 
   tearDown(() => svc.close());
 
-  // ── TypingStart / TypingStop WS events ────────────────────────────────────
+  // ── ChannelStartTyping / ChannelStopTyping WS events ─────────────────────
 
-  group('TypingStart / TypingStop WS events', () {
+  group('ChannelStartTyping / ChannelStopTyping WS events', () {
     const currentUser = 'current-user';
     const otherUser = 'other-user';
     const chan = 'chan1';
 
     setUp(() => state.setCurrentUserId(currentUser));
 
-    test('TypingStart adds user to channel typing set', () {
-      svc.push({'type': 'TypingStart', 'channel': chan, 'id': otherUser});
+    test('ChannelStartTyping adds user to channel typing set', () {
+      svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': otherUser});
 
       expect(state.typingUsersFor(chan), contains(otherUser));
     });
 
-    test('TypingStart ignores current user ID', () {
-      svc.push({'type': 'TypingStart', 'channel': chan, 'id': currentUser});
+    test('ChannelStartTyping ignores current user ID', () {
+      svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': currentUser});
 
       expect(state.typingUsersFor(chan), isEmpty);
     });
 
     test('multiple users can type simultaneously', () {
-      svc.push({'type': 'TypingStart', 'channel': chan, 'id': 'u1'});
-      svc.push({'type': 'TypingStart', 'channel': chan, 'id': 'u2'});
+      svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': 'u1'});
+      svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': 'u2'});
 
       expect(state.typingUsersFor(chan), containsAll(['u1', 'u2']));
     });
 
-    test('TypingStop removes user from typing set', () {
-      svc.push({'type': 'TypingStart', 'channel': chan, 'id': otherUser});
-      svc.push({'type': 'TypingStop', 'channel': chan, 'id': otherUser});
+    test('ChannelStopTyping removes user from typing set', () {
+      svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': otherUser});
+      svc.push({'type': 'ChannelStopTyping', 'id': chan, 'user': otherUser});
+
+      expect(state.typingUsersFor(chan), isNot(contains(otherUser)));
+    });
+
+    test('ChannelStopTyping for last user empties the channel entry', () {
+      svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': 'u1'});
+      svc.push({'type': 'ChannelStopTyping', 'id': chan, 'user': 'u1'});
 
       expect(state.typingUsersFor(chan), isEmpty);
     });
 
-    test('TypingStop for last user empties the channel entry', () {
-      svc.push({'type': 'TypingStart', 'channel': chan, 'id': 'u1'});
-      svc.push({'type': 'TypingStop', 'channel': chan, 'id': 'u1'});
+    test('ChannelStopTyping for one of two users leaves the other', () {
+      svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': 'u1'});
+      svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': 'u2'});
+      svc.push({'type': 'ChannelStopTyping', 'id': chan, 'user': 'u1'});
 
-      expect(state.typingUsersFor(chan), isEmpty);
-    });
-
-    test('TypingStop for one of two users leaves the other', () {
-      svc.push({'type': 'TypingStart', 'channel': chan, 'id': 'u1'});
-      svc.push({'type': 'TypingStart', 'channel': chan, 'id': 'u2'});
-      svc.push({'type': 'TypingStop', 'channel': chan, 'id': 'u1'});
-
-      expect(state.typingUsersFor(chan), isNot(contains('u1')));
       expect(state.typingUsersFor(chan), contains('u2'));
+      expect(state.typingUsersFor(chan), isNot(contains('u1')));
     });
 
-    test('TypingStop is no-op for unknown channel (no throw)', () {
-      svc.push({'type': 'TypingStop', 'channel': 'ghost', 'id': 'u1'});
+    test('ChannelStopTyping is no-op for unknown channel (no throw)', () {
+      svc.push({'type': 'ChannelStopTyping', 'id': 'ghost', 'user': 'u1'});
+
+      expect(state.typingUsersFor('ghost'), isEmpty);
     });
   });
 
