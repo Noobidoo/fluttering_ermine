@@ -382,6 +382,21 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         throw Exception('Failed to get local participant');
       }
       debugPrint('[voice] localParticipant identity=${lp.identity}');
+      // try {
+      //   await lp.setMicrophoneEnabled(
+      //     true,
+      //     audioCaptureOptions: AudioCaptureOptions(
+      //             noiseSuppression: _noiseSuppression,
+      //             echoCancellation: _echoCancellation,
+      //             autoGainControl: _autoGainControl,
+      //           ),
+      //   );
+      //   debugPrint('[voice] mic enabled, published tracks: ${lp.trackPublications.length}');
+      // } catch (micErr) {
+      //   debugPrint('[voice] mic enable failed: $micErr');
+      // }
+      // Apply stored output volume to any already-connected remote participants
+      //_applyOutputVolume();
     } catch (e) {
       debugPrint('[voice] join failed: $e');
       _voiceError = e.toString().replaceAll('Exception: ', '');
