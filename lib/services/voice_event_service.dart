@@ -157,16 +157,17 @@ class VoiceEventService {
     final userId = id?['user'] as String?;
     if (userId == null) return;
 
-    final clear = (event['clear'] as List<dynamic>?)?.cast<String>() ?? [];
     if (clear.contains('VoiceChannel')) {
-      // User left all voice channels - emit leave events for cleanup
-      // States should remove this user from all channels
-      debugPrint('[VoiceEventService] ServerMemberUpdate: user $userId cleared from voice');
-      // Emit a special leave event with null channelId to signal "remove from all"
+      // User left all voice channels - emit leave events for cleanup.
+      // States should remove this user from all channels.
+      debugPrint(
+          '[VoiceEventService] ServerMemberUpdate: user $userId cleared from voice');
+      // Emit a special leave event with an empty channelId to signal "remove from all".
       _membershipController.add(VoiceChannelLeaveEvent(
         channelId: null, // null signals "remove from all channels"
         userId: userId,
       ));
+      ));
       return;
     }
 
