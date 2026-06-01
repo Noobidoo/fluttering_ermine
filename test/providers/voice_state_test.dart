@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fluttering_ermine/providers/voice_state.dart';
+import 'package:fluttering_ermine/services/voice_event_service.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 
@@ -41,12 +42,15 @@ void main() {
   });
 
   late FakeRevoltService svc;
+  late VoiceEventService voiceEventService;
   late VoiceState voiceState;
 
   setUp(() {
     svc = FakeRevoltService();
-    voiceState = VoiceState(svc);
-    voiceState.subscribeToEvents();
+    voiceEventService = VoiceEventService(svc);
+    voiceState = VoiceState(svc, voiceEventService);
+    voiceEventService.subscribeToWebSocketEvents();
+    voiceState.subscribeToVoiceEvents();
   });
 
   tearDown(() => svc.close());

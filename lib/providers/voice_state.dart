@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/revolt_service.dart';
+import '../services/voice_event_service.dart';
 import '../services/volume_helper.dart';
 
 class RemoteVideoStream {
@@ -27,12 +27,14 @@ class VoiceParticipant {
   final bool isLocal;
   final bool isMuted;
   final bool isSpeaking;
+  final bool isScreenSharing;
   const VoiceParticipant({
     required this.identity,
     this.name,
     required this.isLocal,
     required this.isMuted,
     this.isSpeaking = false,
+    this.isScreenSharing = false,
   });
 
   String get displayName {
@@ -43,12 +45,14 @@ class VoiceParticipant {
 
 class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   final RevoltService _service;
+  final VoiceEventService _voiceEventService;
 
-  VoiceState(this._service) {
+  VoiceState(this._service, this._voiceEventService) {
     _loadSettings();
   }
 
-  StreamSubscription<Map<String, dynamic>>? _wsSub;
+  StreamSubscription<dynamic>? _membershipSub;
+  StreamSubscription<VoicePublishingStateChangeEvent>? _publishingSub;
 
   Room? _voiceRoom;
   EventsListener<RoomEvent>? _voiceRoomListener;
@@ -57,8 +61,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _isMuted = false;
   bool _isJoiningVoice = false;
   bool _isScreenSharing = false;
-  LocalVideoTrack? _screenShareTrack;
-  bool _leavingIntentionally = false;
   String? _voiceError;
 
   // -- Voice channel membership (WS-sourced + LiveKit instant updates) -------
@@ -71,6 +73,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _noiseSuppression = true;
   bool _echoCancellation = true;
   bool _autoGainControl = true;
+
+  // -- Per-participant screen share subscriptions -----------------------------
+  final Set<String> _subscribedScreenShares = {};
 
   // -- Development/debugging only: expose LiveKit internals for diagnostics and testing --
   int _leaveCalledAmount = 0;
@@ -87,6 +92,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool get noiseSuppression => _noiseSuppression;
   bool get echoCancellation => _echoCancellation;
   bool get autoGainControl => _autoGainControl;
+
+  bool isScreenShareSubscribed(String identity) => _subscribedScreenShares.contains(identity);
 
   List<String> voiceParticipantsFor(String channelId) =>
       List.unmodifiable(_voiceChannelMembers[channelId] ?? []);
@@ -124,136 +131,82 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         isLocal: true,
         isMuted: _isMuted,
         isSpeaking: local.isSpeaking,
+        isScreenSharing: _isScreenSharing,
       ));
     }
     for (final p in _voiceRoom!.remoteParticipants.values) {
       final audioMuted = p.trackPublications.values
           .where((pub) => pub.kind == TrackType.AUDIO)
           .every((pub) => pub.muted);
+      final hasScreenShare = p.trackPublications.values.any((pub) => pub.isScreenShare);
       result.add(VoiceParticipant(
         identity: p.identity,
         name: p.name,
         isLocal: false,
         isMuted: audioMuted,
         isSpeaking: p.isSpeaking,
+        isScreenSharing: hasScreenShare,
       ));
     }
     return result;
   }
 
-  // -- WebSocket ------------------------------------------------------------
+  // -- Voice Event Subscription (via VoiceEventService) --------------------
 
-  void subscribeToEvents() {
-    _wsSub?.cancel();
-    _wsSub = _service.events.listen(_handleWsEvent);
+  void subscribeToVoiceEvents() {
+    _membershipSub?.cancel();
+    _publishingSub?.cancel();
+    _membershipSub = _voiceEventService.membershipEvents.listen(_handleMembershipEvent);
+    _publishingSub = _voiceEventService.publishingEvents.listen(_handlePublishingEvent);
   }
 
-  void _handleWsEvent(Map<String, dynamic> event) {
-    switch (event['type'] as String?) {
-      case 'Ready':
-        _onWsReady(event);
-      case 'VoiceChannelJoin':
-        _onVoiceChannelJoin(event);
-      case 'VoiceChannelLeave':
-        _onVoiceChannelLeave(event);
-      case 'VoiceChannelMove':
-        _onVoiceChannelMove(event);
-      case 'UserVoiceStateUpdate':
-        _onUserVoiceStateUpdate(event);
-      case 'ServerMemberUpdate':
-        _onMemberUpdate(event);
-    }
-  }
-
-  void _onWsReady(Map<String, dynamic> event) {
-    _voiceChannelMembers.clear();
-    _voicePublishing.clear();
-    final voiceStates = (event['voice_states'] as List<dynamic>?) ?? [];
-    for (final vs in voiceStates) {
-      final map = vs as Map<String, dynamic>;
-      final channelId = map['id'] as String?;
-      if (channelId == null) continue;
-      final participants = (map['participants'] as List<dynamic>?) ?? [];
-      for (final p in participants) {
-        final pm = p as Map<String, dynamic>;
-        final userId = pm['id'] as String?;
-        final isPublishing = pm['is_publishing'] as bool?;
-        if (userId == null) continue;
-        _voiceChannelMembers.putIfAbsent(channelId, () => []);
-        if (!_voiceChannelMembers[channelId]!.contains(userId)) {
-          _voiceChannelMembers[channelId]!.add(userId);
-        }
-        if (isPublishing != null) _voicePublishing[userId] = isPublishing;
-      }
-    }
-    debugPrint('[VoiceState] voiceChannelMembers after Ready: $_voiceChannelMembers');
-    notifyListeners();
-  }
-
-  void _onVoiceChannelJoin(Map<String, dynamic> event) {
-    final channelId = event['id'] as String?;
-    final state = event['state'] as Map<String, dynamic>?;
-    final userId = state?['id'] as String?;
-    debugPrint('[VoiceState] VoiceChannelJoin channel=$channelId user=$userId');
-    if (channelId == null || userId == null) return;
-    _voiceChannelMembers.putIfAbsent(channelId, () => []);
-    if (!_voiceChannelMembers[channelId]!.contains(userId)) {
-      _voiceChannelMembers[channelId]!.add(userId);
-    }
-    notifyListeners();
-  }
-
-  void _onVoiceChannelLeave(Map<String, dynamic> event) {
-    final channelId = event['id'] as String?;
-    final userId = event['user'] as String?;
-    debugPrint('[VoiceState] VoiceChannelLeave channel=$channelId user=$userId');
-    if (channelId == null || userId == null) return;
-    _removeParticipant(channelId, userId);
-    _voicePublishing.remove(userId);
-    notifyListeners();
-  }
-
-  void _onVoiceChannelMove(Map<String, dynamic> event) {
-    final userId = event['user'] as String?;
-    final from = event['from'] as String?;
-    final to = event['to'] as String?;
-    debugPrint('[VoiceState] VoiceChannelMove user=$userId from=$from to=$to');
-    if (userId == null) return;
-    if (from != null) _removeParticipant(from, userId);
-    if (to != null) {
-      _voiceChannelMembers.putIfAbsent(to, () => []);
-      if (!_voiceChannelMembers[to]!.contains(userId)) {
-        _voiceChannelMembers[to]!.add(userId);
-      }
-    }
-    notifyListeners();
-  }
-
-  void _onUserVoiceStateUpdate(Map<String, dynamic> event) {
-    final userId = event['id'] as String?;
-    final data = event['data'] as Map<String, dynamic>?;
-    if (userId == null || data == null) return;
-    final isPublishing = data['is_publishing'] as bool?;
-    if (isPublishing != null) _voicePublishing[userId] = isPublishing;
-    notifyListeners();
-  }
-
-  void _onMemberUpdate(Map<String, dynamic> event) {
-    final id = event['id'] as Map<String, dynamic>?;
-    final userId = id?['user'] as String?;
-    if (userId == null) return;
-    _voiceChannelMembers.forEach((_, list) => list.remove(userId));
-    _voiceChannelMembers.removeWhere((_, list) => list.isEmpty);
-    final clear = (event['clear'] as List<dynamic>?)?.cast<String>() ?? [];
-    if (clear.contains('VoiceChannel')) {
+  void _handleMembershipEvent(dynamic event) {
+    if (event is VoiceChannelMembershipResetEvent) {
+      _voiceChannelMembers
+        ..clear()
+        ..addAll(event.channelMembers);
+      _voicePublishing
+        ..clear()
+        ..addAll(event.publishingState);
+      debugPrint('[VoiceState] VoiceChannelMembershipReset: $_voiceChannelMembers');
       notifyListeners();
-      return;
+    } else if (event is VoiceChannelJoinEvent) {
+      debugPrint('[VoiceState] VoiceChannelJoin channel=${event.channelId} user=${event.userId}');
+      _voiceChannelMembers.putIfAbsent(event.channelId, () => []);
+      if (!_voiceChannelMembers[event.channelId]!.contains(event.userId)) {
+        _voiceChannelMembers[event.channelId]!.add(event.userId);
+      }
+      notifyListeners();
+    } else if (event is VoiceChannelLeaveEvent) {
+      debugPrint('[VoiceState] VoiceChannelLeave channel=${event.channelId} user=${event.userId}');
+      if (event.channelId.isEmpty) {
+        // Empty channelId signals removal from all channels
+        for (final list in _voiceChannelMembers.values) {
+          list.remove(event.userId);
+        }
+        _voiceChannelMembers.removeWhere((_, list) => list.isEmpty);
+      } else {
+        _removeParticipant(event.channelId, event.userId);
+      }
+      _voicePublishing.remove(event.userId);
+      notifyListeners();
+    } else if (event is VoiceChannelMoveEvent) {
+      debugPrint('[VoiceState] VoiceChannelMove user=${event.userId} from=${event.fromChannelId} to=${event.toChannelId}');
+      if (event.fromChannelId != null) {
+        _removeParticipant(event.fromChannelId!, event.userId);
+      }
+      if (event.toChannelId != null) {
+        _voiceChannelMembers.putIfAbsent(event.toChannelId!, () => []);
+        if (!_voiceChannelMembers[event.toChannelId]!.contains(event.userId)) {
+          _voiceChannelMembers[event.toChannelId]!.add(event.userId);
+        }
+      }
+      notifyListeners();
     }
-    final data = event['data'] as Map<String, dynamic>?;
-    final newChannel = data?['voice_channel'] as String?;
-    if (newChannel != null) {
-      _voiceChannelMembers.putIfAbsent(newChannel, () => []).add(userId);
-    }
+  }
+
+  void _handlePublishingEvent(VoicePublishingStateChangeEvent event) {
+    _voicePublishing[event.userId] = event.isPublishing;
     notifyListeners();
   }
 
@@ -281,7 +234,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
 
     if (_voiceRoom != null) await leaveVoiceChannel();
-    _leavingIntentionally = false;
     _isJoiningVoice = true;
     _voiceError = null;
     notifyListeners();
@@ -359,6 +311,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           notifyListeners();
         })
         ..on<TrackSubscribedEvent>((e) {
+          debugPrint('[voice:event] TrackSubscribedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
           if (e.track is RemoteAudioTrack &&
               e.publication.source == TrackSource.screenShareAudio) {
             e.track.events.listen((trackEvent) {
@@ -377,7 +330,37 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           }
           notifyListeners();
         })
-        ..on<TrackUnsubscribedEvent>((_) { debugPrint('[voice:event] TrackUnsubscribedEvent'); notifyListeners(); })
+        ..on<TrackUnsubscribedEvent>((e) {
+          debugPrint('[voice:event] TrackUnsubscribedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          notifyListeners();
+        })
+        ..on<TrackPublishedEvent>((e) {
+          debugPrint('[voice:event] TrackPublishedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          if (e.publication.isScreenShare) {
+            if (_subscribedScreenShares.contains(e.participant.identity)) {
+              e.publication.subscribe();
+            }
+          } else {
+            e.publication.subscribe();
+          }
+          notifyListeners();
+        })
+        ..on<TrackUnpublishedEvent>((e) {
+          debugPrint('[voice:event] TrackUnpublishedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          notifyListeners();
+        })
+        ..on<TrackMutedEvent>((e) {
+          debugPrint('[voice:event] TrackMutedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          notifyListeners();
+        })
+        ..on<TrackUnmutedEvent>((e) {
+          debugPrint('[voice:event] TrackUnmutedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          notifyListeners();
+        })
+        ..on<TrackSubscriptionExceptionEvent>((e) {
+          debugPrint('[voice:event] TrackSubscriptionExceptionEvent participant=${e.participant?.identity} sid=${e.sid} reason=${e.reason}');
+          notifyListeners();
+        })
         ..on<ParticipantConnectedEvent>((e) { debugPrint('[voice:event] ParticipantConnectedEvent id=${e.participant.identity}'); notifyListeners(); })
         ..on<ParticipantDisconnectedEvent>((e) {
             debugPrint('[voice:event] ParticipantDisconnectedEvent id=${e.participant.identity} remaining=${_voiceRoom?.remoteParticipants.length}');
@@ -386,7 +369,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           })
         ..on<ActiveSpeakersChangedEvent>((_) => notifyListeners());
 
-      await room.connect(url, token);
+      await room.connect(url, token, connectOptions: const ConnectOptions(autoSubscribe: false));
+      _subscribeInitialTracks();
       debugPrint('[voice] room.connect() returned, isInVoice=$_isInVoice');
       _isMuted = false;
       final lp = room.localParticipant;
@@ -423,8 +407,66 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     debugPrint('[voice:leave] leaveVoiceChannel called, room=${_voiceRoom?.name}');
     _leaveCalledAmount++;
     debugPrint('[voice:leave] _leaveCalledAmount=$_leaveCalledAmount');
-    await _voiceRoom?.disconnect();
-    debugPrint('[voice:leave] disconnect() returned');
+    try {
+      await _voiceRoom?.disconnect();
+      debugPrint('[voice:leave] disconnect() returned');
+    } catch (e) {
+      debugPrint('[voice:leave] disconnect failed: $e');
+      _voiceRoom = null;
+      _activeVoiceChannel = null;
+      _isInVoice = false;
+      _isMuted = false;
+      _isScreenSharing = false;
+      _voiceError = null;
+      notifyListeners();
+    }
+    _leaveCalledAmount = 0;
+  }
+
+  /// Subscribes or unsubscribes from [identity]'s screen share.
+  void toggleScreenShareSubscription(String identity) {
+    if (_subscribedScreenShares.contains(identity)) {
+      _subscribedScreenShares.remove(identity);
+      _unsubscribeScreenShare(identity);
+    } else {
+      _subscribedScreenShares.add(identity);
+      _subscribeScreenShare(identity);
+    }
+    notifyListeners();
+  }
+
+  void _subscribeScreenShare(String identity) {
+    if (_voiceRoom == null) return;
+    final p = _voiceRoom!.remoteParticipants[identity];
+    if (p == null) return;
+    for (final pub in p.trackPublications.values) {
+      if (pub.isScreenShare) pub.subscribe();
+    }
+  }
+
+  void _unsubscribeScreenShare(String identity) {
+    if (_voiceRoom == null) return;
+    final p = _voiceRoom!.remoteParticipants[identity];
+    if (p == null) return;
+    for (final pub in p.trackPublications.values) {
+      if (pub.isScreenShare) pub.unsubscribe();
+    }
+  }
+
+  /// Subscribes to audio/camera for all participants, screen shares only if opted in.
+  void _subscribeInitialTracks() {
+    if (_voiceRoom == null) return;
+    for (final p in _voiceRoom!.remoteParticipants.values) {
+      for (final pub in p.trackPublications.values) {
+        if (pub.isScreenShare) {
+          if (_subscribedScreenShares.contains(p.identity)) {
+            pub.subscribe();
+          }
+        } else {
+          pub.subscribe();
+        }
+      }
+    }
   }
 
   Future<void> toggleMute() async {
@@ -446,7 +488,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       );
       for (final track in tracks) {
         if (track is LocalVideoTrack) {
-          _screenShareTrack = track;
           await _voiceRoom!.localParticipant!.publishVideoTrack(track);
         } else if (track is LocalAudioTrack) {
           await _voiceRoom!.localParticipant!.publishAudioTrack(
@@ -470,7 +511,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _isScreenSharing = true;
     } catch (e) {
       debugPrint('[voice] screen share failed: $e');
-      _screenShareTrack = null;
       _voiceError = e.toString().replaceAll('Exception: ', '');
     }
     notifyListeners();
@@ -480,7 +520,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (_voiceRoom?.localParticipant == null) return;
     try {
       await _voiceRoom!.localParticipant!.setScreenShareEnabled(false);
-      _screenShareTrack = null;
       _isScreenSharing = false;
     } catch (e) {
       debugPrint('[voice] stop screen share failed: $e');
@@ -518,8 +557,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _isMuted = false;
     _isJoiningVoice = false;
     _isScreenSharing = false;
-    _screenShareTrack = null;
     _voiceError = null;
+    _subscribedScreenShares.clear();
     notifyListeners();
   }
 
@@ -569,9 +608,11 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   @override
   void dispose() {
-    _wsSub?.cancel();
+    _membershipSub?.cancel();
+    _publishingSub?.cancel();
     _voiceRoom?.disconnect();
     _voiceRoomListener?.dispose();
+    _subscribedScreenShares.clear();
     super.dispose();
   }
 }

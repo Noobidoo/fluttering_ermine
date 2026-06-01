@@ -27,7 +27,21 @@
 
 ---
 
-## Phase 2 — Profile & Identity
+## Phase 2 — Unread Tracking & Social Discovery
+
+- [ ] **Unread indicators** — parse `channel_unreads` from WS `Ready` payload; show dot on channel tiles in `ChannelPanel`; bold channel name
+- [ ] **Mention badge** — count unread `@me` mentions per channel; red badge number
+- [ ] **Mark channel as read** — `PUT /channels/{channelId}/ack/{messageId}` on open / scroll to bottom; handle WS `ChannelAck`
+- [ ] **Server unread dot** — aggregate per-channel unread state → dot on server icon in server rail
+- [ ] **Member list panel** — slide-out right panel on desktop; `GET /servers/{serverId}/members`; avatar, nick, role colour, online dot; tap → profile sheet
+- [ ] **Invite links** — `POST /channels/{channelId}/invites` → share dialog; `POST /invites/{code}` to join; input on home screen
+- [ ] **@mention autocomplete** — `@` trigger in `_MessageInput` → fuzzy search user cache → insert `<@userId>`
+
+**Relevant files:** `lib/widgets/channel_panel.dart`, `lib/widgets/chat_panel.dart`, `lib/providers/messaging_state.dart`, `lib/providers/server_state.dart`
+
+---
+
+## Phase 3 — Profile & Identity
 
 - [ ] **Online status** — dropdown (Online / Idle / Focus / Invisible) → `PATCH /users/@me` `{status:{presence}}`; coloured dot on avatars
 - [ ] **Custom status text** — text field → `status.text` in same patch; display in user bar / profile sheet
@@ -39,20 +53,6 @@
 - [ ] **View other user profiles** — tap username/avatar → bottom sheet: avatar, banner, bio, status, mutual servers
 
 **Relevant files:** `lib/screens/settings_screen.dart`, `lib/providers/auth_state.dart`, `lib/services/revolt_service.dart`, `lib/models/revolt_user.dart`
-
----
-
-## Phase 3 — Unread Tracking & Social Discovery
-
-- [ ] **Unread indicators** — parse `channel_unreads` from WS `Ready` payload; show dot on channel tiles in `ChannelPanel`; bold channel name
-- [ ] **Mention badge** — count unread `@me` mentions per channel; red badge number
-- [ ] **Mark channel as read** — `PUT /channels/{channelId}/ack/{messageId}` on open / scroll to bottom; handle WS `ChannelAck`
-- [ ] **Server unread dot** — aggregate per-channel unread state → dot on server icon in server rail
-- [ ] **Member list panel** — slide-out right panel on desktop; `GET /servers/{serverId}/members`; avatar, nick, role colour, online dot; tap → profile sheet
-- [ ] **Invite links** — `POST /channels/{channelId}/invites` → share dialog; `POST /invites/{code}` to join; input on home screen
-- [ ] **@mention autocomplete** — `@` trigger in `_MessageInput` → fuzzy search user cache → insert `<@userId>`
-
-**Relevant files:** `lib/widgets/channel_panel.dart`, `lib/widgets/chat_panel.dart`, `lib/providers/messaging_state.dart`, `lib/providers/server_state.dart`
 
 ---
 

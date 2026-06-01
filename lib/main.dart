@@ -10,6 +10,7 @@ import 'providers/voice_state.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/revolt_service.dart';
+import 'services/voice_event_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,11 +19,17 @@ void main() {
   }
 
   final service = RevoltService();
+  final voiceEventService = VoiceEventService(service);
   final serverState = ServerState(service);
-  final voiceState = VoiceState(service);
+  final voiceState = VoiceState(service, voiceEventService);
   final messagingState = MessagingState(service, serverState);
-  final authState =
-      AuthState(service, serverState, messagingState, voiceState);
+  final authState = AuthState(
+    service,
+    serverState,
+    messagingState,
+    voiceState,
+    voiceEventService,
+  );
 
   runApp(
     MultiProvider(
