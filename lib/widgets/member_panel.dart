@@ -101,7 +101,7 @@ class _MemberTile extends StatelessWidget {
                   ? NetworkImage(user!.avatarUrlFor(autumnBase, apiBase))
                   : null,
               backgroundColor: const Color(0xFF7F5AF0),
-              onBackgroundImageError: (_, _) {},
+              onBackgroundImageError: user != null ? (_, _) {} : null,
               child: user == null
                   ? Text(
                       name.isNotEmpty ? name[0].toUpperCase() : '?',

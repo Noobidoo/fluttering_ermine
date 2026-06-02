@@ -45,3 +45,6 @@ app.*.map.json
 
 # Local package path overrides — use pubspec_overrides.yaml for local dev
 pubspec_overrides.yaml
+
+# Standalone wiki repo (not a submodule)
+wiki/

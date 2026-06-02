@@ -861,7 +861,6 @@ class _MessageInputState extends State<_MessageInput> {
               const SizedBox(width: 4),
               Expanded(
                 child: Focus(
-                  focusNode: _inputFocus,
                   onKeyEvent: (node, event) {
                     if (_mentionResults.isEmpty) {
                       return KeyEventResult.ignored;
