@@ -206,8 +206,12 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   void _ackChannel(RevoltChannel channel) {
-    final lastId = channel.lastMessageId!;
-    _service.ackMessage(channel.id, lastId);
+    final lastId = _serverState.latestMessageId(channel.id) ??
+        channel.lastMessageId;
+    if (lastId == null) return;
+    _service.ackMessage(channel.id, lastId).catchError((Object e) {
+      debugPrint('[ack] channel=${channel.id} failed: $e');
+    });
     _serverState.markChannelRead(channel.id, lastId);
   }
 

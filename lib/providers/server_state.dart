@@ -23,6 +23,9 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   final Map<String, String> _channelUnreads = {};
   final Map<String, List<String>> _channelMentions = {};
   final Map<String, String> _latestMessageIds = {};
+  /// Tracks which channels had entries in the server's `channel_unreads` array.
+  /// Channels absent from this set were intentionally omitted (fully-read).
+  final Set<String> _seenInChannelUnreads = {};
 
   // ── Members ────────────────────────────────────────────────────────────────
   final Map<String, List<RevoltMember>> _membersByServer = {};
@@ -66,6 +69,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
         _onMessage(event);
         break;
       case 'ChannelAck':
+        _onChannelAck(event);
         break;
       default:
         break;
@@ -86,9 +90,11 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     final unreads = (event['channel_unreads'] as List<dynamic>?) ?? [];
     _channelUnreads.clear();
     _channelMentions.clear();
+    _seenInChannelUnreads.clear();
     for (final u in unreads) {
       final data = u as Map<String, dynamic>;
       final channelId = data['_id'] as String;
+      _seenInChannelUnreads.add(channelId);
       final lastId = data['last_id'] as String?;
       if (lastId != null) _channelUnreads[channelId] = lastId;
       final mentions = (data['mentions'] as List<dynamic>?)
@@ -110,6 +116,16 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     final messageId = event['_id'] as String?;
     if (channelId != null && messageId != null) {
       _latestMessageIds[channelId] = messageId;
+      notifyListeners();
+    }
+  }
+
+  void _onChannelAck(Map<String, dynamic> event) {
+    final channelId = event['id'] as String?;
+    final messageId = event['message_id'] as String?;
+    if (channelId != null && messageId != null) {
+      _channelUnreads[channelId] = messageId;
+      _channelMentions.remove(channelId);
       notifyListeners();
     }
   }
@@ -184,6 +200,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
         (c) => c?.id == channelId,
         orElse: () => null);
     if (channel == null || channel.lastMessageId == null) return false;
+    if (!_seenInChannelUnreads.contains(channelId)) return false;
     return unread != channel.lastMessageId;
   }
 
@@ -201,6 +218,9 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
     return count;
   }
+
+  /// Latest known message ID for [channelId] (from WS), or null.
+  String? latestMessageId(String channelId) => _latestMessageIds[channelId];
 
   /// Mark [channelId] as read up to [messageId].
   void markChannelRead(String channelId, String messageId) {
@@ -248,6 +268,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _channelUnreads.clear();
     _channelMentions.clear();
     _latestMessageIds.clear();
+    _seenInChannelUnreads.clear();
     _membersByServer.clear();
     _loadingMembers = false;
     notifyListeners();

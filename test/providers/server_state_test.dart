@@ -254,7 +254,7 @@ void main() {
         expect(state.isChannelUnread('c2'), true);
       });
 
-      test('channel not in channel_unreads with messages is unread', () {
+      test('channel not in channel_unreads with messages is not unread', () {
         svc.push(_readyEvent(
           servers: [
             {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
@@ -268,10 +268,32 @@ void main() {
               'last_message_id': 'msg5',
             },
           ],
-          // c1 not in channel_unreads → unread is null
+          // c1 not in channel_unreads → server considers it fully read
         ));
 
-        // channel exists, has lastMessageId, unread is null → null != msg5 → unread
+        expect(state.isChannelUnread('c1'), false);
+      });
+
+      test('channel in channel_unreads with null last_id and messages is unread',
+          () {
+        svc.push(_readyEvent(
+          servers: [
+            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
+          ],
+          channels: [
+            {
+              '_id': 'c1',
+              'channel_type': 'TextChannel',
+              'name': 'general',
+              'server': 's1',
+              'last_message_id': 'msg5',
+            },
+          ],
+          channelUnreads: [
+            {'_id': 'c1', 'last_id': null, 'mentions': []},
+          ],
+        ));
+
         expect(state.isChannelUnread('c1'), true);
       });
 
@@ -450,11 +472,11 @@ void main() {
           channelUnreads: [
             {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},   // read
             {'_id': 'c2', 'last_id': 'msg2', 'mentions': []},   // unread
-            // c3 not in unreads, has lastMessageId=msg1 → unread
+            // c3 not in unreads → server considers it fully read
           ],
         ));
 
-        expect(state.serverUnreadCount('s1'), 2);
+        expect(state.serverUnreadCount('s1'), 1);
       });
 
       test('serverUnreadCount returns 0 for server with no unread channels', () {
@@ -503,12 +525,12 @@ void main() {
           ],
           channelUnreads: [
             {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},  // read
-            // c2 not in unreads, has lastMessageId=msg3 → unread
+            // c2 not in unreads → server considers it fully read
           ],
         ));
 
         expect(state.serverUnreadCount('s1'), 0);
-        expect(state.serverUnreadCount('s2'), 1);
+        expect(state.serverUnreadCount('s2'), 0);
       });
     });
 
