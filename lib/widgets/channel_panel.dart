@@ -80,6 +80,8 @@ class _ChannelTile extends StatelessWidget {
     final auth = context.watch<AuthState>();
     final selected = server.selectedChannel?.id == channel.id;
     final name = messaging.channelDisplayName(channel);
+    final unread = server.isChannelUnread(channel.id);
+    final mentionCount = server.mentionCountFor(channel.id);
 
     // Voice participant tracking (shows for all voice channels)
     final participantIds = channel.isVoice
@@ -110,19 +112,64 @@ class _ChannelTile extends StatelessWidget {
             selected: selected,
             selectedTileColor: const Color(0x207F5AF0),
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            leading: Icon(
-              _icon(),
-              size: 18,
-              color: selected ? const Color(0xFF7F5AF0) : Colors.white38,
+            leading: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  _icon(),
+                  size: 18,
+                  color: selected ? const Color(0xFF7F5AF0) : Colors.white38,
+                ),
+                if (unread)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2CB67D),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            title: Text(
-              name,
-              style: TextStyle(
-                fontSize: 14,
-                color: selected ? Colors.white : Colors.white60,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-              ),
-              overflow: TextOverflow.ellipsis,
+            title: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selected
+                          ? Colors.white
+                          : (unread ? Colors.white : Colors.white60),
+                      fontWeight:
+                          selected || unread ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (mentionCount > 0)
+                  Container(
+                    margin: const EdgeInsets.only(left: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$mentionCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             onTap: () {
               if (channel.isVoice) {
