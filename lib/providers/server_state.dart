@@ -152,6 +152,17 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   int mentionCountFor(String channelId) =>
       _channelMentions[channelId]?.length ?? 0;
 
+  /// Number of channels in [serverId] that have unread messages.
+  int serverUnreadCount(String serverId) {
+    int count = 0;
+    for (final channel in _allChannels) {
+      if (channel.serverId == serverId && isChannelUnread(channel.id)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   /// Mark [channelId] as read up to [messageId].
   void markChannelRead(String channelId, String messageId) {
     _channelUnreads[channelId] = messageId;

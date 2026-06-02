@@ -35,6 +35,7 @@ class ServerRail extends StatelessWidget {
                 return _RailIcon(
                   tooltip: srv.name,
                   selected: server.selectedServer?.id == srv.id,
+                  hasUnread: server.serverUnreadCount(srv.id) > 0,
                   onTap: () => server.selectServer(srv),
                   child: srv.iconUrlFor(auth.autumnBase) != null
                       ? ClipRRect(
@@ -75,6 +76,7 @@ class ServerRail extends StatelessWidget {
 class _RailIcon extends StatelessWidget {
   final String tooltip;
   final bool selected;
+  final bool hasUnread;
   final VoidCallback onTap;
   final Widget child;
 
@@ -83,6 +85,7 @@ class _RailIcon extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.child,
+    this.hasUnread = false,
   });
 
   @override
@@ -92,18 +95,36 @@ class _RailIcon extends StatelessWidget {
       preferBelow: false,
       child: GestureDetector(
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFF7F5AF0)
-                : const Color(0xFF1E1E26),
-            borderRadius: BorderRadius.circular(selected ? 12 : 22),
-          ),
-          child: Center(child: child),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: selected
+                    ? const Color(0xFF7F5AF0)
+                    : const Color(0xFF1E1E26),
+                borderRadius: BorderRadius.circular(selected ? 12 : 22),
+              ),
+              child: Center(child: child),
+            ),
+            if (hasUnread && !selected)
+              Positioned(
+                right: 8,
+                top: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2CB67D),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
