@@ -118,6 +118,49 @@ class FakeRevoltService extends RevoltService {
   Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async =>
       channelIds.map((id) => _channelStubs[id]!).toList();
 
+  // ── Ack / Unread ──────────────────────────────────────────────────────────
+
+  final List<String> ackCalls = [];
+
+  @override
+  Future<void> ackMessage(String channelId, String messageId) async {
+    ackCalls.add(channelId);
+  }
+
+  // ── Members ───────────────────────────────────────────────────────────────
+
+  final Map<String, List<RevoltMember>> _memberStubs = {};
+  bool fetchMembersThrows = false;
+
+  void stubMembers(String serverId, List<RevoltMember> members) {
+    _memberStubs[serverId] = members;
+  }
+
+  @override
+  Future<(List<RevoltMember>, List<RevoltUser>)> fetchServerMembers(
+      String serverId) async {
+    if (fetchMembersThrows) throw Exception('fetch failed');
+    final members = _memberStubs[serverId] ?? [];
+    return (members, List<RevoltUser>.empty());
+  }
+
+  // ── Invites ───────────────────────────────────────────────────────────────
+
+  final List<String> createInviteCalls = [];
+  final List<String> joinInviteCalls = [];
+  String createInviteResult = 'test-code';
+
+  @override
+  Future<String> createInvite(String channelId) async {
+    createInviteCalls.add(channelId);
+    return createInviteResult;
+  }
+
+  @override
+  Future<void> joinInvite(String code) async {
+    joinInviteCalls.add(code);
+  }
+
   void close() => _ctrl.close();
 }
 
