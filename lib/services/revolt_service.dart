@@ -283,6 +283,14 @@ class RevoltService {
     return json['id'] as String;
   }
 
+  /// Marks a channel as read up to [messageId].
+  Future<void> ackMessage(String channelId, String messageId) async {
+    await http.put(
+      Uri.parse('$_apiBase/channels/$channelId/ack/$messageId'),
+      headers: _headers,
+    );
+  }
+
   // ── Channels ──────────────────────────────────────────────────────────────
   Future<RevoltChannel> fetchChannel(String channelId) async {
     final response = await http.get(

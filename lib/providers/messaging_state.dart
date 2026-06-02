@@ -198,6 +198,15 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (channel != null && !_messages.containsKey(channel.id)) {
       _loadMessages(channel.id);
     }
+    if (channel != null && channel.lastMessageId != null) {
+      _ackChannel(channel);
+    }
+  }
+
+  void _ackChannel(RevoltChannel channel) {
+    final lastId = channel.lastMessageId!;
+    _service.ackMessage(channel.id, lastId);
+    _serverState.markChannelRead(channel.id, lastId);
   }
 
   void _ensureUserCached(String userId) {

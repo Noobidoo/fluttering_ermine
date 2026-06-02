@@ -61,6 +61,8 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'Message':
         _onMessage(event);
         break;
+      case 'ChannelAck':
+        break;
       default:
         break;
     }
