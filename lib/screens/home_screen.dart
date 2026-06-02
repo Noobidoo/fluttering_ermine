@@ -8,6 +8,7 @@ import '../providers/server_state.dart';
 import '../widgets/server_rail.dart';
 import '../widgets/channel_panel.dart';
 import '../widgets/chat_panel.dart';
+import '../widgets/member_panel.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,6 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 scrollCtrl: _scrollCtrl,
               ),
             ),
+            if (context.watch<ServerState>().selectedServer != null)
+              const SizedBox(width: 280, child: MemberPanel()),
           ],
         ),
       );

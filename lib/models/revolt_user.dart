@@ -6,6 +6,7 @@ class RevoltUser {
   final String discriminator;
   final String? displayName;
   final RevoltFile? avatar;
+  final bool online;
 
   RevoltUser({
     required this.id,
@@ -13,6 +14,7 @@ class RevoltUser {
     required this.discriminator,
     this.displayName,
     this.avatar,
+    this.online = false,
   });
 
   factory RevoltUser.fromJson(Map<String, dynamic> json) => RevoltUser(
@@ -23,6 +25,7 @@ class RevoltUser {
         avatar: json['avatar'] != null
             ? RevoltFile.fromJson(json['avatar'] as Map<String, dynamic>)
             : null,
+        online: json['online'] as bool? ?? false,
       );
 
   String get displayUsername => displayName ?? username;

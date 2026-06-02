@@ -24,6 +24,10 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   final Map<String, List<String>> _channelMentions = {};
   final Map<String, String> _latestMessageIds = {};
 
+  // ── Members ────────────────────────────────────────────────────────────────
+  final Map<String, List<RevoltMember>> _membersByServer = {};
+  bool _loadingMembers = false;
+
   // ── Getters ───────────────────────────────────────────────────────────────
 
   List<RevoltServer> get servers => _servers;
@@ -96,6 +100,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
 
     if (_servers.isNotEmpty && _selectedServer == null && !_showDMs) {
       _selectedServer = _servers.first;
+      fetchMembers();
     }
     notifyListeners();
   }
@@ -114,6 +119,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _selectedChannel = null;
     _showDMs = false;
     _fetchServerChannels(server);
+    fetchMembers();
     notifyListeners();
   }
 
@@ -132,6 +138,39 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   void selectVoiceChannel(RevoltChannel channel) {
     _selectedChannel = channel;
     notifyListeners();
+  }
+
+  // ── Members ────────────────────────────────────────────────────────────────
+
+  List<RevoltMember>? get currentServerMembers {
+    if (_selectedServer == null) return null;
+    return _membersByServer[_selectedServer!.id];
+  }
+
+  bool get isLoadingMembers => _loadingMembers;
+
+  Future<void> fetchMembers() async {
+    final server = _selectedServer;
+    if (server == null) return;
+    if (_membersByServer.containsKey(server.id)) return;
+    _loadingMembers = true;
+    notifyListeners();
+    try {
+      final (members, _) = await _service.fetchServerMembers(server.id);
+      _membersByServer[server.id] = members;
+    } catch (e) {
+      debugPrint('[fetchMembers] ${server.id} failed: $e');
+    } finally {
+      _loadingMembers = false;
+      notifyListeners();
+    }
+  }
+
+  /// Finds a cached member by user ID in the given server.
+  RevoltMember? memberInServer(String serverId, String userId) {
+    return _membersByServer[serverId]
+        ?.where((m) => m.userId == userId)
+        .firstOrNull;
   }
 
   // ── Unread queries ─────────────────────────────────────────────────────────
@@ -202,6 +241,8 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _channelUnreads.clear();
     _channelMentions.clear();
     _latestMessageIds.clear();
+    _membersByServer.clear();
+    _loadingMembers = false;
     notifyListeners();
   }
 

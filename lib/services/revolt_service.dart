@@ -318,6 +318,29 @@ class RevoltService {
     }).toList();
   }
 
+  // ── Members ───────────────────────────────────────────────────────────────
+
+  /// Fetches all members of a server, returning (members, users).
+  Future<(List<RevoltMember>, List<RevoltUser>)> fetchServerMembers(
+      String serverId) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/servers/$serverId/members'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+          'fetchServerMembers ${response.statusCode}: ${response.body}');
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final members = (body['members'] as List<dynamic>)
+        .map((m) => RevoltMember.fromJson(m as Map<String, dynamic>))
+        .toList();
+    final users = (body['users'] as List<dynamic>)
+        .map((u) => RevoltUser.fromJson(u as Map<String, dynamic>))
+        .toList();
+    return (members, users);
+  }
+
   // ── Voice ─────────────────────────────────────────────────────────────────
 
   /// Returns {'token': '...', 'url': 'wss://...'} for LiveKit.
