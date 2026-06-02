@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:provider/provider.dart';
 
@@ -591,22 +592,126 @@ class _MessageInputState extends State<_MessageInput> {
   final List<(String, String)> _pendingAttachments = [];
   bool _uploading = false;
 
+  // Mention autocomplete state
+  String _mentionQuery = '';
+  int _mentionIndex = 0;
+  List<MapEntry<String, String>> _mentionResults = const [];
+  final FocusNode _inputFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
     widget.msgCtrl.addListener(_onTextChanged);
+    _inputFocus.addListener(_onFocusChanged);
   }
 
   @override
   void dispose() {
     widget.msgCtrl.removeListener(_onTextChanged);
+    _inputFocus.removeListener(_onFocusChanged);
+    _inputFocus.dispose();
     super.dispose();
   }
 
+  void _onFocusChanged() {
+    if (!_inputFocus.hasFocus) _hideMentions();
+  }
+
   void _onTextChanged() {
-    if (context.mounted) {
-      context.read<MessagingState>().sendTypingIndicator();
+    if (!context.mounted) return;
+    context.read<MessagingState>().sendTypingIndicator();
+    _updateMentionState();
+  }
+
+  void _updateMentionState() {
+    final text = widget.msgCtrl.text;
+    final sel = widget.msgCtrl.selection;
+    if (!sel.isValid || sel.baseOffset != sel.extentOffset) {
+      _hideMentions();
+      return;
     }
+    final pos = sel.baseOffset;
+    if (pos == 0 || pos > text.length) {
+      _hideMentions();
+      return;
+    }
+    // Walk backwards from cursor to find @
+    int start = pos - 1;
+    while (start >= 0 && text[start] != '@') {
+      if (text[start] == ' ') break;
+      start--;
+    }
+    if (start < 0 || text[start] != '@') {
+      if (_mentionResults.isNotEmpty) _hideMentions();
+      return;
+    }
+    final query = text.substring(start + 1, pos).trim().toLowerCase();
+    if (query == _mentionQuery && _mentionResults.isNotEmpty) return;
+    _mentionQuery = query;
+
+    final messaging = context.read<MessagingState>();
+    final server = context.read<ServerState>();
+    final members = server.currentServerMembers ?? [];
+    final results = <MapEntry<String, String>>[];
+    final seen = <String>{};
+    for (final m in members) {
+      if (seen.contains(m.userId)) continue;
+      seen.add(m.userId);
+      final user = messaging.getUser(m.userId);
+      final display = m.nickname ?? user?.displayUsername ?? '';
+      if (query.isEmpty ||
+          display.toLowerCase().contains(query) ||
+          user?.username.toLowerCase().contains(query) == true) {
+        results.add(MapEntry(m.userId, display));
+      }
+    }
+    // Also include cached users not in this server (for DM mentions)
+    if (server.selectedServer == null) {
+      for (final u in messaging.cachedUsers) {
+        if (seen.contains(u.id)) continue;
+        if (query.isEmpty ||
+            u.displayUsername.toLowerCase().contains(query) ||
+            u.username.toLowerCase().contains(query)) {
+          results.add(MapEntry(u.id, u.displayUsername));
+        }
+      }
+    }
+    results.sort((a, b) => a.value.compareTo(b.value));
+    setState(() {
+      _mentionResults = results.take(10).toList();
+      _mentionIndex = 0;
+    });
+  }
+
+  void _hideMentions() {
+    if (_mentionResults.isEmpty) return;
+    setState(() {
+      _mentionResults = const [];
+      _mentionQuery = '';
+      _mentionIndex = 0;
+    });
+  }
+
+  void _insertMention(String userId) {
+    final text = widget.msgCtrl.text;
+    final sel = widget.msgCtrl.selection;
+    if (!sel.isValid) return;
+    final pos = sel.baseOffset;
+    int start = pos - 1;
+    while (start >= 0 && text[start] != '@') {
+      if (text[start] == ' ') break;
+      start--;
+    }
+    if (start < 0) start = 0;
+    final before = text.substring(0, start);
+    final after = text.substring(pos);
+    final replacement = '<@$userId> ';
+    widget.msgCtrl.value = TextEditingValue(
+      text: '$before$replacement$after',
+      selection: TextSelection.collapsed(
+          offset: before.length + replacement.length),
+    );
+    _hideMentions();
   }
 
   Future<void> _pickFile() async {
@@ -688,6 +793,42 @@ class _MessageInputState extends State<_MessageInput> {
               }).toList(),
             ),
           ),
+        if (_mentionResults.isNotEmpty)
+          Container(
+            constraints: const BoxConstraints(maxHeight: 200),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E26),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF3A3A42)),
+            ),
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              itemCount: _mentionResults.length,
+              itemBuilder: (_, i) => InkWell(
+                onTap: () => _insertMention(_mentionResults[i].key),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  color: i == _mentionIndex
+                      ? const Color(0x207F5AF0)
+                      : null,
+                  child: Text(
+                    '@${_mentionResults[i].value}',
+                    style: TextStyle(
+                      color: i == _mentionIndex
+                          ? Colors.white
+                          : Colors.white70,
+                      fontWeight: i == _mentionIndex
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         Container(
           padding: EdgeInsets.fromLTRB(
             16,
@@ -719,23 +860,62 @@ class _MessageInputState extends State<_MessageInput> {
                     ),
               const SizedBox(width: 4),
               Expanded(
-                child: TextField(
-                  controller: widget.msgCtrl,
-                  maxLines: 6,
-                  minLines: 1,
-                  textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    hintText: 'Message $name',
-                    filled: true,
-                    fillColor: const Color(0xFF242428),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                child: Focus(
+                  focusNode: _inputFocus,
+                  onKeyEvent: (node, event) {
+                    if (_mentionResults.isEmpty) {
+                      return KeyEventResult.ignored;
+                    }
+                    if (event is! KeyDownEvent) {
+                      return KeyEventResult.ignored;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                      setState(() {
+                        _mentionIndex = (_mentionIndex + 1) %
+                            _mentionResults.length;
+                      });
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                      setState(() {
+                        _mentionIndex = (_mentionIndex - 1 +
+                                _mentionResults.length) %
+                            _mentionResults.length;
+                      });
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.enter) {
+                      _insertMention(_mentionResults[_mentionIndex].key);
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.escape) {
+                      _hideMentions();
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: TextField(
+                    controller: widget.msgCtrl,
+                    focusNode: _inputFocus,
+                    maxLines: 6,
+                    minLines: 1,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: 'Message $name',
+                      filled: true,
+                      fillColor: const Color(0xFF242428),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                    onSubmitted: _mentionResults.isNotEmpty
+                        ? (_) => _insertMention(
+                            _mentionResults[_mentionIndex].key)
+                        : (_) => _send(context),
                   ),
-                  onSubmitted: (_) => _send(context),
                 ),
               ),
               const SizedBox(width: 8),

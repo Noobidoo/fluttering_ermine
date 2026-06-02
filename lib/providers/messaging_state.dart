@@ -52,6 +52,8 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   RevoltUser? getUser(String id) => _userCache[id];
 
+  List<RevoltUser> get cachedUsers => _userCache.values.toList();
+
   RevoltMessage? get replyTarget => _replyTarget;
 
   /// Returns the set of user IDs currently typing in [channelId].
