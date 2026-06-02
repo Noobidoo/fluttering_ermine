@@ -1,6 +1,7 @@
 // Tests for MessagingState service delegation methods.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fluttering_ermine/providers/messaging_state.dart';
 import 'package:fluttering_ermine/providers/server_state.dart';
@@ -15,6 +16,7 @@ void main() {
   late MessagingState state;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     svc = FakeRevoltService();
     serverState = ServerState(svc);
     serverState.subscribeToEvents();

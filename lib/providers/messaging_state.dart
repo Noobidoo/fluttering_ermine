@@ -158,6 +158,14 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (list.any((m) => m.id == msg.id)) return;
     list.insert(0, msg);
     _ensureUserCached(msg.authorId);
+    // Auto-ack if already viewing this channel
+    final current = _serverState.selectedChannel;
+    if (current?.id == msg.channelId) {
+      _serverState.markChannelRead(msg.channelId, msg.id);
+      _service.ackMessage(msg.channelId, msg.id).catchError((Object e) {
+        debugPrint('[ack] channel=${msg.channelId} failed: $e');
+      });
+    }
     notifyListeners();
   }
 
