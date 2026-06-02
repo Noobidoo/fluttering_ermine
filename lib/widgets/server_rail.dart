@@ -61,6 +61,12 @@ class ServerRail extends StatelessWidget {
             child: const Icon(Icons.settings_outlined, size: 20, color: Colors.white54),
           ),
           _RailIcon(
+            tooltip: 'Join Server',
+            selected: false,
+            onTap: () => _showJoinDialog(context),
+            child: const Icon(Icons.add, size: 20, color: Color(0xFF2CB67D)),
+          ),
+          _RailIcon(
             tooltip: 'Logout',
             selected: false,
             onTap: () => context.read<AuthState>().logout(),
@@ -71,6 +77,70 @@ class ServerRail extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showJoinDialog(BuildContext context) {
+  final controller = TextEditingController();
+  showDialog(
+    context: context,
+    builder: (dialogCtx) => AlertDialog(
+      backgroundColor: const Color(0xFF1E1E26),
+      title: const Text('Join Server'),
+      content: TextField(
+        controller: controller,
+        decoration: const InputDecoration(
+          hintText: 'Enter invite code',
+          hintStyle: TextStyle(color: Colors.white38),
+          border: OutlineInputBorder(),
+        ),
+        style: const TextStyle(color: Colors.white),
+        autofocus: true,
+        onSubmitted: (_) async {
+          final code = controller.text.trim();
+          if (code.isEmpty) return;
+          Navigator.of(dialogCtx).pop();
+          try {
+            await context.read<ServerState>().joinInvite(code);
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Joined server!')),
+            );
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to join: $e')),
+            );
+          }
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogCtx).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () async {
+            final code = controller.text.trim();
+            if (code.isEmpty) return;
+            Navigator.of(dialogCtx).pop();
+            try {
+              await context.read<ServerState>().joinInvite(code);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Joined server!')),
+              );
+            } catch (e) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to join: $e')),
+              );
+            }
+          },
+          child: const Text('Join'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _RailIcon extends StatelessWidget {

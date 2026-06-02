@@ -28,15 +28,30 @@ class ChannelPanel extends StatelessWidget {
         children: [
           Container(
             height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFF2A2A30))),
             ),
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (server.selectedServer != null)
+                  IconButton(
+                    icon: const Icon(Icons.person_add_alt_1,
+                        size: 18, color: Colors.white54),
+                    tooltip: 'Create invite',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _showInviteDialog(context),
+                  ),
+              ],
             ),
           ),
           Expanded(
@@ -335,6 +350,55 @@ class _VoiceParticipantRow extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+void _showInviteDialog(BuildContext context) async {
+  final server = context.read<ServerState>();
+  final channel = server.selectedChannel;
+  if (channel == null) return;
+  try {
+    final code = await server.createInvite(channel.id);
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E26),
+        title: const Text('Invite Link'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Share this code with others to invite them:'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF141418),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SelectableText(
+                code,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to create invite: $e')),
     );
   }
 }

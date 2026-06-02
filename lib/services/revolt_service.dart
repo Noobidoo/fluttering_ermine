@@ -291,6 +291,32 @@ class RevoltService {
     );
   }
 
+  // ── Invites ───────────────────────────────────────────────────────────────
+
+  /// Creates an invite for [channelId]. Returns the invite code.
+  Future<String> createInvite(String channelId) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/channels/$channelId/invites'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('createInvite ${response.statusCode}: ${response.body}');
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return body['code'] as String;
+  }
+
+  /// Joins a server using an invite [code].
+  Future<void> joinInvite(String code) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/invites/$code'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('joinInvite ${response.statusCode}: ${response.body}');
+    }
+  }
+
   // ── Channels ──────────────────────────────────────────────────────────────
   Future<RevoltChannel> fetchChannel(String channelId) async {
     final response = await http.get(
