@@ -149,11 +149,19 @@ class FakeRevoltService extends RevoltService {
   final List<String> createInviteCalls = [];
   final List<String> joinInviteCalls = [];
   String createInviteResult = 'test-code';
+  List<RevoltInvite> fetchInvitesResult = const [];
+  final List<String> fetchInvitesCalls = [];
 
   @override
   Future<String> createInvite(String channelId) async {
     createInviteCalls.add(channelId);
     return createInviteResult;
+  }
+
+  @override
+  Future<List<RevoltInvite>> fetchInvites(String serverId) async {
+    fetchInvitesCalls.add(serverId);
+    return fetchInvitesResult;
   }
 
   @override

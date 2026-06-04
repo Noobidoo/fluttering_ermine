@@ -358,11 +358,48 @@ void _showServerSettings(BuildContext context) {
   final server = context.read<ServerState>();
   final srv = server.selectedServer;
   if (srv == null) return;
+
   showDialog(
     context: context,
-    builder: (ctx) => AlertDialog(
+    builder: (ctx) => _ServerSettingsDialog(srv: srv),
+  );
+}
+
+class _ServerSettingsDialog extends StatefulWidget {
+  final RevoltServer srv;
+  const _ServerSettingsDialog({required this.srv});
+
+  @override
+  State<_ServerSettingsDialog> createState() => _ServerSettingsDialogState();
+}
+
+class _ServerSettingsDialogState extends State<_ServerSettingsDialog> {
+  List<RevoltInvite>? _invites;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInvites();
+  }
+
+  Future<void> _loadInvites() async {
+    final server = context.read<ServerState>();
+    try {
+      final invites = await server.fetchInvites(widget.srv.id);
+      if (!mounted) return;
+      setState(() => _invites = invites);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
       backgroundColor: const Color(0xFF1E1E26),
-      title: Text(srv.name),
+      title: Text(widget.srv.name),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -371,20 +408,56 @@ void _showServerSettings(BuildContext context) {
             icon: Icons.link,
             label: 'Create invite',
             onTap: () {
-              Navigator.of(ctx).pop();
+              Navigator.of(context).pop();
               _createInvite(context);
             },
           ),
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFF2A2A30), height: 1),
+          const SizedBox(height: 12),
+          const Text('Existing invites',
+              style: TextStyle(fontSize: 13, color: Colors.white54)),
+          const SizedBox(height: 8),
+          if (_error != null)
+            Text('Failed to load: $_error',
+                style:
+                    const TextStyle(fontSize: 12, color: Colors.redAccent)),
+          if (_invites == null)
+            const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          else if (_invites!.isEmpty)
+            const Text('No invites yet',
+                style: TextStyle(fontSize: 12, color: Colors.white38))
+          else
+            ..._invites!.map(
+              (inv) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.link, size: 14, color: Colors.white38),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        inv.id,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                            color: Colors.white70),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text('Close'),
         ),
       ],
-    ),
-  );
+    );
+  }
 }
 
 void _createInvite(BuildContext context) async {

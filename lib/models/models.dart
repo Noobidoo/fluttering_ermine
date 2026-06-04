@@ -1,4 +1,5 @@
 export 'revolt_file.dart';
+export 'revolt_invite.dart';
 export 'revolt_member.dart';
 export 'revolt_user.dart';
 export 'revolt_server.dart';

@@ -230,6 +230,9 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<String> createInvite(String channelId) =>
       _service.createInvite(channelId);
 
+  Future<List<RevoltInvite>> fetchInvites(String serverId) =>
+      _service.fetchInvites(serverId);
+
   Future<void> joinInvite(String code) => _service.joinInvite(code);
 
   Future<void> _fetchServerChannels(RevoltServer server) async {

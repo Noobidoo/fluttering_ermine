@@ -304,7 +304,23 @@ class RevoltService {
       throw Exception('createInvite ${response.statusCode}: ${response.body}');
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    return body['code'] as String;
+    return body['_id'] as String;
+  }
+
+  /// Fetches existing invites for [serverId]. Returns empty list on 401.
+  Future<List<RevoltInvite>> fetchInvites(String serverId) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/servers/$serverId/invites'),
+      headers: _headers,
+    );
+    if (response.statusCode == 401) return [];
+    if (response.statusCode != 200) {
+      throw Exception('fetchInvites ${response.statusCode}: ${response.body}');
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) => RevoltInvite.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   /// Joins a server using an invite [code].
