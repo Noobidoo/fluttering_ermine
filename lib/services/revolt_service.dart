@@ -293,11 +293,12 @@ class RevoltService {
 
   // ── Invites ───────────────────────────────────────────────────────────────
 
-  /// Creates an invite for [channelId]. Returns the invite code.
+  /// Creates a server invite for [channelId]. Returns the invite code.
   Future<String> createInvite(String channelId) async {
     final response = await http.post(
       Uri.parse('$_apiBase/channels/$channelId/invites'),
       headers: _headers,
+      body: '{}',
     );
     if (response.statusCode != 200) {
       throw Exception('createInvite ${response.statusCode}: ${response.body}');
