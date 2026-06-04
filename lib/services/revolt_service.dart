@@ -313,7 +313,7 @@ class RevoltService {
       Uri.parse('$_apiBase/servers/$serverId/invites'),
       headers: _headers,
     );
-    if (response.statusCode == 401) return [];
+    if (response.statusCode == 401 || response.statusCode == 403) return [];
     if (response.statusCode != 200) {
       throw Exception('fetchInvites ${response.statusCode}: ${response.body}');
     }
