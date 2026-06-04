@@ -6,6 +6,39 @@ import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/messaging_state.dart';
 import '../providers/server_state.dart';
+import 'mention_chip.dart';
+
+class _MentionRenderController extends TextEditingController {
+  final MessagingState Function() _getMessaging;
+
+  _MentionRenderController({required String text, required MessagingState Function() getMessaging})
+      : _getMessaging = getMessaging,
+        super(text: text);
+
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    final raw = text;
+    if (!raw.contains('<@')) {
+      return TextSpan(text: raw, style: style);
+    }
+    final messaging = _getMessaging();
+    final spans = <InlineSpan>[];
+    final regex = RegExp(r'<@([A-Za-z0-9]+)>');
+    int lastEnd = 0;
+    for (final m in regex.allMatches(raw)) {
+      if (m.start > lastEnd) {
+        spans.add(TextSpan(text: raw.substring(lastEnd, m.start), style: style));
+      }
+      final userId = m.group(1)!;
+      spans.add(buildMentionChip(userId, messaging, baseStyle: style));
+      lastEnd = m.end;
+    }
+    if (lastEnd < raw.length) {
+      spans.add(TextSpan(text: raw.substring(lastEnd), style: style));
+    }
+    return TextSpan(children: spans);
+  }
+}
 
 class MessageInput extends StatefulWidget {
   final TextEditingController msgCtrl;
@@ -25,18 +58,29 @@ class _MessageInputState extends State<MessageInput> {
   int _mentionIndex = 0;
   List<MapEntry<String, String>> _mentionResults = const [];
   final FocusNode _inputFocus = FocusNode();
+  late final _MentionRenderController _renderCtrl;
 
   @override
   void initState() {
     super.initState();
-    widget.msgCtrl.addListener(_onTextChanged);
+    _renderCtrl = _MentionRenderController(
+      text: widget.msgCtrl.text,
+      getMessaging: () => context.read<MessagingState>(),
+    );
+    _renderCtrl.addListener(_onTextChanged);
     _inputFocus.addListener(_onFocusChanged);
     _inputFocus.onKeyEvent = _onKeyEvent;
+    // Sync external controller on next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.msgCtrl.text = _renderCtrl.text;
+    });
   }
 
   @override
   void dispose() {
-    widget.msgCtrl.removeListener(_onTextChanged);
+    _renderCtrl.removeListener(_onTextChanged);
+    widget.msgCtrl.text = _renderCtrl.text;
+    _renderCtrl.dispose();
     _inputFocus.removeListener(_onFocusChanged);
     _inputFocus.onKeyEvent = null;
     _inputFocus.dispose();
@@ -49,6 +93,8 @@ class _MessageInputState extends State<MessageInput> {
   }
 
   void _onTextChanged() {
+    // Sync back to external controller
+    widget.msgCtrl.text = _renderCtrl.text;
     if (!context.mounted) return;
     context.read<MessagingState>().sendTypingIndicator();
     _updateMentionState();
@@ -63,8 +109,8 @@ class _MessageInputState extends State<MessageInput> {
   }
 
   void _updateMentionState() {
-    final text = widget.msgCtrl.text;
-    final sel = widget.msgCtrl.selection;
+    final text = _renderCtrl.text;
+    final sel = _renderCtrl.selection;
     debugPrint('[mention] _updateMentionState results=${_mentionResults.length}');
     if (!sel.isValid || sel.baseOffset != sel.extentOffset) {
       debugPrint('[mention] invalid/range sel, hiding');
@@ -174,7 +220,7 @@ class _MessageInputState extends State<MessageInput> {
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.tab) {
-      _insertMention(_mentionResults[_mentionIndex].key);
+      _insertMention(_mentionResults[_mentionIndex].key, _mentionResults[_mentionIndex].value);
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -184,9 +230,9 @@ class _MessageInputState extends State<MessageInput> {
     return KeyEventResult.ignored;
   }
 
-  void _insertMention(String userId) {
-    final text = widget.msgCtrl.text;
-    final sel = widget.msgCtrl.selection;
+  void _insertMention(String userId, String displayName) {
+    final text = _renderCtrl.text;
+    final sel = _renderCtrl.selection;
     if (!sel.isValid) return;
     final pos = sel.baseOffset;
     int start = pos - 1;
@@ -198,7 +244,7 @@ class _MessageInputState extends State<MessageInput> {
     final before = text.substring(0, start);
     final after = text.substring(pos);
     final replacement = '<@$userId> ';
-    widget.msgCtrl.value = TextEditingValue(
+    _renderCtrl.value = TextEditingValue(
       text: '$before$replacement$after',
       selection: TextSelection.collapsed(
           offset: before.length + replacement.length),
@@ -231,10 +277,11 @@ class _MessageInputState extends State<MessageInput> {
   }
 
   void _send(BuildContext context) {
-    final text = widget.msgCtrl.text;
+    final text = _renderCtrl.text;
     final ids = _pendingAttachments.map((a) => a.$1).toList();
     if (text.trim().isEmpty && ids.isEmpty) return;
-    widget.msgCtrl.clear();
+    widget.msgCtrl.text = text;
+    _renderCtrl.clear();
     setState(() => _pendingAttachments.clear());
     context
         .read<MessagingState>()
@@ -298,7 +345,7 @@ class _MessageInputState extends State<MessageInput> {
             shrinkWrap: true,
             itemCount: _mentionResults.length,
               itemBuilder: (_, i) => InkWell(
-                onTap: () => _insertMention(_mentionResults[i].key),
+                onTap: () => _insertMention(_mentionResults[i].key, _mentionResults[i].value),
                 child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -352,7 +399,7 @@ class _MessageInputState extends State<MessageInput> {
               const SizedBox(width: 4),
               Expanded(
                 child: TextField(
-                  controller: widget.msgCtrl,
+                  controller: _renderCtrl,
                   focusNode: _inputFocus,
                   maxLines: 6,
                   minLines: 1,

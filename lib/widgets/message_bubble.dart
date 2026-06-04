@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/auth_state.dart';
 import '../providers/messaging_state.dart';
+import 'mention_chip.dart';
 
 enum _MsgAction { reply, react, edit, delete, copy }
 
@@ -46,6 +47,26 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   String get _username =>
       widget.author?.displayUsername ?? widget.message.authorId;
+
+  TextSpan _renderContent(String content) {
+    final messaging = context.read<MessagingState>();
+    final spans = <InlineSpan>[];
+    final regex = RegExp(r'<@([A-Za-z0-9]+)>');
+    int lastEnd = 0;
+    for (final m in regex.allMatches(content)) {
+      if (m.start > lastEnd) {
+        spans.add(TextSpan(text: content.substring(lastEnd, m.start)));
+      }
+      final userId = m.group(1)!;
+      spans.add(buildMentionChip(userId, messaging));
+      lastEnd = m.end;
+    }
+    if (lastEnd < content.length) {
+      spans.add(TextSpan(text: content.substring(lastEnd)));
+    }
+    if (spans.isEmpty) spans.add(TextSpan(text: content));
+    return TextSpan(children: spans);
+  }
 
   String _avatarUrl(String autumnBase, String apiBase) =>
       widget.author?.avatarUrlFor(autumnBase, apiBase) ??
@@ -374,8 +395,8 @@ class _MessageBubbleState extends State<MessageBubble> {
           )
         else if (widget.message.content != null &&
             widget.message.content!.isNotEmpty)
-          SelectableText(
-            widget.message.content!,
+          SelectableText.rich(
+            _renderContent(widget.message.content!),
             style: const TextStyle(
                 fontSize: 14, color: Color(0xDEFFFFFF), height: 1.45),
           ),
