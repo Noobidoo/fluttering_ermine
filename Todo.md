@@ -41,16 +41,16 @@
 
 ---
 
-## Phase 3 — Profile & Identity
+## Phase 3 — Profile & Identity ✅
 
-- [ ] **Online status** — dropdown (Online / Idle / Focus / Invisible) → `PATCH /users/@me` `{status:{presence}}`; coloured dot on avatars
-- [ ] **Custom status text** — text field → `status.text` in same patch; display in user bar / profile sheet
-- [ ] **Profile bio** — `PATCH /users/@me` `{profile:{content}}`; show in profile bottom sheet
-- [ ] **Global avatar upload** — image picker → `POST {autumnBase}/avatars` → `PATCH /users/@me` `{avatar: fileId}`
-- [ ] **Profile banner upload** — same Autumn flow, tag `backgrounds` → `PATCH /users/@me` `{profile:{background: fileId}}`
-- [ ] **Per-server nickname** — `PATCH /servers/{serverId}/members/@me` `{nickname}`
-- [ ] **Per-server avatar** — same Autumn flow → `PATCH /servers/{serverId}/members/@me` `{avatar}`
-- [ ] **View other user profiles** — tap username/avatar → bottom sheet: avatar, banner, bio, status, mutual servers
+- [x] **Online status** — dropdown (Online / Idle / Focus / Invisible) → `PATCH /users/@me` `{status:{presence}}`; coloured dot on avatars
+- [x] **Custom status text** — text field → `status.text` in same patch; display in user bar / profile sheet
+- [x] **Profile bio** — `PATCH /users/@me` `{profile:{content}}`; show in profile bottom sheet
+- [x] **Global avatar upload** — image picker → `POST {autumnBase}/avatars` → `PATCH /users/@me` `{avatar: fileId}`
+- [x] **Profile banner upload** — same Autumn flow, tag `backgrounds` → `PATCH /users/@me` `{profile:{background: fileId}}`
+- [x] **Per-server nickname** — `PATCH /servers/{serverId}/members/@me` `{nickname}`
+- [x] **Per-server avatar** — same Autumn flow → `PATCH /servers/{serverId}/members/@me` `{avatar}`
+- [x] **View other user profiles** — tap username/avatar → bottom sheet: avatar, banner, bio, status, mutual servers
 
 **Relevant files:** `lib/screens/settings_screen.dart`, `lib/providers/auth_state.dart`, `lib/services/revolt_service.dart`, `lib/models/revolt_user.dart`
 
