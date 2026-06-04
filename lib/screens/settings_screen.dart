@@ -221,6 +221,7 @@ class _ProfileSection extends StatefulWidget {
 class _ProfileSectionState extends State<_ProfileSection> {
   late TextEditingController _displayNameCtrl;
   late TextEditingController _statusTextCtrl;
+  late TextEditingController _bioCtrl;
   bool _saving = false;
   String? _error;
   String? _success;
@@ -233,12 +234,15 @@ class _ProfileSectionState extends State<_ProfileSection> {
         text: user?.displayName ?? user?.username ?? '');
     _statusTextCtrl =
         TextEditingController(text: user?.statusText ?? '');
+    _bioCtrl =
+        TextEditingController(text: user?.profileContent ?? '');
   }
 
   @override
   void dispose() {
     _displayNameCtrl.dispose();
     _statusTextCtrl.dispose();
+    _bioCtrl.dispose();
     super.dispose();
   }
 
@@ -251,6 +255,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
     try {
       final auth = context.read<AuthState>();
       await auth.updateDisplayName(_displayNameCtrl.text.trim());
+      await auth.updateBio(_bioCtrl.text.trim());
       if (mounted) setState(() => _success = 'Profile saved!');
     } catch (e) {
       if (mounted) {
@@ -502,6 +507,31 @@ class _ProfileSectionState extends State<_ProfileSection> {
             ),
           ),
           const SizedBox(height: 16),
+          const Text('Bio',
+              style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _bioCtrl,
+            style: const TextStyle(color: Colors.white),
+            maxLines: 3,
+            maxLength: 1024,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFF16161A),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              counterStyle:
+                  const TextStyle(color: Colors.white38, fontSize: 11),
+              hintText: 'Tell us about yourself...',
+              hintStyle: const TextStyle(color: Colors.white30),
+            ),
+          ),
+          const SizedBox(height: 16),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -523,6 +553,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                         final u = context.read<AuthState>().currentUser;
                         _displayNameCtrl.text =
                             u?.displayName ?? u?.username ?? '';
+                        _bioCtrl.text = u?.profileContent ?? '';
                         setState(() {
                           _error = null;
                           _success = null;
