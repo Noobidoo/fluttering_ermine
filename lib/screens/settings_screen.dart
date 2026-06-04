@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 
 import '../models/models.dart';
 import '../providers/auth_state.dart';
+import '../providers/server_state.dart';
 import '../providers/voice_state.dart';
 
 enum _Section { profile, voice }
@@ -223,6 +224,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
   late TextEditingController _displayNameCtrl;
   late TextEditingController _statusTextCtrl;
   late TextEditingController _bioCtrl;
+  late TextEditingController _serverNicknameCtrl;
   bool _saving = false;
   String? _error;
   String? _success;
@@ -237,6 +239,19 @@ class _ProfileSectionState extends State<_ProfileSection> {
         TextEditingController(text: user?.statusText ?? '');
     _bioCtrl =
         TextEditingController(text: user?.profileContent ?? '');
+    _serverNicknameCtrl = TextEditingController(text: '');
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initServerNickname());
+  }
+
+  void _initServerNickname() {
+    if (!mounted) return;
+    final serverState = context.read<ServerState>();
+    final server = serverState.selectedServer;
+    if (server == null) return;
+    final uid = context.read<AuthState>().currentUser?.id;
+    if (uid == null) return;
+    final nickname = serverState.memberInServer(server.id, uid)?.nickname;
+    _serverNicknameCtrl.text = nickname ?? '';
   }
 
   @override
@@ -244,7 +259,20 @@ class _ProfileSectionState extends State<_ProfileSection> {
     _displayNameCtrl.dispose();
     _statusTextCtrl.dispose();
     _bioCtrl.dispose();
+    _serverNicknameCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveServerProfile() async {
+    final serverState = context.read<ServerState>();
+    final server = serverState.selectedServer;
+    if (server == null) return;
+    final auth = context.read<AuthState>();
+    final nickname = _serverNicknameCtrl.text.trim();
+    await auth.updateServerProfile(
+      server.id,
+      nickname: nickname.isEmpty ? null : nickname,
+    );
   }
 
   Future<void> _save() async {
@@ -659,6 +687,54 @@ class _ProfileSectionState extends State<_ProfileSection> {
               ),
             ],
           ),
+          // ── Server Profile ─────────────────────────────────────────────────
+          if (context.watch<ServerState>().selectedServer != null) ...[
+            const SizedBox(height: 32),
+            Text(
+              'Server Profile — ${context.watch<ServerState>().selectedServer!.name}',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+            const SizedBox(height: 16),
+            const Text('Server Nickname',
+                style: TextStyle(
+                    color: Colors.white60,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _serverNicknameCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    maxLength: 32,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFF16161A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      counterStyle: const TextStyle(
+                          color: Colors.white38, fontSize: 11),
+                      hintText: 'Leave empty to use global name',
+                      hintStyle:
+                          const TextStyle(color: Colors.white30),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _saveServerProfile,
+                  style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF7F5AF0)),
+                  child: const Text('Set'),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
