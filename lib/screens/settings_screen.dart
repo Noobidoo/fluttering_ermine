@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../models/models.dart';
 import '../providers/auth_state.dart';
@@ -268,7 +269,35 @@ class _ProfileSectionState extends State<_ProfileSection> {
   }
 
   Future<void> _pickAvatar() async {
-    // Will be implemented in Group 3 (Avatar Upload)
+    if (!context.mounted) return;
+    final auth = context.read<AuthState>();
+    final result = await FilePicker.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) return;
+    if (!context.mounted) return;
+    await auth.updateAvatar(bytes, file.name);
+  }
+
+  Future<void> _pickBanner() async {
+    if (!context.mounted) return;
+    final auth = context.read<AuthState>();
+    final result = await FilePicker.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) return;
+    if (!context.mounted) return;
+    await auth.updateBanner(bytes, file.name);
   }
 
   void _saveStatus() {
@@ -381,6 +410,55 @@ class _ProfileSectionState extends State<_ProfileSection> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Banner area
+          const Text('Profile Banner',
+              style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: _pickBanner,
+            child: Container(
+              height: 100,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFF16161A),
+                borderRadius: BorderRadius.circular(8),
+                image: user?.banner != null
+                    ? DecorationImage(
+                        image: NetworkImage(
+                            user!.bannerUrlFor(auth.autumnBase)!),
+                        fit: BoxFit.cover,
+                        onError: (_, _) {},
+                      )
+                    : null,
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      user?.banner != null
+                          ? Icons.edit
+                          : Icons.add_photo_alternate_outlined,
+                      size: 20,
+                      color: Colors.white38,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      user?.banner != null
+                          ? 'Tap to change banner'
+                          : 'Tap to add banner',
+                      style: const TextStyle(
+                          color: Colors.white38, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 28),
