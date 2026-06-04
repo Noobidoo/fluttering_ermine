@@ -157,7 +157,7 @@ class RevoltService {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<void> updateProfile({
+  Future<RevoltUser> updateProfile({
     String? displayName,
     String? presence,
     String? statusText,
@@ -180,14 +180,21 @@ class RevoltService {
       body['profile'] = profile;
     }
     if (avatar != null) body['avatar'] = avatar;
+    final encoded = jsonEncode(body);
+    debugPrint('updateProfile body: $encoded');
+    debugPrint('updateProfile presence arg: $presence');
     final response = await http.patch(
       Uri.parse('$_apiBase/users/@me'),
       headers: _headers,
-      body: jsonEncode(body),
+      body: encoded,
     );
     if (response.statusCode != 200) {
-      throw Exception('updateProfile: ${response.statusCode}');
+      debugPrint('updateProfile response (${response.statusCode}): ${response.body}');
+      throw Exception(
+          'updateProfile(${response.statusCode}): ${response.body}');
     }
+    return RevoltUser.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   // ── Messages ──────────────────────────────────────────────────────────────

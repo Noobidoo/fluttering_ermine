@@ -169,6 +169,83 @@ class FakeRevoltService extends RevoltService {
     joinInviteCalls.add(code);
   }
 
+  // ── Profile updates (Phase 3) ─────────────────────────────────────────────
+
+  final List<({
+    String? displayName,
+    String? presence,
+    String? statusText,
+    String? profileContent,
+    String? avatar,
+    String? background,
+  })> updateProfileCalls = [];
+
+  RevoltUser? _currentUserStub;
+
+  void stubCurrentUser(RevoltUser user) => _currentUserStub = user;
+
+  @override
+  Future<RevoltUser> fetchSelf() async =>
+      _currentUserStub ??
+      RevoltUser(id: 'self', username: 'self', discriminator: '0000');
+
+  @override
+  Future<RevoltUser> updateProfile({
+    String? displayName,
+    String? presence,
+    String? statusText,
+    String? profileContent,
+    String? avatar,
+    String? background,
+  }) async {
+    updateProfileCalls.add((
+      displayName: displayName,
+      presence: presence,
+      statusText: statusText,
+      profileContent: profileContent,
+      avatar: avatar,
+      background: background,
+    ));
+    return _currentUserStub ??
+        RevoltUser(id: 'self', username: 'self', discriminator: '0000');
+  }
+
+  // ── Server member updates ──────────────────────────────────────────────────
+
+  final List<({String serverId, String? nickname, String? avatar})>
+      updateServerMemberCalls = [];
+
+  @override
+  Future<void> updateServerMember(
+    String serverId, {
+    String? nickname,
+    String? avatar,
+  }) async {
+    updateServerMemberCalls.add((
+      serverId: serverId,
+      nickname: nickname,
+      avatar: avatar,
+    ));
+  }
+
+  // ── File uploads ───────────────────────────────────────────────────────────
+
+  final List<({Uint8List bytes, String filename})> uploadAvatarCalls = [];
+  final List<({Uint8List bytes, String filename})> uploadBackgroundCalls = [];
+  String uploadResult = 'stub-file-id';
+
+  @override
+  Future<String> uploadAvatar(Uint8List bytes, String filename) async {
+    uploadAvatarCalls.add((bytes: bytes, filename: filename));
+    return uploadResult;
+  }
+
+  @override
+  Future<String> uploadBackground(Uint8List bytes, String filename) async {
+    uploadBackgroundCalls.add((bytes: bytes, filename: filename));
+    return uploadResult;
+  }
+
   void close() => _ctrl.close();
 }
 

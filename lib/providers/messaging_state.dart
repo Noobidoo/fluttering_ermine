@@ -331,6 +331,11 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     }).catchError((_) {});
   }
 
+  void cacheUser(RevoltUser user) {
+    _userCache[user.id] = user;
+    notifyListeners();
+  }
+
   void ensureUsersCached(List<String> userIds) {
     for (final id in userIds) {
       _ensureUserCached(id);

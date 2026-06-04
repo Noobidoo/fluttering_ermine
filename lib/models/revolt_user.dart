@@ -20,7 +20,7 @@ UserPresence _parsePresence(String? raw) {
   }
 }
 
-String _presenceToString(UserPresence p) => switch (p) {
+String presenceToString(UserPresence p) => switch (p) {
       UserPresence.online => 'Online',
       UserPresence.idle => 'Idle',
       UserPresence.focus => 'Focus',
@@ -90,7 +90,7 @@ class RevoltUser {
   Map<String, dynamic> statusToJson() {
     final s = <String, dynamic>{};
     if (statusText != null) s['text'] = statusText;
-    s['presence'] = _presenceToString(presence);
+    s['presence'] = presenceToString(presence);
     return s;
   }
 }

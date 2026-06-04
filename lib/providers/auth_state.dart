@@ -140,6 +140,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> updateDisplayName(String name) async {
     await _service.updateProfile(displayName: name.isEmpty ? '' : name);
     _currentUser = await _service.fetchSelf();
+    _syncCurrentUser();
     notifyListeners();
   }
 
@@ -165,15 +166,22 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   // ── Profile updates ───────────────────────────────────────────────────────
 
+  void _syncCurrentUser() {
+    if (_currentUser != null) {
+      _messagingState.cacheUser(_currentUser!);
+    }
+  }
+
   Future<void> updateStatus({String? presence, String? statusText}) async {
-    await _service.updateProfile(presence: presence, statusText: statusText);
-    _currentUser = await _service.fetchSelf();
+    _currentUser = await _service.updateProfile(
+        presence: presence, statusText: statusText);
+    _syncCurrentUser();
     notifyListeners();
   }
 
   Future<void> updateBio(String bio) async {
-    await _service.updateProfile(profileContent: bio);
-    _currentUser = await _service.fetchSelf();
+    _currentUser = await _service.updateProfile(profileContent: bio);
+    _syncCurrentUser();
     notifyListeners();
   }
 
@@ -181,6 +189,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     final fileId = await _service.uploadAvatar(bytes, filename);
     await _service.updateProfile(avatar: fileId);
     _currentUser = await _service.fetchSelf();
+    _syncCurrentUser();
     notifyListeners();
   }
 
@@ -188,6 +197,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     final fileId = await _service.uploadBackground(bytes, filename);
     await _service.updateProfile(background: fileId);
     _currentUser = await _service.fetchSelf();
+    _syncCurrentUser();
     notifyListeners();
   }
 
@@ -198,6 +208,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   }) async {
     await _service.updateServerMember(serverId, nickname: nickname, avatar: avatar);
     _currentUser = await _service.fetchSelf();
+    _syncCurrentUser();
     notifyListeners();
   }
 
@@ -224,6 +235,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     // Our own profile changed — re-fetch to get latest avatar/display name
     _service.fetchSelf().then((user) {
       _currentUser = user;
+      _syncCurrentUser();
       notifyListeners();
     }).catchError((_) {});
   }

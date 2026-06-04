@@ -333,7 +333,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final user = auth.currentUser;
     final presence = user?.presence ?? UserPresence.online;
     auth.updateStatus(
-      presence: presence.toString().split('.').last,
+      presence: presenceToString(presence),
       statusText: _statusTextCtrl.text.trim().isEmpty
           ? null
           : _statusTextCtrl.text.trim(),
@@ -533,7 +533,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 onChanged: (v) {
                   if (v == null) return;
                   context.read<AuthState>().updateStatus(
-                        presence: v.toString().split('.').last,
+                        presence: presenceToString(v),
                         statusText: _statusTextCtrl.text.trim().isEmpty
                             ? null
                             : _statusTextCtrl.text.trim(),

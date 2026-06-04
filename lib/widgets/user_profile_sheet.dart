@@ -44,6 +44,7 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
                 backgroundImage: NetworkImage(
                     user.avatarUrlFor(autumnBase, apiBase)),
                 backgroundColor: const Color(0xFF7F5AF0),
+                onBackgroundImageError: (_, __) {},
                 child: user.avatar != null
                     ? null
                     : Text(
