@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../providers/auth_state.dart';
 import '../providers/messaging_state.dart';
 import 'mention_chip.dart';
+import 'user_profile_sheet.dart';
 
 enum _MsgAction { reply, react, edit, delete, copy }
 
@@ -321,17 +322,26 @@ class _MessageBubbleState extends State<MessageBubble> {
     );
   }
 
+  void _openProfile(BuildContext context) {
+    final user = widget.author;
+    if (user == null) return;
+    showUserProfileSheet(context, user);
+  }
+
   Widget _fullBubble(String apiBase, String autumnBase, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundImage: NetworkImage(_avatarUrl(autumnBase, apiBase)),
-            backgroundColor: const Color(0xFF7F5AF0),
-            onBackgroundImageError: (e, stack) {},
+          GestureDetector(
+            onTap: () => _openProfile(context),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundImage: NetworkImage(_avatarUrl(autumnBase, apiBase)),
+              backgroundColor: const Color(0xFF7F5AF0),
+              onBackgroundImageError: (e, stack) {},
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -340,12 +350,15 @@ class _MessageBubbleState extends State<MessageBubble> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      _username,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Color(0xFFCBBDF7),
+                    GestureDetector(
+                      onTap: () => _openProfile(context),
+                      child: Text(
+                        _username,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Color(0xFFCBBDF7),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
