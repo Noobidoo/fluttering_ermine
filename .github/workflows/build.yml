@@ -35,7 +35,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.44.1'   # pinned
           channel: stable
           cache: true
 
@@ -90,7 +90,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.44.1'   # pinned
           channel: stable
           cache: true
 
@@ -138,7 +138,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.44.1'   # pinned
           channel: stable
           cache: true
 
@@ -146,7 +146,13 @@ jobs:
         run: flutter config --enable-windows-desktop
 
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash                    # fixed: use bash so the if/else works
+        run: |
+          if [ "${{ inputs.upgrade_lock }}" = "true" ]; then
+            flutter pub upgrade flutter_webrtc
+          else
+            flutter pub get
+          fi
 
       - name: Build Windows (release)
         run: flutter build windows --release
@@ -186,7 +192,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.44.1'   # pinned
           channel: stable
           cache: true
 
