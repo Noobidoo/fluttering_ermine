@@ -44,12 +44,12 @@ class ChannelPanel extends StatelessWidget {
                 ),
                 if (server.selectedServer != null)
                   IconButton(
-                    icon: const Icon(Icons.person_add_alt_1,
+                    icon: const Icon(Icons.settings_rounded,
                         size: 18, color: Colors.white54),
-                    tooltip: 'Create invite',
+                    tooltip: 'Server settings',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    onPressed: () => _showInviteDialog(context),
+                    onPressed: () => _showServerSettings(context),
                   ),
               ],
             ),
@@ -354,16 +354,53 @@ class _VoiceParticipantRow extends StatelessWidget {
   }
 }
 
-void _showInviteDialog(BuildContext context) async {
+void _showServerSettings(BuildContext context) {
   final server = context.read<ServerState>();
-  final channel = server.selectedChannel;
+  final srv = server.selectedServer;
+  if (srv == null) return;
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1E1E26),
+      title: Text(srv.name),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SettingsButton(
+            icon: Icons.link,
+            label: 'Create invite',
+            onTap: () {
+              Navigator.of(ctx).pop();
+              _createInvite(context);
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
+}
+
+void _createInvite(BuildContext context) async {
+  final server = context.read<ServerState>();
+  final channel = server.selectedChannel ??
+      server.selectedServerChannels.cast<RevoltChannel?>().firstWhere(
+            (c) => c?.type == ChannelType.textChannel && !c!.isVoice,
+            orElse: () => null,
+          );
   if (channel == null) return;
   try {
     final code = await server.createInvite(channel.id);
     if (!context.mounted) return;
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E26),
         title: const Text('Invite Link'),
         content: Column(
@@ -389,7 +426,7 @@ void _showInviteDialog(BuildContext context) async {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Close'),
           ),
         ],
@@ -399,6 +436,35 @@ void _showInviteDialog(BuildContext context) async {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Failed to create invite: $e')),
+    );
+  }
+}
+
+class _SettingsButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _SettingsButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.white70),
+            const SizedBox(width: 12),
+            Text(label, style: const TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
     );
   }
 }
