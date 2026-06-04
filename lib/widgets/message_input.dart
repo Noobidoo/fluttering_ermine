@@ -88,7 +88,6 @@ class _MessageInputState extends State<MessageInput> {
   }
 
   void _onFocusChanged() {
-    debugPrint('[focus] hasFocus=${_inputFocus.hasFocus}');
     if (!_inputFocus.hasFocus) _hideMentions();
   }
 
@@ -101,9 +100,7 @@ class _MessageInputState extends State<MessageInput> {
   }
 
   void _requestInputFocus() {
-    debugPrint('[focus] requestInputFocus queued');
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      debugPrint('[focus] requestInputFocus executing, mounted=$mounted, hasFocus=${_inputFocus.hasFocus}');
       if (mounted) _inputFocus.requestFocus();
     });
   }
@@ -111,16 +108,13 @@ class _MessageInputState extends State<MessageInput> {
   void _updateMentionState() {
     final text = _renderCtrl.text;
     final sel = _renderCtrl.selection;
-    debugPrint('[mention] _updateMentionState results=${_mentionResults.length}');
     if (!sel.isValid || sel.baseOffset != sel.extentOffset) {
-      debugPrint('[mention] invalid/range sel, hiding');
       _hideMentions();
       _requestInputFocus();
       return;
     }
     final pos = sel.baseOffset;
     if (pos == 0 || pos > text.length) {
-      debugPrint('[mention] pos=0 or OOB, hiding');
       _hideMentions();
       _requestInputFocus();
       return;
@@ -133,7 +127,6 @@ class _MessageInputState extends State<MessageInput> {
     }
     if (start < 0 || text[start] != '@') {
       if (_mentionResults.isNotEmpty) {
-        debugPrint('[mention] no @ found, hiding');
         _hideMentions();
         _requestInputFocus();
       }
@@ -141,7 +134,6 @@ class _MessageInputState extends State<MessageInput> {
     }
     final query = text.substring(start + 1, pos).trim().toLowerCase();
     if (query == _mentionQuery && _mentionResults.isNotEmpty) {
-      debugPrint('[mention] query unchanged, skip');
       return;
     }
     _mentionQuery = query;
@@ -174,12 +166,10 @@ class _MessageInputState extends State<MessageInput> {
       }
     }
     if (results.isEmpty) {
-      debugPrint('[mention] results empty, hiding');
       _hideMentions();
       _requestInputFocus();
       return;
     }
-    debugPrint('[mention] showing ${results.take(10).length} results');
     results.sort((a, b) => a.value.compareTo(b.value));
     setState(() {
       _mentionResults = results.take(10).toList();
@@ -189,7 +179,6 @@ class _MessageInputState extends State<MessageInput> {
   }
 
   void _hideMentions() {
-    debugPrint('[mention] hideMentions called, isEmpty=${_mentionResults.isEmpty}');
     if (_mentionResults.isEmpty) return;
     setState(() {
       _mentionResults = const [];

@@ -256,7 +256,7 @@ void main() {
         expect(state.isChannelUnread('c2'), true);
       });
 
-      test('channel not in channel_unreads with messages is unread', () {
+      test('channel not in channel_unreads with messages is not unread', () {
         svc.push(_readyEvent(
           servers: [
             {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
@@ -270,14 +270,13 @@ void main() {
               'last_message_id': 'msg5',
             },
           ],
-          // c1 not in channel_unreads → unread is null
+          // c1 not in channel_unreads → server didn't flag it as unread
         ));
 
-        expect(state.isChannelUnread('c1'), true);
+        expect(state.isChannelUnread('c1'), false);
       });
 
-      test('channel in channel_unreads with null last_id and messages is unread',
-          () {
+      test('channel in channel_unreads with null last_id is not unread', () {
         svc.push(_readyEvent(
           servers: [
             {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
@@ -296,7 +295,8 @@ void main() {
           ],
         ));
 
-        expect(state.isChannelUnread('c1'), true);
+        // null last_id is not stored in _channelUnreads, so treated as read
+        expect(state.isChannelUnread('c1'), false);
       });
 
       test('channel with no messages is not unread', () {
@@ -478,7 +478,8 @@ void main() {
           ],
         ));
 
-        expect(state.serverUnreadCount('s1'), 2);
+        // c3 not in unreads → treated as read without WS messages
+        expect(state.serverUnreadCount('s1'), 1);
       });
 
       test('serverUnreadCount returns 0 for server with no unread channels', () {
@@ -532,7 +533,8 @@ void main() {
         ));
 
         expect(state.serverUnreadCount('s1'), 0);
-        expect(state.serverUnreadCount('s2'), 1);
+        // c2 not in unreads → treated as read without WS messages
+        expect(state.serverUnreadCount('s2'), 0);
       });
     });
 

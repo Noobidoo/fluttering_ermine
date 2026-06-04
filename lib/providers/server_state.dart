@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/revolt_service.dart';
@@ -25,32 +23,6 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   final Map<String, String> _channelUnreads = {};
   final Map<String, List<String>> _channelMentions = {};
   final Map<String, String> _latestMessageIds = {};
-  bool _acksLoaded = false;
-  final Map<String, String> _persistedAcks = {};
-
-  static const _acksPrefKey = 'revolt_channel_acks';
-
-  Future<void> _loadPersistedAcks() async {
-    if (_acksLoaded) return;
-    _acksLoaded = true;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_acksPrefKey);
-      if (raw != null && raw.isNotEmpty) {
-        final decoded = json.decode(raw) as Map<String, dynamic>;
-        for (final e in decoded.entries) {
-          if (e.value is String) _persistedAcks[e.key] = e.value as String;
-        }
-      }
-    } catch (_) {}
-  }
-
-  void _saveAck(String channelId, String messageId) {
-    _persistedAcks[channelId] = messageId;
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setString(_acksPrefKey, json.encode(_persistedAcks));
-    });
-  }
 
   // ── Members ────────────────────────────────────────────────────────────────
   final Map<String, List<RevoltMember>> _membersByServer = {};
@@ -102,7 +74,6 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   void _onReady(Map<String, dynamic> event) {
-    _loadPersistedAcks().then((_) => _applyPersistedAcks());
 
     final servers = (event['servers'] as List<dynamic>?) ?? [];
     _servers = servers
@@ -134,15 +105,6 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
       fetchMembers();
     }
     notifyListeners();
-  }
-
-  /// Merges locally-persisted acks into _channelUnreads after SharedPreferences
-  /// finishes loading. Channels already set by server data are left untouched.
-  void _applyPersistedAcks() {
-    for (final e in _persistedAcks.entries) {
-      _channelUnreads.putIfAbsent(e.key, () => e.value);
-    }
-    if (_channelUnreads.isNotEmpty) notifyListeners();
   }
 
   void _onMessage(Map<String, dynamic> event) {
@@ -230,6 +192,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     final unread = _channelUnreads[channelId];
     final latest = _latestMessageIds[channelId];
     if (latest != null) return unread != latest;
+    if (unread == null) return false;
     final channel = _allChannels.cast<RevoltChannel?>().firstWhere(
         (c) => c?.id == channelId,
         orElse: () => null);
@@ -259,7 +222,6 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   void markChannelRead(String channelId, String messageId) {
     _channelUnreads[channelId] = messageId;
     _channelMentions.remove(channelId);
-    _saveAck(channelId, messageId);
     notifyListeners();
   }
 
@@ -302,8 +264,6 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _channelUnreads.clear();
     _channelMentions.clear();
     _latestMessageIds.clear();
-    _persistedAcks.clear();
-    _acksLoaded = false;
     _membersByServer.clear();
     _loadingMembers = false;
     notifyListeners();
