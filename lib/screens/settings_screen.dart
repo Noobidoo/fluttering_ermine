@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/models.dart';
 import '../providers/auth_state.dart';
 import '../providers/voice_state.dart';
 
@@ -219,6 +220,7 @@ class _ProfileSection extends StatefulWidget {
 
 class _ProfileSectionState extends State<_ProfileSection> {
   late TextEditingController _displayNameCtrl;
+  late TextEditingController _statusTextCtrl;
   bool _saving = false;
   String? _error;
   String? _success;
@@ -229,11 +231,14 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final user = context.read<AuthState>().currentUser;
     _displayNameCtrl = TextEditingController(
         text: user?.displayName ?? user?.username ?? '');
+    _statusTextCtrl =
+        TextEditingController(text: user?.statusText ?? '');
   }
 
   @override
   void dispose() {
     _displayNameCtrl.dispose();
+    _statusTextCtrl.dispose();
     super.dispose();
   }
 
@@ -244,9 +249,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
       _success = null;
     });
     try {
-      await context
-          .read<AuthState>()
-          .updateDisplayName(_displayNameCtrl.text.trim());
+      final auth = context.read<AuthState>();
+      await auth.updateDisplayName(_displayNameCtrl.text.trim());
       if (mounted) setState(() => _success = 'Profile saved!');
     } catch (e) {
       if (mounted) {
@@ -258,10 +262,27 @@ class _ProfileSectionState extends State<_ProfileSection> {
     }
   }
 
+  Future<void> _pickAvatar() async {
+    // Will be implemented in Group 3 (Avatar Upload)
+  }
+
+  void _saveStatus() {
+    final auth = context.read<AuthState>();
+    final user = auth.currentUser;
+    final presence = user?.presence ?? UserPresence.online;
+    auth.updateStatus(
+      presence: presence.toString().split('.').last,
+      statusText: _statusTextCtrl.text.trim().isEmpty
+          ? null
+          : _statusTextCtrl.text.trim(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthState>();
     final user = auth.currentUser;
+    final currentPresence = user?.presence ?? UserPresence.online;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(36),
@@ -283,43 +304,172 @@ class _ProfileSectionState extends State<_ProfileSection> {
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: const Color(0xFF7F5AF0),
-                  backgroundImage: user?.avatar != null
-                      ? NetworkImage(user!
-                          .avatarUrlFor(auth.autumnBase, auth.apiBase))
-                      : null,
-                  child: user?.avatar == null
-                      ? Text(
-                          ((user?.displayName ?? user?.username ?? '?'))
-                              [0]
-                              .toUpperCase(),
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 22),
-                        )
-                      : null,
+                GestureDetector(
+                  onTap: _pickAvatar,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: const Color(0xFF7F5AF0),
+                        backgroundImage: user?.avatar != null
+                            ? NetworkImage(user!.avatarUrlFor(
+                                auth.autumnBase, auth.apiBase))
+                            : null,
+                        child: user?.avatar == null
+                            ? Text(
+                                ((user?.displayName ??
+                                        user?.username ?? '?'))[0]
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 22),
+                              )
+                            : null,
+                      ),
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: user != null
+                                ? presenceColor(user.presence)
+                                : Colors.grey,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: const Color(0xFF16161A),
+                                width: 2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user?.displayName ?? user?.username ?? '',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16),
-                    ),
-                    Text(
-                      '${user?.username ?? ''}#${user?.discriminator ?? ''}',
-                      style: const TextStyle(
-                          color: Colors.white54, fontSize: 13),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.displayName ?? user?.username ?? '',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16),
+                      ),
+                      Text(
+                        '${user?.username ?? ''}#${user?.discriminator ?? ''}',
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 13),
+                      ),
+                      if (user != null &&
+                          user.statusText != null &&
+                          user.statusText!.isNotEmpty)
+                        Text(
+                          user.statusText!,
+                          style: const TextStyle(
+                              color: Colors.white38, fontSize: 12),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 28),
+          const Text('Online Status',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          // Presence dropdown
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF16161A),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<UserPresence>(
+                value: currentPresence,
+                dropdownColor: const Color(0xFF16161A),
+                isExpanded: true,
+                items: UserPresence.values.map((p) {
+                  return DropdownMenuItem(
+                    value: p,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: presenceColor(p),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          _presenceLabel(p),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  context.read<AuthState>().updateStatus(
+                        presence: v.toString().split('.').last,
+                        statusText: _statusTextCtrl.text.trim().isEmpty
+                            ? null
+                            : _statusTextCtrl.text.trim(),
+                      );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Custom status text
+          const Text('Custom Status',
+              style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _statusTextCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  maxLength: 128,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: const Color(0xFF16161A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    counterStyle: const TextStyle(
+                        color: Colors.white38, fontSize: 11),
+                    hintText: 'What\'s on your mind?',
+                    hintStyle:
+                        const TextStyle(color: Colors.white30),
+                  ),
+                  onSubmitted: (_) => _saveStatus(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: _saveStatus,
+                style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF7F5AF0)),
+                child: const Text('Set'),
+              ),
+            ],
           ),
           const SizedBox(height: 28),
           const Text('Edit Global Profile',
@@ -351,6 +501,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
               hintStyle: const TextStyle(color: Colors.white30),
             ),
           ),
+          const SizedBox(height: 16),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -403,6 +554,13 @@ class _ProfileSectionState extends State<_ProfileSection> {
       ),
     );
   }
+
+  String _presenceLabel(UserPresence p) => switch (p) {
+        UserPresence.online => 'Online',
+        UserPresence.idle => 'Idle',
+        UserPresence.focus => 'Focus',
+        UserPresence.invisible => 'Invisible',
+      };
 }
 
 // ── Voice section ─────────────────────────────────────────────────────────────

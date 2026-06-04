@@ -157,9 +157,29 @@ class RevoltService {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<void> updateProfile({String? displayName}) async {
+  Future<void> updateProfile({
+    String? displayName,
+    String? presence,
+    String? statusText,
+    String? profileContent,
+    String? avatar,
+    String? background,
+  }) async {
     final body = <String, dynamic>{};
     if (displayName != null) body['display_name'] = displayName;
+    if (presence != null || statusText != null) {
+      final status = <String, dynamic>{};
+      if (presence != null) status['presence'] = presence;
+      if (statusText != null) status['text'] = statusText;
+      body['status'] = status;
+    }
+    if (profileContent != null || background != null) {
+      final profile = <String, dynamic>{};
+      if (profileContent != null) profile['content'] = profileContent;
+      if (background != null) profile['background'] = background;
+      body['profile'] = profile;
+    }
+    if (avatar != null) body['avatar'] = avatar;
     final response = await http.patch(
       Uri.parse('$_apiBase/users/@me'),
       headers: _headers,
@@ -281,6 +301,63 @@ class RevoltService {
     final body = await streamed.stream.bytesToString();
     final json = jsonDecode(body) as Map<String, dynamic>;
     return json['id'] as String;
+  }
+
+  /// Uploads an avatar image to Autumn and returns the file ID.
+  Future<String> uploadAvatar(Uint8List bytes, String filename) async {
+    final uri = Uri.parse('$_autumnBase/avatars');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['x-session-token'] = _token ?? ''
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+      ));
+    final streamed = await request.send();
+    if (streamed.statusCode != 200) {
+      throw Exception('Avatar upload failed (${streamed.statusCode})');
+    }
+    final body = await streamed.stream.bytesToString();
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    return json['id'] as String;
+  }
+
+  /// Uploads a background/banner image to Autumn and returns the file ID.
+  Future<String> uploadBackground(Uint8List bytes, String filename) async {
+    final uri = Uri.parse('$_autumnBase/backgrounds');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['x-session-token'] = _token ?? ''
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+      ));
+    final streamed = await request.send();
+    if (streamed.statusCode != 200) {
+      throw Exception('Background upload failed (${streamed.statusCode})');
+    }
+    final body = await streamed.stream.bytesToString();
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    return json['id'] as String;
+  }
+
+  /// Updates the current user's per-server member profile.
+  Future<void> updateServerMember(
+    String serverId, {
+    String? nickname,
+    String? avatar,
+  }) async {
+    final body = <String, dynamic>{};
+    if (nickname != null) body['nickname'] = nickname;
+    if (avatar != null) body['avatar'] = avatar;
+    final response = await http.patch(
+      Uri.parse('$_apiBase/servers/$serverId/members/@me'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('updateServerMember: ${response.statusCode}');
+    }
   }
 
   /// Marks a channel as read up to [messageId].

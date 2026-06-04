@@ -163,6 +163,44 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
+  // ── Profile updates ───────────────────────────────────────────────────────
+
+  Future<void> updateStatus({String? presence, String? statusText}) async {
+    await _service.updateProfile(presence: presence, statusText: statusText);
+    _currentUser = await _service.fetchSelf();
+    notifyListeners();
+  }
+
+  Future<void> updateBio(String bio) async {
+    await _service.updateProfile(profileContent: bio);
+    _currentUser = await _service.fetchSelf();
+    notifyListeners();
+  }
+
+  Future<void> updateAvatar(Uint8List bytes, String filename) async {
+    final fileId = await _service.uploadAvatar(bytes, filename);
+    await _service.updateProfile(avatar: fileId);
+    _currentUser = await _service.fetchSelf();
+    notifyListeners();
+  }
+
+  Future<void> updateBanner(Uint8List bytes, String filename) async {
+    final fileId = await _service.uploadBackground(bytes, filename);
+    await _service.updateProfile(background: fileId);
+    _currentUser = await _service.fetchSelf();
+    notifyListeners();
+  }
+
+  Future<void> updateServerProfile(
+    String serverId, {
+    String? nickname,
+    String? avatar,
+  }) async {
+    await _service.updateServerMember(serverId, nickname: nickname, avatar: avatar);
+    _currentUser = await _service.fetchSelf();
+    notifyListeners();
+  }
+
   // ── Internal ──────────────────────────────────────────────────────────────
 
   void _connectWebSocket() {

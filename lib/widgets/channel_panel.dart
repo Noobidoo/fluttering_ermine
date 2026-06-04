@@ -6,6 +6,7 @@ import '../providers/auth_state.dart';
 import '../providers/messaging_state.dart';
 import '../providers/server_state.dart';
 import '../providers/voice_state.dart';
+import '../screens/settings_screen.dart';
 
 class ChannelPanel extends StatelessWidget {
   const ChannelPanel({super.key});
@@ -550,28 +551,64 @@ class _UserBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      color: const Color(0xFF0D0D0F),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundImage:
-                NetworkImage(user.avatarUrlFor(autumnBase, apiBase)),
-            backgroundColor: const Color(0xFF7F5AF0),
-            onBackgroundImageError: (e, stack) {},
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              user.displayUsername,
-              style:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
+    return GestureDetector(
+      onTap: () => SettingsScreen.show(context),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        color: const Color(0xFF0D0D0F),
+        child: Row(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundImage:
+                      NetworkImage(user.avatarUrlFor(autumnBase, apiBase)),
+                  backgroundColor: const Color(0xFF7F5AF0),
+                  onBackgroundImageError: (e, stack) {},
+                ),
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: presenceColor(user.presence),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: const Color(0xFF0D0D0F), width: 2),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    user.displayUsername,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (user.statusText != null &&
+                      user.statusText!.isNotEmpty)
+                    Text(
+                      user.statusText!,
+                      style: const TextStyle(
+                          fontSize: 11, color: Colors.white38),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
