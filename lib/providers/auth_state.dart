@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -192,7 +194,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> updateAvatar(Uint8List bytes, String filename) async {
     final fileId = await _service.uploadAvatar(bytes, filename);
     await _service.updateProfile(avatar: fileId);
-    final oldUrl = _currentUser?.avatarUrlFor(_service.autumnBase, _service.apiBase);
+    final oldUrl = _currentUser?.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
     _currentUser = _currentUser?.copyWith(
       avatar: RevoltFile(id: fileId, tag: 'avatars', filename: filename),
     );
@@ -224,8 +226,14 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   }) async {
     final userId = _currentUser?.id;
     if (userId == null) return;
+    final remove = <String>[];
+    String? effectiveNickname = nickname;
+    if (nickname == '') {
+      remove.add('Nickname');
+      effectiveNickname = null;
+    }
     await _service.updateServerMember(serverId, userId,
-        nickname: nickname, avatar: avatar);
+        nickname: effectiveNickname, avatar: avatar, remove: remove);
     notifyListeners();
   }
 
@@ -241,7 +249,13 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   void _handleEvent(Map<String, dynamic> event) {
+    if (event['type'] == 'Disconnected') {
+      debugPrint('[Auth] WebSocket disconnected, reconnecting in 3s...');
+      Future.delayed(const Duration(seconds: 3), _connectWebSocket);
+      return;
+    }
     if (event['type'] != 'UserUpdate') return;
+    debugPrint('[Auth/UserUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}');
     final id = event['id'] as String?;
     if (id == null || id != _currentUser?.id) return;
     final data = (event['data'] as Map?)?.cast<String, dynamic>();
@@ -250,9 +264,24 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (_currentUser == null) return;
     final cached = _currentUser!;
 
+    RevoltFile? _parseFile(dynamic value) {
+      if (value == null) return null;
+      if (value is Map) {
+        try {
+          return RevoltFile.fromJson(Map<String, dynamic>.from(value));
+        } catch (_) {
+          return null;
+        }
+      }
+      if (value is String) {
+        return RevoltFile(id: value, tag: 'avatars', filename: '');
+      }
+      return null;
+    }
+
     // Evict old avatar if avatar changed or cleared
     if (data != null && (data.containsKey('avatar') || clear.contains('avatar'))) {
-      final oldUrl = cached.avatarUrlFor(_service.autumnBase, _service.apiBase);
+      final oldUrl = cached.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
       PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
     }
 
@@ -263,18 +292,14 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       displayName: data?['display_name'] as String? ?? cached.displayName,
       avatar: clear.contains('avatar')
           ? null
-          : data?['avatar'] != null
-              ? RevoltFile.fromJson(Map<String, dynamic>.from(data!['avatar'] as Map))
-              : data?.containsKey('avatar') == true
-                  ? null
-                  : cached.avatar,
+          : data?.containsKey('avatar') == true
+              ? _parseFile(data!['avatar'])
+              : cached.avatar,
       banner: clear.contains('banner')
           ? null
-          : data?['banner'] != null
-              ? RevoltFile.fromJson(Map<String, dynamic>.from(data!['banner'] as Map))
-              : data?.containsKey('banner') == true
-                  ? null
-                  : cached.banner,
+          : data?.containsKey('banner') == true
+              ? _parseFile(data!['banner'])
+              : cached.banner,
       presence: clear.contains('status')
           ? UserPresence.invisible
           : data?['status'] is Map && (data!['status'] as Map).containsKey('presence')
@@ -290,6 +315,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
           : data?['profile'] is Map
               ? (data!['profile'] as Map)['content'] as String? ?? cached.profileContent
               : cached.profileContent,
+      serverProfiles: cached.serverProfiles,
     );
     _currentUser = user;
     _syncCurrentUser();

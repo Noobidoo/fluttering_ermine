@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -83,7 +84,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
         orElse: () => '',
       );
       if (otherId != null && otherId.isNotEmpty) {
-        return _userCache[otherId]?.displayUsername ?? 'Direct Message';
+        return _userCache[otherId]?.resolveDisplayName(null) ?? 'Direct Message';
       }
     }
     return 'Unknown Channel';
@@ -128,12 +129,17 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'UserUpdate':
         _onUserUpdate(event);
         break;
+      case 'ServerMemberUpdate':
+        // Handled by ServerState.
+        break;
+      case 'Disconnected':
+        // Reconnection is handled by AuthState; no local cleanup needed.
+        break;
       // Voice events handled by ServerState - ignore here.
       case 'VoiceChannelJoin':
       case 'VoiceChannelLeave':
       case 'VoiceChannelMove':
       case 'UserVoiceStateUpdate':
-      case 'ServerMemberUpdate':
         break;
       default:
         // Debug print unhandled events, but only in debug mode to avoid spamming release logs
@@ -316,60 +322,78 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
+  /// Parses a RevoltFile from a WS event value that may be a Map, a String (file ID), or null.
+  RevoltFile? _parseFile(dynamic value) {
+    if (value == null) return null;
+    if (value is Map) {
+      try {
+        return RevoltFile.fromJson(Map<String, dynamic>.from(value));
+      } catch (_) {
+        return null;
+      }
+    }
+    if (value is String) {
+      return RevoltFile(id: value, tag: 'avatars', filename: '');
+    }
+    return null;
+  }
+
   void _onUserUpdate(Map<String, dynamic> event) {
+    debugPrint('[UserUpdate] raw event: ${String.fromCharCodes(utf8.encode(event.toString()))}');
     final userId = event['id'] as String?;
     if (userId == null) return;
     final cached = _userCache[userId];
     final data = (event['data'] as Map?)?.cast<String, dynamic>();
     final clear = (event['clear'] as List<dynamic>?)?.cast<String>() ?? [];
 
-    if (cached != null && data != null && data.isNotEmpty) {
+    if (cached != null && (data != null || clear.isNotEmpty)) {
       // Evict old avatar if avatar changed or cleared
-      if (data.containsKey('avatar') || clear.contains('avatar')) {
-        final oldUrl = cached.avatarUrlFor(_service.autumnBase, _service.apiBase);
+      if (data?.containsKey('avatar') == true || clear.contains('avatar')) {
+        final oldUrl = cached.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
         PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
       }
 
-      _userCache[userId] = RevoltUser(
-        id: cached.id,
-        username: data['username'] as String? ?? cached.username,
-        discriminator: (data['discriminator'] as String? ?? cached.discriminator),
-        displayName: data['display_name'] as String? ?? cached.displayName,
-        avatar: clear.contains('avatar')
-            ? null
-            : data['avatar'] != null
-                ? RevoltFile.fromJson(Map<String, dynamic>.from(data['avatar'] as Map))
-                : data.containsKey('avatar')
-                    ? null
-                    : cached.avatar,
-        banner: clear.contains('banner')
-            ? null
-            : data['banner'] != null
-                ? RevoltFile.fromJson(Map<String, dynamic>.from(data['banner'] as Map))
-                : data.containsKey('banner')
-                    ? null
-                    : cached.banner,
-        presence: clear.contains('status')
-            ? UserPresence.invisible
-            : data['status'] is Map && (data['status'] as Map).containsKey('presence')
-                ? parsePresence((data['status'] as Map)['presence'] as String?)
-                : cached.presence,
-        statusText: clear.contains('status')
-            ? null
-            : data['status'] is Map
-                ? (data['status'] as Map)['text'] as String? ?? cached.statusText
-                : cached.statusText,
-        profileContent: clear.contains('profile')
-            ? null
-            : data['profile'] is Map
-                ? (data['profile'] as Map)['content'] as String? ?? cached.profileContent
-                : cached.profileContent,
-      );
+      try {
+        _userCache[userId] = RevoltUser(
+          id: cached.id,
+          username: data?['username'] as String? ?? cached.username,
+          discriminator: (data?['discriminator'] as String? ?? cached.discriminator),
+          displayName: data?['display_name'] as String? ?? cached.displayName,
+          avatar: clear.contains('avatar')
+              ? null
+              : data?.containsKey('avatar') == true
+                  ? _parseFile(data!['avatar'])
+                  : cached.avatar,
+          banner: clear.contains('banner')
+              ? null
+              : data?.containsKey('banner') == true
+                  ? _parseFile(data!['banner'])
+                  : cached.banner,
+          presence: clear.contains('status')
+              ? UserPresence.invisible
+              : data?['status'] is Map && (data!['status'] as Map).containsKey('presence')
+                  ? parsePresence((data['status'] as Map)['presence'] as String?)
+                  : cached.presence,
+          statusText: clear.contains('status')
+              ? null
+              : data?['status'] is Map
+                  ? (data!['status'] as Map)['text'] as String? ?? cached.statusText
+                  : cached.statusText,
+          profileContent: clear.contains('profile')
+              ? null
+              : data?['profile'] is Map
+                  ? (data!['profile'] as Map)['content'] as String? ?? cached.profileContent
+                  : cached.profileContent,
+          serverProfiles: cached.serverProfiles,
+        );
+      } catch (_) {
+        // Malformed event data; keep cached user.
+      }
       notifyListeners();
       return;
     }
 
-    // Empty data: nothing to update, keep cached user
+    // No data and no clears: nothing to update, keep cached user
     if (cached != null) return;
 
     // Uncached user: fetch from API
@@ -381,8 +405,41 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     }).catchError((_) {});
   }
 
+  /// Merges a ServerMemberUpdate event into the cached user.
+  void updateServerProfile(String userId, String serverId,
+      Map<String, dynamic>? data, List<String> clear) {
+    final cached = _userCache[userId];
+    if (cached == null) return;
+    final existing = cached.serverProfiles[serverId] ?? ServerProfile();
+    final profile = existing.copyWith(
+      nickname: clear.contains('Nickname') ? null : (data?['nickname'] as String?),
+      roles: clear.contains('Roles')
+          ? []
+          : data?['roles'] != null
+              ? (data!['roles'] as List<dynamic>).cast<String>()
+              : null,
+      avatar: clear.contains('Avatar')
+          ? null
+          : data?.containsKey('avatar') == true
+              ? _parseFile(data!['avatar'])
+              : null,
+      clearNickname: clear.contains('Nickname'),
+      clearAvatar: clear.contains('Avatar'),
+      clearRoles: clear.contains('Roles'),
+    );
+    _userCache[userId] = cached.copyWithServerProfile(serverId, profile);
+    notifyListeners();
+  }
+
   void cacheUser(RevoltUser user) {
     _userCache[user.id] = user;
+    notifyListeners();
+  }
+
+  void cacheUsers(List<RevoltUser> users) {
+    for (final u in users) {
+      _userCache[u.id] = u;
+    }
     notifyListeners();
   }
 

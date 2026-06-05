@@ -23,6 +23,8 @@ void main() {
   final serverState = ServerState(service);
   final voiceState = VoiceState(service, voiceEventService);
   final messagingState = MessagingState(service, serverState);
+  serverState.onUsersFetched = messagingState.cacheUsers;
+  serverState.onServerProfileUpdated = messagingState.updateServerProfile;
   final authState = AuthState(
     service,
     serverState,

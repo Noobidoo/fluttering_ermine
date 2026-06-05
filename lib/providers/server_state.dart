@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
@@ -8,6 +9,15 @@ import '../services/revolt_service.dart';
 class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   final RevoltService _service;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
+
+  /// Called when fetchMembers receives user data that should be cached.
+  void Function(List<RevoltUser> users)? onUsersFetched;
+
+  /// Called when a member's server profile changes (ServerMemberUpdate).
+  /// Passes raw data (fields that changed) and clear list so the receiver
+  /// can merge with any existing profile.
+  void Function(String userId, String serverId, Map<String, dynamic>? data,
+      List<String> clear)? onServerProfileUpdated;
 
   ServerState(this._service);
 
@@ -25,7 +35,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   final Map<String, String> _latestMessageIds = {};
 
   // -- Members ----------------------------------------------------------------
-  final Map<String, List<RevoltMember>> _membersByServer = {};
+  final Map<String, List<String>> _memberIdsByServer = {};
   bool _loadingMembers = false;
 
   // -- Getters ---------------------------------------------------------------
@@ -68,6 +78,9 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'ChannelAck':
         _onChannelAck(event);
         break;
+      case 'ServerMemberUpdate':
+        _onServerMemberUpdate(event);
+        break;
       default:
         break;
     }
@@ -102,7 +115,8 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
 
     if (_servers.isNotEmpty && _selectedServer == null && !_showDMs) {
       _selectedServer = _servers.first;
-      fetchMembers();
+      _memberIdsByServer.clear();
+      fetchMembers(force: true);
     }
     notifyListeners();
   }
@@ -131,7 +145,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _selectedChannel = null;
     _showDMs = false;
     _fetchServerChannels(server);
-    fetchMembers();
+    fetchMembers(force: true);
     notifyListeners();
   }
 
@@ -154,22 +168,44 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   // -- Members ----------------------------------------------------------------
 
-  List<RevoltMember>? get currentServerMembers {
+  /// Returns the list of user IDs for the selected server's members, or null.
+  List<String>? get currentServerMemberIds {
     if (_selectedServer == null) return null;
-    return _membersByServer[_selectedServer!.id];
+    return _memberIdsByServer[_selectedServer!.id];
   }
 
   bool get isLoadingMembers => _loadingMembers;
 
-  Future<void> fetchMembers() async {
+  Future<void> fetchMembers({bool force = false}) async {
     final server = _selectedServer;
     if (server == null) return;
-    if (_membersByServer.containsKey(server.id)) return;
+    if (!force && _memberIdsByServer.containsKey(server.id)) return;
     _loadingMembers = true;
     notifyListeners();
     try {
-      final (members, _) = await _service.fetchServerMembers(server.id);
-      _membersByServer[server.id] = members;
+      final (memberProfiles, users) =
+          await _service.fetchServerMembers(server.id);
+      _memberIdsByServer[server.id] =
+          memberProfiles.map((m) => m.userId).toList();
+
+      // Attach server profiles to each user
+      final profileByUserId = {
+        for (final m in memberProfiles) m.userId: m,
+      };
+      final updatedUsers = users.map((u) {
+        final p = profileByUserId[u.id];
+        if (p == null) return u;
+        return u.copyWithServerProfile(
+          server.id,
+          ServerProfile(
+            nickname: p.nickname,
+            roles: p.roles,
+            avatar: p.avatar,
+          ),
+        );
+      }).toList();
+
+      onUsersFetched?.call(updatedUsers);
     } catch (e) {
       debugPrint('[fetchMembers] ${server.id} failed: $e');
     } finally {
@@ -178,12 +214,28 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
   }
 
-  /// Finds a cached member by user ID in the given server.
-  RevoltMember? memberInServer(String serverId, String userId) {
-    return _membersByServer[serverId]
-        ?.where((m) => m.userId == userId)
-        .firstOrNull;
+  void _onServerMemberUpdate(Map<String, dynamic> event) {
+    debugPrint(
+        '[ServerMemberUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}');
+    final idMap = event['id'];
+    if (idMap is! Map) return;
+    final serverId = idMap['server'] as String?;
+    final userId = idMap['user'] as String?;
+    if (serverId == null || userId == null) return;
+    final data = event['data'] as Map<String, dynamic>?;
+    final clear = (event['clear'] as List<dynamic>?)?.cast<String>() ?? [];
+
+    // Keep the member list consistent
+    if (!_memberIdsByServer.containsKey(serverId)) return;
+    if (!_memberIdsByServer[serverId]!.contains(userId)) return;
+
+    onServerProfileUpdated?.call(userId, serverId, data, clear);
+    notifyListeners();
   }
+
+  /// Returns whether [userId] is a member of [serverId].
+  bool isMember(String serverId, String userId) =>
+      _memberIdsByServer[serverId]?.contains(userId) ?? false;
 
   // -- Unread queries ---------------------------------------------------------
 
@@ -267,7 +319,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _channelUnreads.clear();
     _channelMentions.clear();
     _latestMessageIds.clear();
-    _membersByServer.clear();
+    _memberIdsByServer.clear();
     _loadingMembers = false;
     notifyListeners();
   }
