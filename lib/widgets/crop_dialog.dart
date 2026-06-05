@@ -153,6 +153,17 @@ class _CropDialogState extends State<CropDialog> {
 
   Future<Uint8List> _crop(Size viewport) async {
     final rect = _cropRect(viewport);
+
+    final isGif = widget.imageBytes.length >= 6 &&
+        widget.imageBytes[0] == 0x47 &&
+        widget.imageBytes[1] == 0x49 &&
+        widget.imageBytes[2] == 0x46 &&
+        widget.imageBytes[3] == 0x38;
+
+    if (isGif) {
+      return _cropGif(rect);
+    }
+
     final original = img.decodeImage(widget.imageBytes);
     if (original == null) {
       throw Exception('Failed to decode image');
@@ -170,6 +181,36 @@ class _CropDialogState extends State<CropDialog> {
         : img.copyResize(cropped, height: min(cropped.height, maxDim));
 
     return Uint8List.fromList(img.encodePng(resized));
+  }
+
+  Future<Uint8List> _cropGif(Rect rect) async {
+    final original = img.decodeGif(widget.imageBytes);
+    if (original == null) {
+      throw Exception('Failed to decode GIF');
+    }
+
+    final x = rect.left.round().clamp(0, original.width - 1);
+    final y = rect.top.round().clamp(0, original.height - 1);
+    final w = rect.width.round().clamp(1, original.width - x);
+    final h = rect.height.round().clamp(1, original.height - y);
+
+    final cropped = img.copyCrop(original, x: x, y: y, width: w, height: h);
+    final maxDim = widget.maxDimension;
+    final resized = cropped.width > cropped.height
+        ? img.copyResize(cropped, width: min(cropped.width, maxDim))
+        : img.copyResize(cropped, height: min(cropped.height, maxDim));
+
+    // copyCrop/copyResize don't preserve per-frame durations
+    if (original.hasAnimation && resized.hasAnimation) {
+      final srcFrames = original.frames;
+      final dstFrames = resized.frames;
+      for (var i = 0; i < dstFrames.length && i < srcFrames.length; i++) {
+        dstFrames[i].frameDuration = srcFrames[i].frameDuration;
+      }
+      resized.loopCount = original.loopCount;
+    }
+
+    return Uint8List.fromList(img.encodeGif(resized));
   }
 
   @override
