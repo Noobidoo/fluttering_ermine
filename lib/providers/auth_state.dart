@@ -222,7 +222,10 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     String? nickname,
     String? avatar,
   }) async {
-    await _service.updateServerMember(serverId, nickname: nickname, avatar: avatar);
+    final userId = _currentUser?.id;
+    if (userId == null) return;
+    await _service.updateServerMember(serverId, userId,
+        nickname: nickname, avatar: avatar);
     notifyListeners();
   }
 

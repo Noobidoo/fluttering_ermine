@@ -196,10 +196,15 @@ void main() {
         discriminator: '0000',
       ));
 
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('revolt_session_token', 'test-token');
+      await authState.init();
+
       await authState.updateServerProfile('srv1', nickname: 'ServerNick');
 
       expect(svc.updateServerMemberCalls, hasLength(1));
       expect(svc.updateServerMemberCalls.first.serverId, 'srv1');
+      expect(svc.updateServerMemberCalls.first.userId, 'self');
       expect(svc.updateServerMemberCalls.first.nickname, 'ServerNick');
       expect(svc.updateServerMemberCalls.first.avatar, isNull);
     });
@@ -211,10 +216,15 @@ void main() {
         discriminator: '0000',
       ));
 
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('revolt_session_token', 'test-token');
+      await authState.init();
+
       await authState.updateServerProfile('srv1', avatar: 'file-id');
 
       expect(svc.updateServerMemberCalls, hasLength(1));
       expect(svc.updateServerMemberCalls.first.serverId, 'srv1');
+      expect(svc.updateServerMemberCalls.first.userId, 'self');
       expect(svc.updateServerMemberCalls.first.avatar, 'file-id');
       expect(svc.updateServerMemberCalls.first.nickname, isNull);
     });

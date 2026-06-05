@@ -212,17 +212,19 @@ class FakeRevoltService extends RevoltService {
 
   // -- Server member updates --------------------------------------------------
 
-  final List<({String serverId, String? nickname, String? avatar})>
+  final List<({String serverId, String userId, String? nickname, String? avatar})>
       updateServerMemberCalls = [];
 
   @override
   Future<void> updateServerMember(
-    String serverId, {
+    String serverId,
+    String userId, {
     String? nickname,
     String? avatar,
   }) async {
     updateServerMemberCalls.add((
       serverId: serverId,
+      userId: userId,
       nickname: nickname,
       avatar: avatar,
     ));

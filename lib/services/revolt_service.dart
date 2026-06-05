@@ -360,7 +360,8 @@ class RevoltService {
 
   /// Updates the current user's per-server member profile.
   Future<void> updateServerMember(
-    String serverId, {
+    String serverId,
+    String userId, {
     String? nickname,
     String? avatar,
   }) async {
@@ -368,7 +369,7 @@ class RevoltService {
     if (nickname != null) body['nickname'] = nickname;
     if (avatar != null) body['avatar'] = avatar;
     final response = await http.patch(
-      Uri.parse('$_apiBase/servers/$serverId/members/@me'),
+      Uri.parse('$_apiBase/servers/$serverId/members/$userId'),
       headers: _headers,
       body: jsonEncode(body),
     );
