@@ -129,15 +129,15 @@ class FakeRevoltService extends RevoltService {
 
   // -- Members ---------------------------------------------------------------
 
-  final Map<String, List<RevoltMember>> _memberStubs = {};
+  final Map<String, List<({String userId, String? nickname, List<String> roles, RevoltFile? avatar})>> _memberStubs = {};
   bool fetchMembersThrows = false;
 
-  void stubMembers(String serverId, List<RevoltMember> members) {
+  void stubMembers(String serverId, List<({String userId, String? nickname, List<String> roles, RevoltFile? avatar})> members) {
     _memberStubs[serverId] = members;
   }
 
   @override
-  Future<(List<RevoltMember>, List<RevoltUser>)> fetchServerMembers(
+  Future<(List<({String userId, String? nickname, List<String> roles, RevoltFile? avatar})>, List<RevoltUser>)> fetchServerMembers(
       String serverId) async {
     if (fetchMembersThrows) throw Exception('fetch failed');
     final members = _memberStubs[serverId] ?? [];
@@ -212,7 +212,7 @@ class FakeRevoltService extends RevoltService {
 
   // -- Server member updates --------------------------------------------------
 
-  final List<({String serverId, String userId, String? nickname, String? avatar})>
+  final List<({String serverId, String userId, String? nickname, String? avatar, List<String> remove})>
       updateServerMemberCalls = [];
 
   @override
@@ -221,12 +221,14 @@ class FakeRevoltService extends RevoltService {
     String userId, {
     String? nickname,
     String? avatar,
+    List<String> remove = const [],
   }) async {
     updateServerMemberCalls.add((
       serverId: serverId,
       userId: userId,
       nickname: nickname,
       avatar: avatar,
+      remove: remove,
     ));
   }
 

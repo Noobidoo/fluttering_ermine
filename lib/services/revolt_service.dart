@@ -284,20 +284,26 @@ class RevoltService {
 
   Future<void> addReaction(
       String channelId, String messageId, String emoji) async {
-    await http.put(
+    final response = await http.put(
       Uri.parse(
           '$_apiBase/channels/$channelId/messages/$messageId/reactions/${Uri.encodeComponent(emoji)}'),
       headers: _headers,
     );
+    if (response.statusCode != 200) {
+      throw Exception('addReaction ${response.statusCode}: ${response.body}');
+    }
   }
 
   Future<void> removeReaction(
       String channelId, String messageId, String emoji) async {
-    await http.delete(
+    final response = await http.delete(
       Uri.parse(
           '$_apiBase/channels/$channelId/messages/$messageId/reactions/${Uri.encodeComponent(emoji)}'),
       headers: _headers,
     );
+    if (response.statusCode != 200) {
+      throw Exception('removeReaction ${response.statusCode}: ${response.body}');
+    }
   }
 
   /// Uploads a file to Autumn and returns the file ID.
@@ -364,10 +370,12 @@ class RevoltService {
     String userId, {
     String? nickname,
     String? avatar,
+    List<String> remove = const [],
   }) async {
     final body = <String, dynamic>{};
     if (nickname != null) body['nickname'] = nickname;
     if (avatar != null) body['avatar'] = avatar;
+    if (remove.isNotEmpty) body['remove'] = remove;
     final response = await http.patch(
       Uri.parse('$_apiBase/servers/$serverId/members/$userId'),
       headers: _headers,
@@ -380,10 +388,13 @@ class RevoltService {
 
   /// Marks a channel as read up to [messageId].
   Future<void> ackMessage(String channelId, String messageId) async {
-    await http.put(
+    final response = await http.put(
       Uri.parse('$_apiBase/channels/$channelId/ack/$messageId'),
       headers: _headers,
     );
+    if (response.statusCode != 200) {
+      throw Exception('ackMessage ${response.statusCode}: ${response.body}');
+    }
   }
 
   // -- Invites ---------------------------------------------------------------
@@ -458,8 +469,8 @@ class RevoltService {
 
   // -- Members ---------------------------------------------------------------
 
-  /// Fetches all members of a server, returning (members, users).
-  Future<(List<RevoltMember>, List<RevoltUser>)> fetchServerMembers(
+  /// Fetches all members of a server, returning (memberProfiles, users).
+  Future<(List<({String userId, String? nickname, List<String> roles, RevoltFile? avatar})>, List<RevoltUser>)> fetchServerMembers(
       String serverId) async {
     final response = await http.get(
       Uri.parse('$_apiBase/servers/$serverId/members'),
@@ -470,9 +481,19 @@ class RevoltService {
           'fetchServerMembers ${response.statusCode}: ${response.body}');
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final members = (body['members'] as List<dynamic>)
-        .map((m) => RevoltMember.fromJson(m as Map<String, dynamic>))
-        .toList();
+    final members = (body['members'] as List<dynamic>).map((m) {
+      final json = m as Map<String, dynamic>;
+      final id = json['_id'] as Map<String, dynamic>;
+      final userId = id['user'] as String;
+      return (
+        userId: userId,
+        nickname: json['nickname'] as String?,
+        roles: (json['roles'] as List<dynamic>?)?.cast<String>() ?? [],
+        avatar: json['avatar'] != null
+            ? RevoltFile.fromJson(json['avatar'] as Map<String, dynamic>)
+            : null,
+      );
+    }).toList();
     final users = (body['users'] as List<dynamic>)
         .map((u) => RevoltUser.fromJson(u as Map<String, dynamic>))
         .toList();
@@ -533,8 +554,18 @@ class RevoltService {
           }
         } catch (_) {}
       },
-      onDone: () {},
-      onError: (_) {},
+      onDone: () {
+        debugPrint('[WS] connection closed, notifying listeners');
+        if (!_eventController.isClosed) {
+          _eventController.add({'type': 'Disconnected'});
+        }
+      },
+      onError: (Object err) {
+        debugPrint('[WS] connection error: $err');
+        if (!_eventController.isClosed) {
+          _eventController.add({'type': 'Disconnected'});
+        }
+      },
     );
   }
 
