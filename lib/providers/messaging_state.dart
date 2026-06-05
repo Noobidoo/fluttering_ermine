@@ -369,14 +369,15 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       return;
     }
 
-    // Fallback: re-fetch from API for uncached or no-data events
-    if (cached != null) {
-      final oldUrl = cached.avatarUrlFor(_service.autumnBase, _service.apiBase);
-      PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
-    }
+    // Empty data: nothing to update, keep cached user
+    if (cached != null) return;
+
+    // Uncached user: fetch from API
     _service.fetchUser(userId).then((user) {
-      _userCache[user.id] = user;
-      notifyListeners();
+      if (user != null) {
+        _userCache[user.id] = user;
+        notifyListeners();
+      }
     }).catchError((_) {});
   }
 

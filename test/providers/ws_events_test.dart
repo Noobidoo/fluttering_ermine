@@ -64,23 +64,43 @@ void main() {
 
     tearDown(() => svc.close());
 
-    test('UserUpdate re-fetches user and updates cache', () async {
+    test('UserUpdate with empty data preserves cached bio', () async {
+      // Prime cache via Ready (user without bio, as API delivers)
+      svc.push(readyEvent(users: [
+        {'_id': 'user1', 'username': 'user1', 'discriminator': '0001'},
+      ]));
+      await Future<void>.delayed(Duration.zero);
+      expect(state.getUser('user1')?.profileContent, isNull);
+
+      // Simulate AuthState.cacheUser after saving a bio
+      state.cacheUser(RevoltUser(
+        id: 'user1', username: 'user1', discriminator: '0001',
+        profileContent: 'My bio',
+      ));
+      expect(state.getUser('user1')?.profileContent, 'My bio');
+
+      // Inject UserUpdate with empty data (as server sends for bio changes)
+      svc.push({'type': 'UserUpdate', 'id': 'user1', 'data': {}, 'clear': []});
+      await Future<void>.delayed(Duration.zero);
+
+      // Bio should be preserved (not overwritten by fetchUser)
+      expect(state.getUser('user1')?.profileContent, 'My bio');
+    });
+
+    test('UserUpdate merges non-empty data into cached user', () async {
       // Prime cache via Ready
       svc.push(readyEvent(users: [
         {'_id': 'user1', 'username': 'OldName', 'discriminator': '0001'},
       ]));
       expect(state.getUser('user1')?.username, 'OldName');
 
-      // Stub the updated version
-      svc.stubUser(fakeUser('user1', username: 'NewName'));
+      // Inject UserUpdate with data
+      svc.push({'type': 'UserUpdate', 'id': 'user1', 'data': {'display_name': 'NewDisplay'}, 'clear': []});
 
-      // Inject UserUpdate
-      svc.push({'type': 'UserUpdate', 'id': 'user1', 'data': {}, 'clear': []});
-
-      // Let the async fetchUser complete
       await Future<void>.delayed(Duration.zero);
 
-      expect(state.getUser('user1')?.username, 'NewName');
+      expect(state.getUser('user1')?.displayName, 'NewDisplay');
+      expect(state.getUser('user1')?.username, 'OldName'); // unchanged
     });
 
     test('UserUpdate for unknown user still populates cache', () async {
