@@ -53,7 +53,7 @@ void main() {
       expect(state.selectedServerChannels, isEmpty);
       expect(state.dmChannels, isEmpty);
       expect(state.isLoadingMembers, false);
-      expect(state.currentServerMembers, isNull);
+      expect(state.currentServerMemberIds, isNull);
     });
 
     test('Ready event populates servers and channels', () {
@@ -541,14 +541,14 @@ void main() {
     // -- Members --------------------------------------------------------------
 
     group('Members', () {
-      test('currentServerMembers returns null when no server selected', () {
-        expect(state.currentServerMembers, isNull);
+      test('currentServerMemberIds returns null when no server selected', () {
+        expect(state.currentServerMemberIds, isNull);
       });
 
       test('Ready event auto-fetches members for first server', () async {
         svc.stubMembers('s1', [
-          RevoltMember(serverId: 's1', userId: 'u1'),
-          RevoltMember(serverId: 's1', userId: 'u2'),
+          (userId: 'u1', nickname: null, roles: <String>[], avatar: null),
+          (userId: 'u2', nickname: null, roles: <String>[], avatar: null),
         ]);
 
         svc.push(_readyEvent(
@@ -562,12 +562,12 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         expect(state.isLoadingMembers, false);
-        expect(state.currentServerMembers, hasLength(2));
+        expect(state.currentServerMemberIds, hasLength(2));
       });
 
       test('fetchMembers does not re-fetch cached members', () async {
         svc.stubMembers('s1', [
-          RevoltMember(serverId: 's1', userId: 'u1'),
+          (userId: 'u1', nickname: null, roles: <String>[], avatar: null),
         ]);
 
         svc.push(_readyEvent(
@@ -576,11 +576,11 @@ void main() {
           ],
         ));
         await Future<void>.delayed(Duration.zero);
-        expect(state.currentServerMembers, hasLength(1));
+        expect(state.currentServerMemberIds, hasLength(1));
 
         // Second call should not go to service (cache hit)
         await state.fetchMembers();
-        expect(state.currentServerMembers, hasLength(1));
+        expect(state.currentServerMemberIds, hasLength(1));
       });
 
       test('fetchMembers error does not propagate', () async {
@@ -594,13 +594,13 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
         expect(state.isLoadingMembers, false);
-        expect(state.currentServerMembers, isNull);
+        expect(state.currentServerMemberIds, isNull);
       });
 
-      test('memberInServer finds member by userId in cached data', () async {
+      test('isMember checks membership by server and userId', () async {
         svc.stubMembers('s1', [
-          RevoltMember(serverId: 's1', userId: 'u1', nickname: 'Alice'),
-          RevoltMember(serverId: 's1', userId: 'u2', nickname: 'Bob'),
+          (userId: 'u1', nickname: 'Alice', roles: <String>[], avatar: null),
+          (userId: 'u2', nickname: 'Bob', roles: <String>[], avatar: null),
         ]);
 
         svc.push(_readyEvent(
@@ -610,13 +610,9 @@ void main() {
         ));
         await Future<void>.delayed(Duration.zero);
 
-        final found = state.memberInServer('s1', 'u2');
-        expect(found, isNotNull);
-        expect(found!.userId, 'u2');
-        expect(found.nickname, 'Bob');
-
-        expect(state.memberInServer('s1', 'unknown'), isNull);
-        expect(state.memberInServer('ghost', 'u1'), isNull);
+        expect(state.isMember('s1', 'u2'), isTrue);
+        expect(state.isMember('s1', 'unknown'), isFalse);
+        expect(state.isMember('ghost', 'u1'), isFalse);
       });
     });
 
