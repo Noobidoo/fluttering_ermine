@@ -138,7 +138,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> updateDisplayName(String name) async {
-    _currentUser = await _service.updateProfile(displayName: name.isEmpty ? '' : name);
+    await _service.updateProfile(displayName: name.isEmpty ? '' : name);
+    _currentUser = _currentUser?.copyWith(displayName: name.isEmpty ? '' : name);
     _syncCurrentUser();
     notifyListeners();
   }
@@ -172,7 +173,11 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> updateStatus({String? presence, String? statusText}) async {
-    _currentUser = await _service.updateProfile(presence: presence, statusText: statusText);
+    await _service.updateProfile(presence: presence, statusText: statusText);
+    _currentUser = _currentUser?.copyWith(
+      presence: presence != null ? parsePresence(presence) : null,
+      statusText: statusText,
+    );
     _syncCurrentUser();
     notifyListeners();
   }
@@ -187,7 +192,13 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> updateAvatar(Uint8List bytes, String filename) async {
     final fileId = await _service.uploadAvatar(bytes, filename);
     await _service.updateProfile(avatar: fileId);
-    _currentUser = await _service.fetchSelf();
+    final oldUrl = _currentUser?.avatarUrlFor(_service.autumnBase, _service.apiBase);
+    _currentUser = _currentUser?.copyWith(
+      avatar: RevoltFile(id: fileId, tag: 'avatars', filename: filename),
+    );
+    if (oldUrl != null) {
+      PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
+    }
     _syncCurrentUser();
     notifyListeners();
   }
@@ -195,7 +206,13 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> updateBanner(Uint8List bytes, String filename) async {
     final fileId = await _service.uploadBackground(bytes, filename);
     await _service.updateProfile(background: fileId);
-    _currentUser = await _service.fetchSelf();
+    final oldUrl = _currentUser?.bannerUrlFor(_service.autumnBase);
+    _currentUser = _currentUser?.copyWith(
+      banner: RevoltFile(id: fileId, tag: 'backgrounds', filename: filename),
+    );
+    if (oldUrl != null) {
+      PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
+    }
     _syncCurrentUser();
     notifyListeners();
   }
@@ -206,8 +223,6 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     String? avatar,
   }) async {
     await _service.updateServerMember(serverId, nickname: nickname, avatar: avatar);
-    _currentUser = await _service.fetchSelf();
-    _syncCurrentUser();
     notifyListeners();
   }
 

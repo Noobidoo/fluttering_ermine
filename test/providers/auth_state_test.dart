@@ -47,31 +47,41 @@ void main() {
 
     // -- updateDisplayName --------------------------------------------------
 
-    test('updateDisplayName delegates to service and uses response directly', () async {
+    test('updateDisplayName preserves bio and updates displayName locally', () async {
       svc.stubCurrentUser(RevoltUser(
         id: 'self',
         username: 'self',
         discriminator: '0000',
-        displayName: 'NewDisplay',
+        displayName: 'OldName',
+        profileContent: 'My bio',
       ));
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('revolt_session_token', 'test-token');
+      await authState.init();
 
       await authState.updateDisplayName('NewDisplay');
 
       expect(svc.updateProfileCalls, hasLength(1));
       expect(svc.updateProfileCalls.first.displayName, 'NewDisplay');
       expect(authState.currentUser?.displayName, 'NewDisplay');
+      expect(authState.currentUser?.profileContent, 'My bio');
     });
 
     // -- updateStatus --------------------------------------------------------
 
-    test('updateStatus delegates presence and statusText to service', () async {
+    test('updateStatus delegates presence and statusText to service and preserves bio', () async {
       svc.stubCurrentUser(RevoltUser(
         id: 'self',
         username: 'self',
         discriminator: '0000',
-        presence: UserPresence.idle,
-        statusText: 'busy',
+        presence: UserPresence.online,
+        profileContent: 'My bio',
       ));
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('revolt_session_token', 'test-token');
+      await authState.init();
 
       await authState.updateStatus(presence: 'Idle', statusText: 'busy');
 
@@ -80,21 +90,29 @@ void main() {
       expect(svc.updateProfileCalls.first.statusText, 'busy');
       expect(authState.currentUser?.presence, UserPresence.idle);
       expect(authState.currentUser?.statusText, 'busy');
+      expect(authState.currentUser?.profileContent, 'My bio');
     });
 
-    test('updateStatus can omit statusText', () async {
+    test('updateStatus can omit statusText and preserve bio', () async {
       svc.stubCurrentUser(RevoltUser(
         id: 'self',
         username: 'self',
         discriminator: '0000',
-        presence: UserPresence.focus,
+        presence: UserPresence.online,
+        profileContent: 'My bio',
       ));
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('revolt_session_token', 'test-token');
+      await authState.init();
 
       await authState.updateStatus(presence: 'Focus');
 
       expect(svc.updateProfileCalls, hasLength(1));
       expect(svc.updateProfileCalls.first.presence, 'Focus');
       expect(svc.updateProfileCalls.first.statusText, isNull);
+      expect(authState.currentUser?.presence, UserPresence.focus);
+      expect(authState.currentUser?.profileContent, 'My bio');
     });
 
     // -- updateBio ----------------------------------------------------------
@@ -106,7 +124,6 @@ void main() {
         discriminator: '0000',
       ));
 
-      // Simulate a pre-existing currentUser (same flow as init() after login)
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('revolt_session_token', 'test-token');
       await authState.init();
@@ -120,32 +137,43 @@ void main() {
 
     // -- updateAvatar -------------------------------------------------------
 
-    test('updateAvatar uploads file then patches avatar', () async {
+    test('updateAvatar uploads file, patches avatar locally, preserves bio', () async {
       svc.stubCurrentUser(RevoltUser(
         id: 'self',
         username: 'self',
         discriminator: '0000',
+        profileContent: 'My bio',
       ));
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('revolt_session_token', 'test-token');
+      await authState.init();
 
       final bytes = Uint8List.fromList([1, 2, 3]);
       await authState.updateAvatar(bytes, 'avatar.png');
 
-      // Should upload first
       expect(svc.uploadAvatarCalls, hasLength(1));
       expect(svc.uploadAvatarCalls.first.filename, 'avatar.png');
-      // Then patch with returned file ID
       expect(svc.updateProfileCalls, hasLength(1));
       expect(svc.updateProfileCalls.first.avatar, 'stub-file-id');
+      expect(authState.currentUser?.avatar?.id, 'stub-file-id');
+      expect(authState.currentUser?.avatar?.tag, 'avatars');
+      expect(authState.currentUser?.profileContent, 'My bio');
     });
 
     // -- updateBanner -------------------------------------------------------
 
-    test('updateBanner uploads file then patches background', () async {
+    test('updateBanner uploads file, patches background locally, preserves bio', () async {
       svc.stubCurrentUser(RevoltUser(
         id: 'self',
         username: 'self',
         discriminator: '0000',
+        profileContent: 'My bio',
       ));
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('revolt_session_token', 'test-token');
+      await authState.init();
 
       final bytes = Uint8List.fromList([4, 5, 6]);
       await authState.updateBanner(bytes, 'banner.png');
@@ -154,6 +182,9 @@ void main() {
       expect(svc.uploadBackgroundCalls.first.filename, 'banner.png');
       expect(svc.updateProfileCalls, hasLength(1));
       expect(svc.updateProfileCalls.first.background, 'stub-file-id');
+      expect(authState.currentUser?.banner?.id, 'stub-file-id');
+      expect(authState.currentUser?.banner?.tag, 'backgrounds');
+      expect(authState.currentUser?.profileContent, 'My bio');
     });
 
     // -- updateServerProfile ------------------------------------------------
