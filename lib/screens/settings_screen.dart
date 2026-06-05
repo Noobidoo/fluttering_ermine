@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 
 import '../models/models.dart';
 import '../providers/auth_state.dart';
+import '../providers/messaging_state.dart';
 import '../providers/server_state.dart';
 import '../providers/voice_state.dart';
 import '../widgets/crop_dialog.dart';
@@ -235,7 +236,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
     super.initState();
     final user = context.read<AuthState>().currentUser;
     _displayNameCtrl = TextEditingController(
-        text: user?.displayName ?? user?.username ?? '');
+        text: user?.resolveDisplayName(null) ?? '');
     _statusTextCtrl =
         TextEditingController(text: user?.statusText ?? '');
     _bioCtrl =
@@ -251,7 +252,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
     if (server == null) return;
     final uid = context.read<AuthState>().currentUser?.id;
     if (uid == null) return;
-    final nickname = serverState.memberInServer(server.id, uid)?.nickname;
+    final user = context.read<MessagingState>().getUser(uid);
+    final nickname = user?.serverNickname(server.id);
     _serverNicknameCtrl.text = nickname ?? '';
   }
 
@@ -272,7 +274,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final nickname = _serverNicknameCtrl.text.trim();
     await auth.updateServerProfile(
       server.id,
-      nickname: nickname.isEmpty ? null : nickname,
+      nickname: nickname.isEmpty ? '' : nickname,
     );
   }
 
@@ -322,10 +324,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
       maxDimension: 256,
     );
     if (cropped == null) {
-      debugPrint('[Settings] _pickAvatar: crop cancelled');
       return;
     }
-    debugPrint('[Settings] _pickAvatar: cropped ${cropped.length} bytes');
     if (!context.mounted) return;
     setState(() {
       _saving = true;
@@ -333,14 +333,11 @@ class _ProfileSectionState extends State<_ProfileSection> {
       _success = 'Cropped: ${cropped.length} bytes, uploading...';
     });
     try {
-      debugPrint('[Settings] _pickAvatar: calling updateAvatar');
       await auth.updateAvatar(cropped, file.name);
-      debugPrint('[Settings] _pickAvatar: updateAvatar succeeded');
       if (mounted) {
         setState(() => _success = 'Avatar updated! (cropped ${cropped.length} bytes)');
       }
     } catch (e) {
-      debugPrint('[Settings] _pickAvatar: updateAvatar error: $e');
       if (mounted) {
         setState(() => _error = e.toString().replaceAll('Exception: ', ''));
       }
@@ -374,10 +371,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
       maxDimension: 1024,
     );
     if (cropped == null) {
-      debugPrint('[Settings] _pickBanner: crop cancelled');
       return;
     }
-    debugPrint('[Settings] _pickBanner: cropped ${cropped.length} bytes');
     if (!context.mounted) return;
     setState(() {
       _saving = true;
@@ -385,14 +380,11 @@ class _ProfileSectionState extends State<_ProfileSection> {
       _success = 'Cropped: ${cropped.length} bytes, uploading...';
     });
     try {
-      debugPrint('[Settings] _pickBanner: calling updateBanner');
       await auth.updateBanner(cropped, file.name);
-      debugPrint('[Settings] _pickBanner: updateBanner succeeded');
       if (mounted) {
         setState(() => _success = 'Banner updated! (cropped ${cropped.length} bytes)');
       }
     } catch (e) {
-      debugPrint('[Settings] _pickBanner: updateBanner error: $e');
       if (mounted) {
         setState(() => _error = e.toString().replaceAll('Exception: ', ''));
       }
@@ -448,13 +440,12 @@ class _ProfileSectionState extends State<_ProfileSection> {
                         radius: 28,
                         backgroundColor: const Color(0xFF7F5AF0),
                         backgroundImage: user?.avatar != null
-                            ? NetworkImage(user!.avatarUrlFor(
-                                auth.autumnBase, auth.apiBase))
+                            ? NetworkImage(user!
+                                .resolveAvatarUrl(null, auth.autumnBase, auth.apiBase))
                             : null,
                         child: user?.avatar == null
                             ? Text(
-                                ((user?.displayName ??
-                                        user?.username ?? '?'))[0]
+                                (user?.resolveDisplayName(null) ?? '?')[0]
                                     .toUpperCase(),
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 22),
@@ -487,7 +478,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user?.displayName ?? user?.username ?? '',
+                        user?.resolveDisplayName(null) ?? '',
                         style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -731,7 +722,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                     : () {
                         final u = context.read<AuthState>().currentUser;
                         _displayNameCtrl.text =
-                            u?.displayName ?? u?.username ?? '';
+                            u?.resolveDisplayName(null) ?? '';
                         _bioCtrl.text = u?.profileContent ?? '';
                         setState(() {
                           _error = null;
