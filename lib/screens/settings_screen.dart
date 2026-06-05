@@ -297,6 +297,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
   }
 
   Future<void> _pickAvatar() async {
+    if (_saving) return;
     if (!context.mounted) return;
     final auth = context.read<AuthState>();
     final result = await FilePicker.pickFiles(
@@ -308,11 +309,26 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final file = result.files.first;
     final bytes = file.bytes;
     if (bytes == null) return;
+    if (bytes.length > 6 * 1024 * 1024) {
+      if (mounted) setState(() => _error = 'Avatar must be smaller than 6 MB');
+      return;
+    }
     if (!context.mounted) return;
-    await auth.updateAvatar(bytes, file.name);
+    setState(() { _saving = true; _error = null; _success = null; });
+    try {
+      await auth.updateAvatar(bytes, file.name);
+      if (mounted) setState(() => _success = 'Avatar updated!');
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _pickBanner() async {
+    if (_saving) return;
     if (!context.mounted) return;
     final auth = context.read<AuthState>();
     final result = await FilePicker.pickFiles(
@@ -324,8 +340,22 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final file = result.files.first;
     final bytes = file.bytes;
     if (bytes == null) return;
+    if (bytes.length > 6 * 1024 * 1024) {
+      if (mounted) setState(() => _error = 'Banner must be smaller than 6 MB');
+      return;
+    }
     if (!context.mounted) return;
-    await auth.updateBanner(bytes, file.name);
+    setState(() { _saving = true; _error = null; _success = null; });
+    try {
+      await auth.updateBanner(bytes, file.name);
+      if (mounted) setState(() => _success = 'Banner updated!');
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   void _saveStatus() {
