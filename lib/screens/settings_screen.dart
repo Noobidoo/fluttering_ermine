@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../providers/auth_state.dart';
 import '../providers/server_state.dart';
 import '../providers/voice_state.dart';
+import '../widgets/crop_dialog.dart';
 
 enum _Section { profile, voice }
 
@@ -314,11 +315,32 @@ class _ProfileSectionState extends State<_ProfileSection> {
       return;
     }
     if (!context.mounted) return;
-    setState(() { _saving = true; _error = null; _success = null; });
+    final cropped = await CropDialog.show(
+      context,
+      imageBytes: bytes,
+      aspectRatio: 1.0,
+      maxDimension: 256,
+    );
+    if (cropped == null) {
+      debugPrint('[Settings] _pickAvatar: crop cancelled');
+      return;
+    }
+    debugPrint('[Settings] _pickAvatar: cropped ${cropped.length} bytes');
+    if (!context.mounted) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+      _success = 'Cropped: ${cropped.length} bytes, uploading...';
+    });
     try {
-      await auth.updateAvatar(bytes, file.name);
-      if (mounted) setState(() => _success = 'Avatar updated!');
+      debugPrint('[Settings] _pickAvatar: calling updateAvatar');
+      await auth.updateAvatar(cropped, file.name);
+      debugPrint('[Settings] _pickAvatar: updateAvatar succeeded');
+      if (mounted) {
+        setState(() => _success = 'Avatar updated! (cropped ${cropped.length} bytes)');
+      }
     } catch (e) {
+      debugPrint('[Settings] _pickAvatar: updateAvatar error: $e');
       if (mounted) {
         setState(() => _error = e.toString().replaceAll('Exception: ', ''));
       }
@@ -345,11 +367,32 @@ class _ProfileSectionState extends State<_ProfileSection> {
       return;
     }
     if (!context.mounted) return;
-    setState(() { _saving = true; _error = null; _success = null; });
+    final cropped = await CropDialog.show(
+      context,
+      imageBytes: bytes,
+      aspectRatio: 3.0,
+      maxDimension: 1024,
+    );
+    if (cropped == null) {
+      debugPrint('[Settings] _pickBanner: crop cancelled');
+      return;
+    }
+    debugPrint('[Settings] _pickBanner: cropped ${cropped.length} bytes');
+    if (!context.mounted) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+      _success = 'Cropped: ${cropped.length} bytes, uploading...';
+    });
     try {
-      await auth.updateBanner(bytes, file.name);
-      if (mounted) setState(() => _success = 'Banner updated!');
+      debugPrint('[Settings] _pickBanner: calling updateBanner');
+      await auth.updateBanner(cropped, file.name);
+      debugPrint('[Settings] _pickBanner: updateBanner succeeded');
+      if (mounted) {
+        setState(() => _success = 'Banner updated! (cropped ${cropped.length} bytes)');
+      }
     } catch (e) {
+      debugPrint('[Settings] _pickBanner: updateBanner error: $e');
       if (mounted) {
         setState(() => _error = e.toString().replaceAll('Exception: ', ''));
       }
