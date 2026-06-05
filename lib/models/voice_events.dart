@@ -2,7 +2,7 @@
 // These events unify WebSocket and LiveKit event sources into a clean interface.
 import 'package:livekit_client/livekit_client.dart';
 
-// ── Voice Channel Membership Events ──────────────────────────────────────────
+// -- Voice Channel Membership Events ------------------------------------------
 
 /// A user joined a voice channel.
 class VoiceChannelJoinEvent {
@@ -51,7 +51,7 @@ class VoiceChannelMembershipResetEvent {
   });
 }
 
-// ── Voice Publishing State ───────────────────────────────────────────────────
+// -- Voice Publishing State ---------------------------------------------------
 
 /// A user's publishing state changed (muted/unmuted).
 class VoicePublishingStateChangeEvent {
@@ -64,7 +64,7 @@ class VoicePublishingStateChangeEvent {
   });
 }
 
-// ── Room Connection Events ───────────────────────────────────────────────────
+// -- Room Connection Events ---------------------------------------------------
 
 /// LiveKit room connection state.
 enum RoomConnectionState {
@@ -91,7 +91,7 @@ class RoomConnectionStateChangeEvent {
   });
 }
 
-// ── Participant Events ───────────────────────────────────────────────────────
+// -- Participant Events -------------------------------------------------------
 
 /// A participant connected to the room.
 class VoiceParticipantConnectedEvent {
@@ -115,7 +115,7 @@ class VoiceParticipantDisconnectedEvent {
   });
 }
 
-// ── Track Events ─────────────────────────────────────────────────────────────
+// -- Track Events -------------------------------------------------------------
 
 /// A track was subscribed.
 class VoiceTrackSubscribedEvent {
@@ -139,7 +139,7 @@ class VoiceTrackUnsubscribedEvent {
   });
 }
 
-// ── Speaking State ───────────────────────────────────────────────────────────
+// -- Speaking State -----------------------------------------------------------
 
 /// Active speakers changed.
 class VoiceActiveSpeakersChangedEvent {

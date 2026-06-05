@@ -13,7 +13,7 @@ import 'package:fluttering_ermine/services/voice_event_service.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers -------------------------------------------------------------------
 
 Map<String, dynamic> _readyEvent({
   Map<String, List<String>> voiceMembers = const {},
@@ -37,13 +37,13 @@ Map<String, dynamic> _readyEvent({
   };
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// -- Tests ---------------------------------------------------------------------
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    // VoiceState._loadSettings uses SharedPreferences — use in-memory store.
+    // VoiceState._loadSettings uses SharedPreferences - use in-memory store.
     SharedPreferences.setMockInitialValues({});
   });
 
@@ -61,7 +61,7 @@ void main() {
 
   tearDown(() => svc.close());
 
-  // ── Initial state ─────────────────────────────────────────────────────────
+  // -- Initial state ---------------------------------------------------------
 
   group('VoiceState – initial state', () {
     test('not in voice at startup', () {
@@ -91,7 +91,7 @@ void main() {
     });
   });
 
-  // ── VoiceParticipant model ──────────────────────────────────────────────────
+  // -- VoiceParticipant model --------------------------------------------------
 
   group('VoiceParticipant', () {
     test('displayName returns name when set', () {
@@ -124,7 +124,7 @@ void main() {
     });
   });
 
-  // ── leaveVoiceChannel when not connected ──────────────────────────────────
+  // -- leaveVoiceChannel when not connected ----------------------------------
 
   group('VoiceState – leaveVoiceChannel when not connected', () {
     test('completes without throwing when no room is active', () async {
@@ -139,7 +139,7 @@ void main() {
     });
   });
 
-  // ── toggleMute without LiveKit Room ───────────────────────────────────────
+  // -- toggleMute without LiveKit Room ---------------------------------------
 
   group('VoiceState – toggleMute without Room', () {
     test('toggleMute is no-op when no Room is connected', () async {
@@ -148,7 +148,7 @@ void main() {
     });
   });
 
-  // ── clear / dispose ───────────────────────────────────────────────────────
+  // -- clear / dispose -------------------------------------------------------
 
   group('VoiceState – lifecycle', () {
     test('clear resets state without throwing when no Room is active', () async {
@@ -171,7 +171,7 @@ void main() {
     });
   });
 
-  // ── WS voice channel membership ───────────────────────────────────────────
+  // -- WS voice channel membership -------------------------------------------
 
   group('VoiceState – voice channel events', () {
     test('Ready seeds voice membership from voice_states', () {
@@ -306,7 +306,7 @@ void main() {
     });
   });
 
-  // ── Settings ───────────────────────────────────────────────────────────────
+  // -- Settings ---------------------------------------------------------------
 
   group('VoiceState – settings', () {
     test('setOutputVolume updates volume and notifies', () async {

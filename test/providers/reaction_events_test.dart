@@ -24,7 +24,7 @@ void main() {
 
   tearDown(() => svc.close());
 
-  // ── MessageReact ──────────────────────────────────────────────────────────
+  // -- MessageReact ----------------------------------------------------------
 
   group('MessageReact WS event', () {
     const emoji = '\u{1F44D}';
@@ -92,7 +92,7 @@ void main() {
     });
   });
 
-  // ── MessageUnreact ────────────────────────────────────────────────────────
+  // -- MessageUnreact --------------------------------------------------------
 
   group('MessageUnreact WS event', () {
     const emoji = '\u{1F44D}';
@@ -150,7 +150,7 @@ void main() {
     });
   });
 
-  // ── MessageRemoveReaction ─────────────────────────────────────────────────
+  // -- MessageRemoveReaction -------------------------------------------------
 
   group('MessageRemoveReaction WS event', () {
     const emoji = '\u{1F44D}';

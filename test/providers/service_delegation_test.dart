@@ -26,7 +26,7 @@ void main() {
 
   tearDown(() => svc.close());
 
-  // ── Service delegation ────────────────────────────────────────────────────
+  // -- Service delegation ----------------------------------------------------
 
   group('Service delegation', () {
     test('editMessage delegates to service with correct args', () async {

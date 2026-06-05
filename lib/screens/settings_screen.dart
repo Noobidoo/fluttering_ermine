@@ -98,7 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
+// -- Sidebar -------------------------------------------------------------------
 
 class _Sidebar extends StatelessWidget {
   final _Section selected;
@@ -211,7 +211,7 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-// ── Profile section ───────────────────────────────────────────────────────────
+// -- Profile section -----------------------------------------------------------
 
 class _ProfileSection extends StatefulWidget {
   const _ProfileSection();
@@ -687,11 +687,11 @@ class _ProfileSectionState extends State<_ProfileSection> {
               ),
             ],
           ),
-          // ── Server Profile ─────────────────────────────────────────────────
+          // -- Server Profile -------------------------------------------------
           if (context.watch<ServerState>().selectedServer != null) ...[
             const SizedBox(height: 32),
             Text(
-              'Server Profile — ${context.watch<ServerState>().selectedServer!.name}',
+              'Server Profile - ${context.watch<ServerState>().selectedServer!.name}',
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -748,7 +748,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
       };
 }
 
-// ── Voice section ─────────────────────────────────────────────────────────────
+// -- Voice section -------------------------------------------------------------
 
 class _VoiceSection extends StatelessWidget {
   const _VoiceSection();
@@ -858,7 +858,7 @@ class _VoiceSection extends StatelessWidget {
   }
 }
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
+// -- Shared helpers ------------------------------------------------------------
 
 class _SettingsCard extends StatelessWidget {
   final List<Widget> children;

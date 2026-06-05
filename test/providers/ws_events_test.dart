@@ -14,7 +14,7 @@ import 'package:fluttering_ermine/providers/server_state.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// -- Helpers ------------------------------------------------------------------
 
 /// Builds a minimal Ready event payload.
 Map<String, dynamic> readyEvent({
@@ -41,13 +41,13 @@ RevoltUser fakeUser(String id, {String username = 'user'}) => RevoltUser(
       discriminator: '0001',
     );
 
-// ── Tests ────────────────────────────────────────────────────────────────────
+// -- Tests --------------------------------------------------------------------
 
 void main() {
   // PaintingBinding is needed for imageCache.evict inside MessagingState.
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // ── MessagingState: UserUpdate ──────────────────────────────────────────
+  // -- MessagingState: UserUpdate ------------------------------------------
 
   group('MessagingState – UserUpdate event', () {
     late FakeRevoltService svc;

@@ -32,7 +32,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     _serverState.addListener(_onServerStateChanged);
   }
 
-  // ── Getters ───────────────────────────────────────────────────────────────
+  // -- Getters ---------------------------------------------------------------
 
   List<RevoltMessage> get currentMessages {
     final channel = _serverState.selectedChannel;
@@ -70,7 +70,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     return null;
   }
 
-  // ── Channel display ───────────────────────────────────────────────────────
+  // -- Channel display -------------------------------------------------------
 
   void setCurrentUserId(String? id) => _currentUserId = id;
 
@@ -89,7 +89,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     return 'Unknown Channel';
   }
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
+  // -- WebSocket -------------------------------------------------------------
 
   void subscribeToEvents() {
     _wsSub?.cancel();
@@ -128,7 +128,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'UserUpdate':
         _onUserUpdate(event);
         break;
-      // Voice events handled by ServerState — ignore here.
+      // Voice events handled by ServerState - ignore here.
       case 'VoiceChannelJoin':
       case 'VoiceChannelLeave':
       case 'VoiceChannelMove':
@@ -198,7 +198,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-  // ── Reacts to ServerState channel changes ─────────────────────────────────
+  // -- Reacts to ServerState channel changes ---------------------------------
 
   void _onServerStateChanged() {
     final channel = _serverState.selectedChannel;
@@ -319,10 +319,59 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   void _onUserUpdate(Map<String, dynamic> event) {
     final userId = event['id'] as String?;
     if (userId == null) return;
-    // Evict old avatar URL from Flutter image cache before re-fetching
-    final old = _userCache[userId];
-    if (old != null) {
-      final oldUrl = old.avatarUrlFor(_service.autumnBase, _service.apiBase);
+    final cached = _userCache[userId];
+    final data = (event['data'] as Map?)?.cast<String, dynamic>();
+    final clear = (event['clear'] as List<dynamic>?)?.cast<String>() ?? [];
+
+    if (cached != null && data != null && data.isNotEmpty) {
+      // Evict old avatar if avatar changed or cleared
+      if (data.containsKey('avatar') || clear.contains('avatar')) {
+        final oldUrl = cached.avatarUrlFor(_service.autumnBase, _service.apiBase);
+        PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
+      }
+
+      _userCache[userId] = RevoltUser(
+        id: cached.id,
+        username: data['username'] as String? ?? cached.username,
+        discriminator: (data['discriminator'] as String? ?? cached.discriminator),
+        displayName: data['display_name'] as String? ?? cached.displayName,
+        avatar: clear.contains('avatar')
+            ? null
+            : data['avatar'] != null
+                ? RevoltFile.fromJson(Map<String, dynamic>.from(data['avatar'] as Map))
+                : data.containsKey('avatar')
+                    ? null
+                    : cached.avatar,
+        banner: clear.contains('banner')
+            ? null
+            : data['banner'] != null
+                ? RevoltFile.fromJson(Map<String, dynamic>.from(data['banner'] as Map))
+                : data.containsKey('banner')
+                    ? null
+                    : cached.banner,
+        presence: clear.contains('status')
+            ? UserPresence.invisible
+            : data['status'] is Map && (data['status'] as Map).containsKey('presence')
+                ? parsePresence((data['status'] as Map)['presence'] as String?)
+                : cached.presence,
+        statusText: clear.contains('status')
+            ? null
+            : data['status'] is Map
+                ? (data['status'] as Map)['text'] as String? ?? cached.statusText
+                : cached.statusText,
+        profileContent: clear.contains('profile')
+            ? null
+            : data['profile'] is Map
+                ? (data['profile'] as Map)['content'] as String? ?? cached.profileContent
+                : cached.profileContent,
+      );
+      notifyListeners();
+      return;
+    }
+
+    // Fallback: re-fetch from API for uncached or no-data events
+    if (cached != null) {
+      final oldUrl = cached.avatarUrlFor(_service.autumnBase, _service.apiBase);
       PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
     }
     _service.fetchUser(userId).then((user) {
@@ -342,7 +391,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
   }
 
-  // ── Reply compose ─────────────────────────────────────────────────────────
+  // -- Reply compose ---------------------------------------------------------
 
   void setReplyTarget(RevoltMessage msg) {
     _replyTarget = msg;
@@ -355,7 +404,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-  // ── Typing indicator ──────────────────────────────────────────────────────
+  // -- Typing indicator ------------------------------------------------------
 
   /// Sends a BeginTyping pulse at most once every 2.5 seconds.
   void sendTypingIndicator() {
@@ -368,7 +417,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     _service.sendTyping(channel.id);
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // -- Actions ---------------------------------------------------------------
 
   Future<void> sendMessage(String content,
       {List<String> attachmentIds = const []}) async {
@@ -444,7 +493,7 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
   }
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  // -- Lifecycle -------------------------------------------------------------
 
   void clear() {
     _wsSub?.cancel();

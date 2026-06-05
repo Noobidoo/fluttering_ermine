@@ -45,9 +45,9 @@ void main() {
 
     tearDown(() => svc.close());
 
-    // ── updateDisplayName ──────────────────────────────────────────────────
+    // -- updateDisplayName --------------------------------------------------
 
-    test('updateDisplayName delegates to service and re-fetches self', () async {
+    test('updateDisplayName delegates to service and uses response directly', () async {
       svc.stubCurrentUser(RevoltUser(
         id: 'self',
         username: 'self',
@@ -62,7 +62,7 @@ void main() {
       expect(authState.currentUser?.displayName, 'NewDisplay');
     });
 
-    // ── updateStatus ────────────────────────────────────────────────────────
+    // -- updateStatus --------------------------------------------------------
 
     test('updateStatus delegates presence and statusText to service', () async {
       svc.stubCurrentUser(RevoltUser(
@@ -97,15 +97,19 @@ void main() {
       expect(svc.updateProfileCalls.first.statusText, isNull);
     });
 
-    // ── updateBio ──────────────────────────────────────────────────────────
+    // -- updateBio ----------------------------------------------------------
 
-    test('updateBio delegates profileContent to service', () async {
+    test('updateBio delegates profileContent to service and caches bio locally', () async {
       svc.stubCurrentUser(RevoltUser(
         id: 'self',
         username: 'self',
         discriminator: '0000',
-        profileContent: 'My bio',
       ));
+
+      // Simulate a pre-existing currentUser (same flow as init() after login)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('revolt_session_token', 'test-token');
+      await authState.init();
 
       await authState.updateBio('My bio');
 
@@ -114,7 +118,7 @@ void main() {
       expect(authState.currentUser?.profileContent, 'My bio');
     });
 
-    // ── updateAvatar ───────────────────────────────────────────────────────
+    // -- updateAvatar -------------------------------------------------------
 
     test('updateAvatar uploads file then patches avatar', () async {
       svc.stubCurrentUser(RevoltUser(
@@ -134,7 +138,7 @@ void main() {
       expect(svc.updateProfileCalls.first.avatar, 'stub-file-id');
     });
 
-    // ── updateBanner ───────────────────────────────────────────────────────
+    // -- updateBanner -------------------------------------------------------
 
     test('updateBanner uploads file then patches background', () async {
       svc.stubCurrentUser(RevoltUser(
@@ -152,7 +156,7 @@ void main() {
       expect(svc.updateProfileCalls.first.background, 'stub-file-id');
     });
 
-    // ── updateServerProfile ────────────────────────────────────────────────
+    // -- updateServerProfile ------------------------------------------------
 
     test('updateServerProfile delegates nickname to service', () async {
       svc.stubCurrentUser(RevoltUser(

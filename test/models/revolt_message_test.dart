@@ -1,4 +1,4 @@
-// Unit tests for RevoltMessage model — Phase 1 coverage.
+// Unit tests for RevoltMessage model - Phase 1 coverage.
 //
 // Pure Dart: no Flutter binding required.
 
@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fluttering_ermine/models/revolt_message.dart';
 import 'package:fluttering_ermine/models/revolt_file.dart';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// -- Helpers ------------------------------------------------------------------
 
 Map<String, dynamic> _baseJson({
   String id = 'msg1',
@@ -24,10 +24,10 @@ Map<String, dynamic> _baseJson({
       'timestamp': timestamp,
     };
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// -- Tests ---------------------------------------------------------------------
 
 void main() {
-  // ── fromJson ──────────────────────────────────────────────────────────────
+  // -- fromJson --------------------------------------------------------------
 
   group('RevoltMessage.fromJson', () {
     test('parses basic fields', () {
@@ -113,7 +113,7 @@ void main() {
     });
   });
 
-  // ── copyWith ──────────────────────────────────────────────────────────────
+  // -- copyWith --------------------------------------------------------------
 
   group('RevoltMessage.copyWith', () {
     late RevoltMessage original;
@@ -169,7 +169,7 @@ void main() {
     });
   });
 
-  // ── RevoltFile.urlFor ─────────────────────────────────────────────────────
+  // -- RevoltFile.urlFor -----------------------------------------------------
 
   group('RevoltFile', () {
     test('urlFor builds correct Autumn URL', () {

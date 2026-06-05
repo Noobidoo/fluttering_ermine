@@ -24,12 +24,12 @@ void main() {
 
   tearDown(() => svc.close());
 
-  // Push WS messages THEN select channel — _onServerStateChanged sees
+  // Push WS messages THEN select channel - _onServerStateChanged sees
   // _messages already has the key → skips _loadMessages → currentMessages works.
   void selectAfterPush(String channelId) =>
       serverState.selectChannel(textChan(channelId));
 
-  // ── Message ───────────────────────────────────────────────────────────────
+  // -- Message ---------------------------------------------------------------
 
   group('Message WS event', () {
     test('new message is prepended to channel list', () {
@@ -78,7 +78,7 @@ void main() {
     });
   });
 
-  // ── MessageUpdate ─────────────────────────────────────────────────────────
+  // -- MessageUpdate ---------------------------------------------------------
 
   group('MessageUpdate WS event', () {
     setUp(() => svc.push(msgEvent(id: 'msg1', channel: 'chan1')));
@@ -122,7 +122,7 @@ void main() {
     });
   });
 
-  // ── MessageDelete ─────────────────────────────────────────────────────────
+  // -- MessageDelete ---------------------------------------------------------
 
   group('MessageDelete WS event', () {
     setUp(() {

@@ -44,7 +44,7 @@ class RevoltService {
         if (_token != null) 'x-session-token': _token!,
       };
 
-  // ── Node config ───────────────────────────────────────────────────────────
+  // -- Node config -----------------------------------------------------------
 
   /// Fetches GET / and returns the node configuration.
   /// The 'ws' field contains the correct WebSocket URL for this instance.
@@ -59,7 +59,7 @@ class RevoltService {
   /// Resolves a user-supplied URL to the canonical API base URL.
   ///
   /// Strategy:
-  /// 1. Try `GET <base>/.well-known/revolt` — if it returns `{"api": "..."}`,
+  /// 1. Try `GET <base>/.well-known/revolt` - if it returns `{"api": "..."}`,
   ///    use that URL as the API base.
   /// 2. Fall back to treating the input URL as the API base directly.
   ///
@@ -107,7 +107,7 @@ class RevoltService {
     return (base, config);
   }
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
+  // -- Auth ------------------------------------------------------------------
 
   Future<Map<String, dynamic>> login(
       String email, String password) async {
@@ -131,7 +131,7 @@ class RevoltService {
     );
   }
 
-  // ── Users ─────────────────────────────────────────────────────────────────
+  // -- Users -----------------------------------------------------------------
 
   Future<RevoltUser> fetchSelf() async {
     final response = await http.get(
@@ -181,8 +181,6 @@ class RevoltService {
     }
     if (avatar != null) body['avatar'] = avatar;
     final encoded = jsonEncode(body);
-    debugPrint('updateProfile body: $encoded');
-    debugPrint('updateProfile presence arg: $presence');
     final response = await http.patch(
       Uri.parse('$_apiBase/users/@me'),
       headers: _headers,
@@ -197,7 +195,7 @@ class RevoltService {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  // ── Messages ──────────────────────────────────────────────────────────────
+  // -- Messages --------------------------------------------------------------
 
   Future<List<RevoltMessage>> fetchMessages(String channelId,
       {int limit = 50}) async {
@@ -375,7 +373,7 @@ class RevoltService {
     );
   }
 
-  // ── Invites ───────────────────────────────────────────────────────────────
+  // -- Invites ---------------------------------------------------------------
 
   /// Creates a server invite for [channelId]. Returns the invite code.
   Future<String> createInvite(String channelId) async {
@@ -418,7 +416,7 @@ class RevoltService {
     }
   }
 
-  // ── Channels ──────────────────────────────────────────────────────────────
+  // -- Channels --------------------------------------------------------------
   Future<RevoltChannel> fetchChannel(String channelId) async {
     final response = await http.get(
       Uri.parse('$_apiBase/channels/$channelId'),
@@ -445,7 +443,7 @@ class RevoltService {
     }).toList();
   }
 
-  // ── Members ───────────────────────────────────────────────────────────────
+  // -- Members ---------------------------------------------------------------
 
   /// Fetches all members of a server, returning (members, users).
   Future<(List<RevoltMember>, List<RevoltUser>)> fetchServerMembers(
@@ -468,7 +466,7 @@ class RevoltService {
     return (members, users);
   }
 
-  // ── Voice ─────────────────────────────────────────────────────────────────
+  // -- Voice -----------------------------------------------------------------
 
   /// Returns {'token': '...', 'url': 'wss://...'} for LiveKit.
   Future<Map<String, dynamic>> joinVoiceChannel(String channelId) async {
@@ -487,7 +485,7 @@ class RevoltService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
+  // -- WebSocket -------------------------------------------------------------
 
   void connectWebSocket() {
     // Cancel any existing WS stream subscription before reconnecting

@@ -9,7 +9,7 @@ import 'dart:typed_data';
 import 'package:fluttering_ermine/models/models.dart';
 import 'package:fluttering_ermine/services/revolt_service.dart';
 
-// ΓöÇΓöÇ Fake RevoltService ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// -- Fake RevoltService --------------------------------------------------------
 
 class FakeRevoltService extends RevoltService {
   final _ctrl =
@@ -118,7 +118,7 @@ class FakeRevoltService extends RevoltService {
   Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async =>
       channelIds.map((id) => _channelStubs[id]!).toList();
 
-  // ── Ack / Unread ──────────────────────────────────────────────────────────
+  // -- Ack / Unread ----------------------------------------------------------
 
   final List<String> ackCalls = [];
 
@@ -127,7 +127,7 @@ class FakeRevoltService extends RevoltService {
     ackCalls.add(channelId);
   }
 
-  // ── Members ───────────────────────────────────────────────────────────────
+  // -- Members ---------------------------------------------------------------
 
   final Map<String, List<RevoltMember>> _memberStubs = {};
   bool fetchMembersThrows = false;
@@ -144,7 +144,7 @@ class FakeRevoltService extends RevoltService {
     return (members, List<RevoltUser>.empty());
   }
 
-  // ── Invites ───────────────────────────────────────────────────────────────
+  // -- Invites ---------------------------------------------------------------
 
   final List<String> createInviteCalls = [];
   final List<String> joinInviteCalls = [];
@@ -169,7 +169,7 @@ class FakeRevoltService extends RevoltService {
     joinInviteCalls.add(code);
   }
 
-  // ── Profile updates (Phase 3) ─────────────────────────────────────────────
+  // -- Profile updates (Phase 3) ---------------------------------------------
 
   final List<({
     String? displayName,
@@ -210,7 +210,7 @@ class FakeRevoltService extends RevoltService {
         RevoltUser(id: 'self', username: 'self', discriminator: '0000');
   }
 
-  // ── Server member updates ──────────────────────────────────────────────────
+  // -- Server member updates --------------------------------------------------
 
   final List<({String serverId, String? nickname, String? avatar})>
       updateServerMemberCalls = [];
@@ -228,7 +228,7 @@ class FakeRevoltService extends RevoltService {
     ));
   }
 
-  // ── File uploads ───────────────────────────────────────────────────────────
+  // -- File uploads -----------------------------------------------------------
 
   final List<({Uint8List bytes, String filename})> uploadAvatarCalls = [];
   final List<({Uint8List bytes, String filename})> uploadBackgroundCalls = [];
@@ -249,7 +249,7 @@ class FakeRevoltService extends RevoltService {
   void close() => _ctrl.close();
 }
 
-// ΓöÇΓöÇ Builder helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// -- Builder helpers ------------------------------------------------------------
 
 /// WS payload for a new Message event (mirrors RevoltMessage.fromJson fields).
 Map<String, dynamic> msgEvent({

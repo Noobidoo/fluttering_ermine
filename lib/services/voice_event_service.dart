@@ -31,7 +31,7 @@ class VoiceEventService {
   /// Emits VoicePublishingStateChangeEvent when a user mutes/unmutes.
   Stream<VoicePublishingStateChangeEvent> get publishingEvents => _publishingController.stream;
 
-  // ── Initialization ────────────────────────────────────────────────────────
+  // -- Initialization --------------------------------------------------------
 
   /// Subscribe to WebSocket events from RevoltService.
   void subscribeToWebSocketEvents() {
@@ -39,7 +39,7 @@ class VoiceEventService {
     _wsSub = _revoltService.events.listen(_handleWebSocketEvent);
   }
 
-  // ── WebSocket Event Handling ──────────────────────────────────────────────
+  // -- WebSocket Event Handling ----------------------------------------------
 
   void _handleWebSocketEvent(Map<String, dynamic> event) {
     switch (event['type'] as String?) {
@@ -179,7 +179,7 @@ class VoiceEventService {
     }
   }
 
-  // ── Cleanup ───────────────────────────────────────────────────────────────
+  // -- Cleanup ---------------------------------------------------------------
 
   Future<void> dispose() async {
     await _wsSub?.cancel();

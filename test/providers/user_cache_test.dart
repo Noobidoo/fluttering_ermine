@@ -1,8 +1,8 @@
 // Tests for user caching used by mention autocomplete.
 //
 // The mention filter logic lives in `_MessageInputState._updateMentionState`
-// (chat_panel.dart).  This file validates the data source — `cachedUsers`
-// and `getUser` — that the autocomplete popup consumes.
+// (chat_panel.dart).  This file validates the data source - `cachedUsers`
+// and `getUser` - that the autocomplete popup consumes.
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,7 +28,7 @@ void main() {
 
   tearDown(() => svc.close());
 
-  group('Mention autocomplete — user cache', () {
+  group('Mention autocomplete - user cache', () {
     test('Ready event populates user cache', () {
       svc.push({
         'type': 'Ready',
@@ -65,7 +65,7 @@ void main() {
         content: 'Hi',
       ));
 
-      // _ensureUserCached uses .then() — let microtask resolve
+      // _ensureUserCached uses .then() - let microtask resolve
       await Future<void>.delayed(Duration.zero);
 
       expect(state.getUser('u1'), isNotNull);
@@ -93,7 +93,7 @@ void main() {
         content: 'Hello',
       ));
 
-      // _ensureUserCached uses .then() — let microtask resolve
+      // _ensureUserCached uses .then() - let microtask resolve
       await Future<void>.delayed(Duration.zero);
 
       expect(state.getUser('u1')?.username, 'alice');

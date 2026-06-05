@@ -220,7 +220,7 @@ void main() {
       expect(state.dmChannels.any((c) => c.id == 't'), false);
     });
 
-    // ── Unread tracking ──────────────────────────────────────────────────────
+    // -- Unread tracking ------------------------------------------------------
 
     group('Unread tracking', () {
       test('Ready event with channel_unreads populates unread state', () {
@@ -538,7 +538,7 @@ void main() {
       });
     });
 
-    // ── Members ──────────────────────────────────────────────────────────────
+    // -- Members --------------------------------------------------------------
 
     group('Members', () {
       test('currentServerMembers returns null when no server selected', () {
@@ -620,7 +620,7 @@ void main() {
       });
     });
 
-    // ── Invites ──────────────────────────────────────────────────────────────
+    // -- Invites --------------------------------------------------------------
 
     group('Invites', () {
       test('createInvite delegates to service', () async {

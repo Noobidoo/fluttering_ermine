@@ -19,16 +19,16 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   final Map<String, String> _channelErrors = {};
   final Set<String> _loadingChannels = {};
 
-  // ── Unread tracking ────────────────────────────────────────────────────────
+  // -- Unread tracking --------------------------------------------------------
   final Map<String, String> _channelUnreads = {};
   final Map<String, List<String>> _channelMentions = {};
   final Map<String, String> _latestMessageIds = {};
 
-  // ── Members ────────────────────────────────────────────────────────────────
+  // -- Members ----------------------------------------------------------------
   final Map<String, List<RevoltMember>> _membersByServer = {};
   bool _loadingMembers = false;
 
-  // ── Getters ───────────────────────────────────────────────────────────────
+  // -- Getters ---------------------------------------------------------------
 
   List<RevoltServer> get servers => _servers;
   RevoltServer? get selectedServer => _selectedServer;
@@ -49,7 +49,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
           c.type == ChannelType.savedMessages)
       .toList();
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
+  // -- WebSocket -------------------------------------------------------------
 
   void subscribeToEvents() {
     _wsSub?.cancel();
@@ -152,7 +152,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-  // ── Members ────────────────────────────────────────────────────────────────
+  // -- Members ----------------------------------------------------------------
 
   List<RevoltMember>? get currentServerMembers {
     if (_selectedServer == null) return null;
@@ -185,7 +185,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
         .firstOrNull;
   }
 
-  // ── Unread queries ─────────────────────────────────────────────────────────
+  // -- Unread queries ---------------------------------------------------------
 
   /// Whether [channelId] has messages newer than the user's last read position.
   bool isChannelUnread(String channelId) {
@@ -225,7 +225,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-  // ── Invites ───────────────────────────────────────────────────────────────
+  // -- Invites ---------------------------------------------------------------
 
   Future<String> createInvite(String channelId) =>
       _service.createInvite(channelId);
@@ -252,7 +252,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
   }
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  // -- Lifecycle -------------------------------------------------------------
 
   void clear() {
     _wsSub?.cancel();

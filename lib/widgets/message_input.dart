@@ -425,7 +425,7 @@ class _MessageInputState extends State<MessageInput> {
   }
 }
 
-// ── Reply bar ─────────────────────────────────────────────────────────────────
+// -- Reply bar -----------------------------------------------------------------
 
 class _ReplyBar extends StatelessWidget {
   final RevoltMessage message;
@@ -492,7 +492,7 @@ class _ReplyBar extends StatelessWidget {
   }
 }
 
-// ── Typing indicator ──────────────────────────────────────────────────────────
+// -- Typing indicator ----------------------------------------------------------
 
 class _TypingIndicator extends StatelessWidget {
   final List<String> userIds;

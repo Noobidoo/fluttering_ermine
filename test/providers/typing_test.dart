@@ -24,7 +24,7 @@ void main() {
 
   tearDown(() => svc.close());
 
-  // ── ChannelStartTyping / ChannelStopTyping WS events ─────────────────────
+  // -- ChannelStartTyping / ChannelStopTyping WS events ---------------------
 
   group('ChannelStartTyping / ChannelStopTyping WS events', () {
     const currentUser = 'current-user';
@@ -82,7 +82,7 @@ void main() {
     });
   });
 
-  // ── sendTypingIndicator debounce ──────────────────────────────────────────
+  // -- sendTypingIndicator debounce ------------------------------------------
 
   group('sendTypingIndicator debounce', () {
     setUp(() => serverState.selectChannel(textChan('chan1')));

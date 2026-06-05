@@ -35,7 +35,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   String? _error;
   RevoltUser? _currentUser;
 
-  // ── Getters ───────────────────────────────────────────────────────────────
+  // -- Getters ---------------------------------------------------------------
 
   bool get isLoggedIn => _isLoggedIn;
   bool get isLoading => _isLoading;
@@ -45,7 +45,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   String get autumnBase => _service.autumnBase;
   RevoltUser? get currentUser => _currentUser;
 
-  // ── Init / Auth ───────────────────────────────────────────────────────────
+  // -- Init / Auth -----------------------------------------------------------
 
   Future<void> init() async {
     try {
@@ -138,8 +138,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> updateDisplayName(String name) async {
-    await _service.updateProfile(displayName: name.isEmpty ? '' : name);
-    _currentUser = await _service.fetchSelf();
+    _currentUser = await _service.updateProfile(displayName: name.isEmpty ? '' : name);
     _syncCurrentUser();
     notifyListeners();
   }
@@ -164,7 +163,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-  // ── Profile updates ───────────────────────────────────────────────────────
+  // -- Profile updates -------------------------------------------------------
 
   void _syncCurrentUser() {
     if (_currentUser != null) {
@@ -173,14 +172,14 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> updateStatus({String? presence, String? statusText}) async {
-    _currentUser = await _service.updateProfile(
-        presence: presence, statusText: statusText);
+    _currentUser = await _service.updateProfile(presence: presence, statusText: statusText);
     _syncCurrentUser();
     notifyListeners();
   }
 
   Future<void> updateBio(String bio) async {
-    _currentUser = await _service.updateProfile(profileContent: bio);
+    await _service.updateProfile(profileContent: bio);
+    _currentUser = _currentUser?.copyWith(profileContent: bio);
     _syncCurrentUser();
     notifyListeners();
   }
@@ -212,7 +211,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-  // ── Internal ──────────────────────────────────────────────────────────────
+  // -- Internal --------------------------------------------------------------
 
   void _connectWebSocket() {
     _service.connectWebSocket();
@@ -227,16 +226,55 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (event['type'] != 'UserUpdate') return;
     final id = event['id'] as String?;
     if (id == null || id != _currentUser?.id) return;
-    // Evict old avatar from Flutter image cache before re-fetching
-    if (_currentUser != null) {
-      final oldUrl = _currentUser!.avatarUrlFor(_service.autumnBase, _service.apiBase);
+    final data = (event['data'] as Map?)?.cast<String, dynamic>();
+    final clear = (event['clear'] as List<dynamic>?)?.cast<String>() ?? [];
+
+    if (_currentUser == null) return;
+    final cached = _currentUser!;
+
+    // Evict old avatar if avatar changed or cleared
+    if (data != null && (data.containsKey('avatar') || clear.contains('avatar'))) {
+      final oldUrl = cached.avatarUrlFor(_service.autumnBase, _service.apiBase);
       PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
     }
-    // Our own profile changed — re-fetch to get latest avatar/display name
-    _service.fetchSelf().then((user) {
-      _currentUser = user;
-      _syncCurrentUser();
-      notifyListeners();
-    }).catchError((_) {});
+
+    final user = RevoltUser(
+      id: cached.id,
+      username: data?['username'] as String? ?? cached.username,
+      discriminator: (data?['discriminator'] as String? ?? cached.discriminator),
+      displayName: data?['display_name'] as String? ?? cached.displayName,
+      avatar: clear.contains('avatar')
+          ? null
+          : data?['avatar'] != null
+              ? RevoltFile.fromJson(Map<String, dynamic>.from(data!['avatar'] as Map))
+              : data?.containsKey('avatar') == true
+                  ? null
+                  : cached.avatar,
+      banner: clear.contains('banner')
+          ? null
+          : data?['banner'] != null
+              ? RevoltFile.fromJson(Map<String, dynamic>.from(data!['banner'] as Map))
+              : data?.containsKey('banner') == true
+                  ? null
+                  : cached.banner,
+      presence: clear.contains('status')
+          ? UserPresence.invisible
+          : data?['status'] is Map && (data!['status'] as Map).containsKey('presence')
+              ? parsePresence((data['status'] as Map)['presence'] as String?)
+              : cached.presence,
+      statusText: clear.contains('status')
+          ? null
+          : data?['status'] is Map
+              ? (data!['status'] as Map)['text'] as String? ?? cached.statusText
+              : cached.statusText,
+      profileContent: clear.contains('profile')
+          ? null
+          : data?['profile'] is Map
+              ? (data!['profile'] as Map)['content'] as String? ?? cached.profileContent
+              : cached.profileContent,
+    );
+    _currentUser = user;
+    _syncCurrentUser();
+    notifyListeners();
   }
 }

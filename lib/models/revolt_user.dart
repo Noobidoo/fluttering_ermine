@@ -4,7 +4,7 @@ import 'revolt_file.dart';
 
 enum UserPresence { online, idle, focus, invisible }
 
-UserPresence _parsePresence(String? raw) {
+UserPresence parsePresence(String? raw) {
   if (raw == null) return UserPresence.invisible;
   switch (raw.toLowerCase()) {
     case 'online':
@@ -57,6 +57,29 @@ class RevoltUser {
     this.banner,
   });
 
+  RevoltUser copyWith({
+    String? username,
+    String? discriminator,
+    String? displayName,
+    RevoltFile? avatar,
+    UserPresence? presence,
+    String? statusText,
+    String? profileContent,
+    RevoltFile? banner,
+  }) {
+    return RevoltUser(
+      id: id,
+      username: username ?? this.username,
+      discriminator: discriminator ?? this.discriminator,
+      displayName: displayName ?? this.displayName,
+      avatar: avatar ?? this.avatar,
+      presence: presence ?? this.presence,
+      statusText: statusText ?? this.statusText,
+      profileContent: profileContent ?? this.profileContent,
+      banner: banner ?? this.banner,
+    );
+  }
+
   bool get online => presence == UserPresence.online || presence == UserPresence.focus;
 
   factory RevoltUser.fromJson(Map<String, dynamic> json) {
@@ -70,7 +93,7 @@ class RevoltUser {
       avatar: json['avatar'] != null
           ? RevoltFile.fromJson(json['avatar'] as Map<String, dynamic>)
           : null,
-      presence: _parsePresence(status?['presence'] as String?),
+      presence: parsePresence(status?['presence'] as String?),
       statusText: status?['text'] as String?,
       profileContent: profile?['content'] as String?,
       banner: profile?['background'] != null

@@ -439,7 +439,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 }
 
-// ── Hover action bar ──────────────────────────────────────────────────────────
+// -- Hover action bar ----------------------------------------------------------
 
 class _HoverBar extends StatelessWidget {
   final bool isOwn;
@@ -524,7 +524,7 @@ class _HoverMoreBtn extends StatelessWidget {
   }
 }
 
-// ── Context menu item ─────────────────────────────────────────────────────────
+// -- Context menu item ---------------------------------------------------------
 
 class _MenuItem extends StatelessWidget {
   final IconData icon;
@@ -546,7 +546,7 @@ class _MenuItem extends StatelessWidget {
   }
 }
 
-// ── Inline edit field ─────────────────────────────────────────────────────────
+// -- Inline edit field ---------------------------------------------------------
 
 class _EditField extends StatelessWidget {
   final TextEditingController controller;
@@ -631,7 +631,7 @@ class _EditField extends StatelessWidget {
   }
 }
 
-// ── Reply preview (quote above a message that is a reply) ─────────────────────
+// -- Reply preview (quote above a message that is a reply) ---------------------
 
 class _ReplyPreview extends StatelessWidget {
   final String replyId;
@@ -688,7 +688,7 @@ class _ReplyPreview extends StatelessWidget {
   }
 }
 
-// ── Reaction chips ────────────────────────────────────────────────────────────
+// -- Reaction chips ------------------------------------------------------------
 
 class _ReactionsRow extends StatelessWidget {
   final Map<String, List<String>> reactions;
@@ -780,7 +780,7 @@ class _ReactionChip extends StatelessWidget {
   }
 }
 
-// ── Attachment ────────────────────────────────────────────────────────────────
+// -- Attachment ----------------------------------------------------------------
 
 class _AttachmentWidget extends StatelessWidget {
   final RevoltFile file;

@@ -25,7 +25,7 @@ void main() {
 
   tearDown(() => svc.close());
 
-  // ── Reply compose state ───────────────────────────────────────────────────
+  // -- Reply compose state ---------------------------------------------------
 
   group('Reply compose state', () {
     late RevoltMessage target;
