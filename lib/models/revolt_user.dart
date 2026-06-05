@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'revolt_file.dart';
+import 'server_profile.dart';
 
 enum UserPresence { online, idle, focus, invisible }
 
@@ -16,7 +17,7 @@ UserPresence parsePresence(String? raw) {
     case 'invisible':
       return UserPresence.invisible;
     default:
-      return UserPresence.online;
+      return UserPresence.invisible;
   }
 }
 
@@ -44,6 +45,7 @@ class RevoltUser {
   final String? statusText;
   final String? profileContent;
   final RevoltFile? banner;
+  final Map<String, ServerProfile> serverProfiles;
 
   RevoltUser({
     required this.id,
@@ -55,6 +57,7 @@ class RevoltUser {
     this.statusText,
     this.profileContent,
     this.banner,
+    this.serverProfiles = const {},
   });
 
   RevoltUser copyWith({
@@ -66,6 +69,7 @@ class RevoltUser {
     String? statusText,
     String? profileContent,
     RevoltFile? banner,
+    Map<String, ServerProfile>? serverProfiles,
   }) {
     return RevoltUser(
       id: id,
@@ -77,7 +81,44 @@ class RevoltUser {
       statusText: statusText ?? this.statusText,
       profileContent: profileContent ?? this.profileContent,
       banner: banner ?? this.banner,
+      serverProfiles: serverProfiles ?? this.serverProfiles,
     );
+  }
+
+  /// Returns a copy with [profile] stored under [serverId].
+  RevoltUser copyWithServerProfile(String serverId, ServerProfile profile) {
+    final updated = Map<String, ServerProfile>.from(serverProfiles);
+    updated[serverId] = profile;
+    return copyWith(serverProfiles: updated);
+  }
+
+  /// Returns the server-specific nickname, or null if none is set.
+  String? serverNickname(String serverId) =>
+      serverProfiles[serverId]?.nickname;
+
+  /// Returns the server-specific avatar, falling back to the global avatar.
+  RevoltFile? serverAvatar(String? serverId) {
+    if (serverId == null) return avatar;
+    return serverProfiles[serverId]?.avatar ?? avatar;
+  }
+
+  /// Single point of truth for display name resolution.
+  /// Prefers server nickname, then displayName, then username.
+  /// Pass `null` for [serverId] to skip server-specific overrides.
+  String resolveDisplayName(String? serverId) {
+    if (serverId != null) {
+      final n = serverNickname(serverId);
+      if (n != null && n.isNotEmpty) return n;
+    }
+    return displayUsername;
+  }
+
+  /// Single point of truth for avatar URL resolution.
+  /// Prefers server avatar, then global avatar, then default avatar.
+  /// Pass `null` for [serverId] to skip server-specific overrides.
+  String resolveAvatarUrl(String? serverId, String autumnBase, String apiBase) {
+    final a = serverAvatar(serverId);
+    return a != null ? a.urlFor(autumnBase) : '$apiBase/users/$id/default_avatar';
   }
 
   bool get online => presence == UserPresence.online || presence == UserPresence.focus;
