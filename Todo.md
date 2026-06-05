@@ -85,6 +85,8 @@
 - [ ] **Keyboard shortcuts** — `Shortcuts`/`Actions`: Ctrl+K channel search, Escape cancel edit/reply
 - [ ] **Rich link embeds** — render `embeds` array from message JSON as OG cards below content
 - [ ] **Message search** — search bar in channel header; `GET /channels/{channelId}/messages?query=`
+- [ ] **Read marker** — visual line/indicator in chat showing where the last read message is
+- [ ] **Mention popup dual-name display** — show server nickname first, then global username if both exist
 - [ ] **Localization** — `flutter_localizations` + `intl`; `.arb` files, EN first
 
 ---
