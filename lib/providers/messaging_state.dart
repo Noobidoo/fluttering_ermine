@@ -135,6 +135,9 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'Disconnected':
         // Reconnection is handled by AuthState; no local cleanup needed.
         break;
+      // Channel ack handled by ServerState - ignore here.
+      case 'ChannelAck':
+        break;
       // Voice events handled by ServerState - ignore here.
       case 'VoiceChannelJoin':
       case 'VoiceChannelLeave':
