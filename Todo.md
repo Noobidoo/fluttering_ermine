@@ -62,6 +62,7 @@
 - [ ] **Kick / ban members** — context menu on member tile; `DELETE /servers/{serverId}/members/{userId}` (kick) / `PUT /servers/{serverId}/bans/{userId}` (ban)
 - [ ] **Create / edit / delete channels** — long-press channel → context menu; `POST /servers/{serverId}/channels`, `PATCH /channels/{channelId}`, `DELETE /channels/{channelId}`
 - [ ] **Create / edit server** — `POST /servers/create`, `PATCH /servers/{serverId}`; server settings screen
+- [ ] **Permission management per server** — role-based permission editor; `GET /servers/{serverId}/roles`, `POST /servers/{serverId}/roles`, `PATCH /servers/{serverId}/roles/{roleId}`, `DELETE /servers/{serverId}/roles/{roleId}`; assign/remove roles to members via `PATCH /servers/{serverId}/members/{userId}`; channel permission overrides via `PATCH /channels/{channelId}` `role_permissions` / `user_permissions` fields; server settings screen with roles list, permission toggles per role, and member role assignment UI
 
 ---
 
