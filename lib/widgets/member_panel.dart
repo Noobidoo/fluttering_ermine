@@ -15,7 +15,8 @@ class MemberPanel extends StatelessWidget {
     final server = context.watch<ServerState>();
     final messaging = context.watch<MessagingState>();
     final auth = context.watch<AuthState>();
-    final members = server.currentServerMembers;
+    final memberIds = server.currentServerMemberIds;
+    final serverId = server.selectedServer?.id;
 
     return Material(
       color: const Color(0xFF141418),
@@ -38,7 +39,7 @@ class MemberPanel extends StatelessWidget {
             const Expanded(
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             )
-          else if (members == null || members.isEmpty)
+          else if (memberIds == null || memberIds.isEmpty)
             const Expanded(
               child: Center(
                 child: Text('No members',
@@ -48,14 +49,14 @@ class MemberPanel extends StatelessWidget {
           else
             Expanded(
               child: Builder(builder: (ctx) {
-                final userIds = members.map((m) => m.userId).toList();
-                ctx.read<MessagingState>().ensureUsersCached(userIds);
+                ctx.read<MessagingState>().ensureUsersCached(memberIds);
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 4),
-                  itemCount: members.length,
+                  itemCount: memberIds.length,
                   itemBuilder: (_, i) => _MemberTile(
-                    member: members[i],
-                    user: messaging.getUser(members[i].userId),
+                    userId: memberIds[i],
+                    serverId: serverId!,
+                    user: messaging.getUser(memberIds[i]),
                     autumnBase: auth.autumnBase,
                     apiBase: auth.apiBase,
                   ),
@@ -69,13 +70,15 @@ class MemberPanel extends StatelessWidget {
 }
 
 class _MemberTile extends StatelessWidget {
-  final RevoltMember member;
+  final String userId;
+  final String serverId;
   final RevoltUser? user;
   final String autumnBase;
   final String apiBase;
 
   const _MemberTile({
-    required this.member,
+    required this.userId,
+    required this.serverId,
     required this.user,
     required this.autumnBase,
     required this.apiBase,
@@ -95,10 +98,9 @@ class _MemberTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = member.nickname ??
-        user?.displayUsername ??
-        member.userId;
-    final p = user?.presence ?? UserPresence.online;
+    final u = user;
+    final name = u?.resolveDisplayName(serverId) ?? userId;
+    final p = u?.presence ?? UserPresence.online;
     final isOnline =
         p == UserPresence.online || p == UserPresence.focus;
 
@@ -112,12 +114,12 @@ class _MemberTile extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 14,
-              backgroundImage: user != null
-                  ? NetworkImage(user!.avatarUrlFor(autumnBase, apiBase))
+              backgroundImage: u != null
+                  ? NetworkImage(u.resolveAvatarUrl(serverId, autumnBase, apiBase))
                   : null,
               backgroundColor: const Color(0xFF7F5AF0),
-              onBackgroundImageError: user != null ? (_, _) {} : null,
-              child: user == null
+              onBackgroundImageError: u != null ? (_, _) {} : null,
+              child: u == null
                   ? Text(
                       name.isNotEmpty ? name[0].toUpperCase() : '?',
                       style: const TextStyle(

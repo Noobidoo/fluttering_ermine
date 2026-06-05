@@ -40,14 +40,14 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
             CircleAvatar(
               radius: 32,
               backgroundImage: NetworkImage(
-                  user.avatarUrlFor(autumnBase, apiBase)),
+                  user.resolveAvatarUrl(null, autumnBase, apiBase)),
               backgroundColor: const Color(0xFF7F5AF0),
               onBackgroundImageError: (_, __) {},
               child: user.avatar != null
                   ? null
                   : Text(
-                      user.displayUsername.isNotEmpty
-                          ? user.displayUsername[0].toUpperCase()
+                      user.resolveDisplayName(null).isNotEmpty
+                          ? user.resolveDisplayName(null)[0].toUpperCase()
                           : '?',
                       style: const TextStyle(
                           fontSize: 24, color: Colors.white),
@@ -100,7 +100,7 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
               if (banner == null) avatarStack,
               const SizedBox(height: 12),
               Text(
-                user.displayUsername,
+                user.resolveDisplayName(null),
                 style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.bold),
               ),

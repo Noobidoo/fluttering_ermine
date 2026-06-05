@@ -29,12 +29,14 @@ class MessageBubble extends StatefulWidget {
   final RevoltMessage message;
   final RevoltUser? author;
   final bool grouped;
+  final String? serverId;
 
   const MessageBubble({
     super.key,
     required this.message,
     this.author,
     this.grouped = false,
+    this.serverId,
   });
 
   @override
@@ -47,7 +49,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   late TextEditingController _editCtrl;
 
   String get _username =>
-      widget.author?.displayUsername ?? widget.message.authorId;
+      widget.author?.resolveDisplayName(widget.serverId) ?? widget.message.authorId;
 
   TextSpan _renderContent(String content) {
     final messaging = context.read<MessagingState>();
@@ -70,7 +72,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   String _avatarUrl(String autumnBase, String apiBase) =>
-      widget.author?.avatarUrlFor(autumnBase, apiBase) ??
+      widget.author?.resolveAvatarUrl(widget.serverId, autumnBase, apiBase) ??
       '$apiBase/users/${widget.message.authorId}/default_avatar';
 
   String _formatTimestamp(String iso) {
@@ -643,7 +645,7 @@ class _ReplyPreview extends StatelessWidget {
     final messaging = context.watch<MessagingState>();
     final msg = messaging.getMessageById(channelId, replyId);
     final author = msg != null ? messaging.getUser(msg.authorId) : null;
-    final name = author?.displayUsername ?? msg?.authorId ?? 'Unknown';
+    final name = author?.resolveDisplayName(null) ?? msg?.authorId ?? 'Unknown';
     final preview = msg?.content?.trim() ?? '(message unavailable)';
     final truncated =
         preview.length > 80 ? '${preview.substring(0, 80)}…' : preview;

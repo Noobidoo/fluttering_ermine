@@ -208,12 +208,12 @@ class _ChannelTile extends StatelessWidget {
                   final isLocal = userId == auth.currentUser?.id;
                   return _VoiceParticipantRow(
                     identity: userId,
-                    displayName: user?.displayUsername ?? userId,
+                    displayName: user?.resolveDisplayName(null) ?? userId,
                     isLocal: isLocal,
                     isMuted: lkParticipant?.isMuted,
                     isSpeaking: lkParticipant?.isSpeaking ?? false,
                     isScreenSharing: lkParticipant?.isScreenSharing ?? false,
-                    avatarUrl: user?.avatarUrlFor(auth.autumnBase, auth.apiBase),
+                    avatarUrl: user?.resolveAvatarUrl(null, auth.autumnBase, auth.apiBase),
                   );
                 }).toList(),
               ),
@@ -564,7 +564,7 @@ class _UserBar extends StatelessWidget {
                 CircleAvatar(
                   radius: 16,
                   backgroundImage:
-                      NetworkImage(user.avatarUrlFor(autumnBase, apiBase)),
+                      NetworkImage(user.resolveAvatarUrl(null, autumnBase, apiBase)),
                   backgroundColor: const Color(0xFF7F5AF0),
                   onBackgroundImageError: (e, stack) {},
                 ),
@@ -591,7 +591,7 @@ class _UserBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    user.displayUsername,
+                    user.resolveDisplayName(null),
                     style: const TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w500),
                     overflow: TextOverflow.ellipsis,

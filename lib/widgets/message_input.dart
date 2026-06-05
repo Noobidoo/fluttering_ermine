@@ -140,18 +140,19 @@ class _MessageInputState extends State<MessageInput> {
 
     final messaging = context.read<MessagingState>();
     final server = context.read<ServerState>();
-    final members = server.currentServerMembers ?? [];
+    final serverId = server.selectedServer?.id;
+    final memberIds = server.currentServerMemberIds ?? [];
     final results = <MapEntry<String, String>>[];
     final seen = <String>{};
-    for (final m in members) {
-      if (seen.contains(m.userId)) continue;
-      seen.add(m.userId);
-      final user = messaging.getUser(m.userId);
-      final display = m.nickname ?? user?.displayUsername ?? '';
+    for (final userId in memberIds) {
+      if (seen.contains(userId)) continue;
+      seen.add(userId);
+      final user = messaging.getUser(userId);
+      final display = user?.resolveDisplayName(serverId) ?? '';
       if (query.isEmpty ||
           display.toLowerCase().contains(query) ||
           user?.username.toLowerCase().contains(query) == true) {
-        results.add(MapEntry(m.userId, display));
+        results.add(MapEntry(userId, display));
       }
     }
     // Also include cached users not in this server (for DM mentions)
@@ -159,9 +160,9 @@ class _MessageInputState extends State<MessageInput> {
       for (final u in messaging.cachedUsers) {
         if (seen.contains(u.id)) continue;
         if (query.isEmpty ||
-            u.displayUsername.toLowerCase().contains(query) ||
+            u.resolveDisplayName(null).toLowerCase().contains(query) ||
             u.username.toLowerCase().contains(query)) {
-          results.add(MapEntry(u.id, u.displayUsername));
+          results.add(MapEntry(u.id, u.resolveDisplayName(null)));
         }
       }
     }
@@ -440,7 +441,7 @@ class _ReplyBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = author?.displayUsername ?? message.authorId;
+    final name = author?.resolveDisplayName(null) ?? message.authorId;
     final preview = message.content?.trim() ?? '';
     final truncated =
         preview.length > 60 ? '${preview.substring(0, 60)}…' : preview;
@@ -506,13 +507,13 @@ class _TypingIndicator extends StatelessWidget {
     String text;
     if (userIds.length == 1) {
       final name =
-          messaging.getUser(userIds[0])?.displayUsername ?? userIds[0];
+          messaging.getUser(userIds[0])?.resolveDisplayName(null) ?? userIds[0];
       text = '$name is typing…';
     } else if (userIds.length == 2) {
       final a =
-          messaging.getUser(userIds[0])?.displayUsername ?? userIds[0];
+          messaging.getUser(userIds[0])?.resolveDisplayName(null) ?? userIds[0];
       final b =
-          messaging.getUser(userIds[1])?.displayUsername ?? userIds[1];
+          messaging.getUser(userIds[1])?.resolveDisplayName(null) ?? userIds[1];
       text = '$a and $b are typing…';
     } else {
       text = 'Several people are typing…';

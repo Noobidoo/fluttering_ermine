@@ -572,6 +572,7 @@ class _MessageList extends StatelessWidget {
           message: msg,
           author: messaging.getUser(msg.authorId),
           grouped: grouped,
+          serverId: context.read<ServerState>().selectedServer?.id,
         );
       },
     );
