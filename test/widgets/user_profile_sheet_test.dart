@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 
 import 'package:fluttering_ermine/models/models.dart';
 import 'package:fluttering_ermine/widgets/user_profile_sheet.dart';
 
+import '../helpers/mocks.dart';
 import '../helpers/test_app.dart';
 
 void main() {
@@ -11,6 +13,11 @@ void main() {
 
   group('UserProfileSheet', () {
     testWidgets('shows display name and username', (tester) async {
+      final mockService = MockRevoltService();
+      when(() => mockService.fetchUserProfile(any())).thenAnswer(
+        (_) async => UserProfile(content: null, background: null),
+      );
+
       final user = RevoltUser(
         id: 'u1',
         username: 'testuser',
@@ -18,6 +25,7 @@ void main() {
       );
 
       await tester.pumpWidget(TestApp(
+        mockService: mockService,
         child: Builder(
           builder: (ctx) => ElevatedButton(
             onPressed: () => showUserProfileSheet(ctx, user),
@@ -34,6 +42,11 @@ void main() {
     });
 
     testWidgets('shows status text when present', (tester) async {
+      final mockService = MockRevoltService();
+      when(() => mockService.fetchUserProfile(any())).thenAnswer(
+        (_) async => UserProfile(content: null, background: null),
+      );
+
       final user = RevoltUser(
         id: 'u1',
         username: 'testuser',
@@ -42,6 +55,7 @@ void main() {
       );
 
       await tester.pumpWidget(TestApp(
+        mockService: mockService,
         child: Builder(
           builder: (ctx) => ElevatedButton(
             onPressed: () => showUserProfileSheet(ctx, user),
@@ -57,15 +71,20 @@ void main() {
       expect(find.text('busy coding'), findsOneWidget);
     });
 
-    testWidgets('shows bio when present', (tester) async {
+    testWidgets('shows bio from profile endpoint', (tester) async {
+      final mockService = MockRevoltService();
+      when(() => mockService.fetchUserProfile(any())).thenAnswer(
+        (_) async => UserProfile(content: 'Hello world', background: null),
+      );
+
       final user = RevoltUser(
         id: 'u1',
         username: 'testuser',
         discriminator: '0001',
-        profileContent: 'Hello world',
       );
 
       await tester.pumpWidget(TestApp(
+        mockService: mockService,
         child: Builder(
           builder: (ctx) => ElevatedButton(
             onPressed: () => showUserProfileSheet(ctx, user),

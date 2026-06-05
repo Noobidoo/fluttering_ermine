@@ -157,6 +157,18 @@ class RevoltService {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<UserProfile> fetchUserProfile(String userId) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/users/$userId/profile'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch user profile for $userId');
+    }
+    return UserProfile.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
   Future<RevoltUser> updateProfile({
     String? displayName,
     String? presence,
