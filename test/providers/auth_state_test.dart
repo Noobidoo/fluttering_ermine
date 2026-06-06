@@ -8,7 +8,6 @@ import 'package:fluttering_ermine/providers/auth_state.dart';
 import 'package:fluttering_ermine/providers/messaging_state.dart';
 import 'package:fluttering_ermine/providers/server_state.dart';
 import 'package:fluttering_ermine/providers/voice_state.dart';
-import 'package:fluttering_ermine/services/voice_event_service.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 import '../helpers/mocks.dart';

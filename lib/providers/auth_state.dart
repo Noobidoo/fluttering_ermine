@@ -268,7 +268,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (_currentUser == null) return;
     final cached = _currentUser!;
 
-    RevoltFile? _parseFile(dynamic value) {
+    RevoltFile? parseFile(dynamic value) {
       if (value == null) return null;
       if (value is Map) {
         try {
@@ -297,12 +297,12 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       avatar: clear.contains('avatar')
           ? null
           : data?.containsKey('avatar') == true
-              ? _parseFile(data!['avatar'])
+              ? parseFile(data!['avatar'])
               : cached.avatar,
       banner: clear.contains('banner')
           ? null
           : data?.containsKey('banner') == true
-              ? _parseFile(data!['banner'])
+              ? parseFile(data!['banner'])
               : cached.banner,
       presence: clear.contains('status')
           ? UserPresence.invisible
