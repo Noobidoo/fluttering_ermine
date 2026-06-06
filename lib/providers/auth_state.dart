@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -237,6 +238,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     notifyListeners();
   }
 
+  StreamSubscription<Map<String, dynamic>>? _eventSub;
+
   // -- Internal --------------------------------------------------------------
 
   void _connectWebSocket() {
@@ -245,7 +248,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     _messagingState.subscribeToEvents();
     _voiceEventService.subscribeToWebSocketEvents();
     _voiceState.subscribeToVoiceEvents();
-    _service.events.listen(_handleEvent);
+    _eventSub?.cancel();
+    _eventSub = _service.events.listen(_handleEvent);
   }
 
   void _handleEvent(Map<String, dynamic> event) {
