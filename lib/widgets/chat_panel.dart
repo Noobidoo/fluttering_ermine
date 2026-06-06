@@ -27,10 +27,29 @@ class _ChatPanelState extends State<ChatPanel> {
   bool _showVoice = true;
   bool _splitMode = false;
   bool _maximized = false;
+  String? _lastLoadError;
 
   @override
   Widget build(BuildContext context) {
     final channel = context.watch<ServerState>().selectedChannel;
+    final messaging = context.watch<MessagingState>();
+
+    final error = channel != null ? messaging.currentChannelError : null;
+    if (error != null && error != _lastLoadError) {
+      _lastLoadError = error;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => context.read<MessagingState>().retryLoadMessages(),
+            ),
+          ),
+        );
+      });
+    }
 
     if (channel == null) {
       return const Center(
