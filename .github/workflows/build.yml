@@ -12,6 +12,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   prepare-version:
     name: Prepare Version
@@ -24,7 +27,7 @@ jobs:
       - name: Determine version label
         id: version
         run: |
-          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
           if [[ ! "$PUBSPEC_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             echo "Failed to parse semantic version from pubspec.yaml: '$PUBSPEC_VERSION'" >&2
             exit 1
