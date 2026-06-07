@@ -24,15 +24,10 @@ jobs:
       - name: Determine version label
         id: version
         run: |
-          TAG=$(git tag --points-at HEAD | head -n1)
-          if [ -n "$TAG" ]; then
-            echo "label=$TAG" >> "$GITHUB_OUTPUT"
-          else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
-            AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
-            echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
-          fi
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+          echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -70,18 +65,12 @@ jobs:
       - name: Determine version label
         id: version
         run: |
-          TAG=$(git tag --points-at HEAD | head -n1)
-          if [ -n "$TAG" ]; then
-            echo "label=$TAG" >> "$GITHUB_OUTPUT"
-            echo "package_version=$(echo "$TAG" | sed 's/^v//')" >> "$GITHUB_OUTPUT"
-          else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
-            AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
-            AUTO_VERSION="${MAJOR}.${MINOR}.${AUTO_PATCH}"
-            echo "label=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
-            echo "package_version=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
-          fi
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+          AUTO_VERSION="${MAJOR}.${MINOR}.${AUTO_PATCH}"
+          echo "label=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
+          echo "package_version=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Install Linux build dependencies
         run: |
@@ -183,15 +172,10 @@ jobs:
         id: version
         shell: bash
         run: |
-          TAG=$(git tag --points-at HEAD | head -n1)
-          if [ -n "$TAG" ]; then
-            echo "label=$TAG" >> "$GITHUB_OUTPUT"
-          else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
-            AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
-            echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
-          fi
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+          echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -233,15 +217,10 @@ jobs:
       - name: Determine version label
         id: version
         run: |
-          TAG=$(git tag --points-at HEAD | head -n1)
-          if [ -n "$TAG" ]; then
-            echo "label=$TAG" >> "$GITHUB_OUTPUT"
-          else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
-            AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
-            echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
-          fi
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+          echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Java
         uses: actions/setup-java@v4
