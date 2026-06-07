@@ -32,8 +32,8 @@ jobs:
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
           PATCH="${BASH_REMATCH[3]}"
-          # Increment patch for each workflow run and each rerun attempt.
-          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+          # Increment patch for each workflow run.
+          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER))
           echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Flutter
@@ -80,8 +80,8 @@ jobs:
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
           PATCH="${BASH_REMATCH[3]}"
-          # Increment patch for each workflow run and each rerun attempt.
-          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+          # Increment patch for each workflow run.
+          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER))
           AUTO_VERSION="${MAJOR}.${MINOR}.${AUTO_PATCH}"
           echo "label=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
           echo "package_version=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
@@ -194,8 +194,8 @@ jobs:
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
           PATCH="${BASH_REMATCH[3]}"
-          # Increment patch for each workflow run and each rerun attempt.
-          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+          # Increment patch for each workflow run.
+          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER))
           echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Flutter
@@ -246,8 +246,8 @@ jobs:
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
           PATCH="${BASH_REMATCH[3]}"
-          # Increment patch for each workflow run and each rerun attempt.
-          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+          # Increment patch for each workflow run.
+          AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER))
           echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Java
