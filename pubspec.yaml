@@ -13,8 +13,7 @@ dependencies:
   web_socket_channel: ^3.0.1
   provider: ^6.1.2
   shared_preferences: ^2.3.4
-  livekit_client: 2.8.0
-  flutter_webrtc:
+  livekit_client: ^2.7.0
   connectivity_plus_linux_portal:
     git:
       url: https://github.com/EchoEllet/dart-packages.git
