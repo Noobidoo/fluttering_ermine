@@ -25,7 +25,14 @@ jobs:
         id: version
         run: |
           PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+          if [[ ! "$PUBSPEC_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Failed to parse semantic version from pubspec.yaml: '$PUBSPEC_VERSION'" >&2
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          # Increment patch for each workflow run and each rerun attempt.
           AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
           echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
@@ -66,7 +73,14 @@ jobs:
         id: version
         run: |
           PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+          if [[ ! "$PUBSPEC_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Failed to parse semantic version from pubspec.yaml: '$PUBSPEC_VERSION'" >&2
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          # Increment patch for each workflow run and each rerun attempt.
           AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
           AUTO_VERSION="${MAJOR}.${MINOR}.${AUTO_PATCH}"
           echo "label=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
@@ -173,7 +187,14 @@ jobs:
         shell: bash
         run: |
           PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+          if [[ ! "$PUBSPEC_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Failed to parse semantic version from pubspec.yaml: '$PUBSPEC_VERSION'" >&2
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          # Increment patch for each workflow run and each rerun attempt.
           AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
           echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
@@ -218,7 +239,14 @@ jobs:
         id: version
         run: |
           PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+          if [[ ! "$PUBSPEC_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Failed to parse semantic version from pubspec.yaml: '$PUBSPEC_VERSION'" >&2
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          # Increment patch for each workflow run and each rerun attempt.
           AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
           echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
 
