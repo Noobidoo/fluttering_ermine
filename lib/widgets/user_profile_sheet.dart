@@ -34,25 +34,49 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
             ? user.banner
             : snapshot.data?.background;
 
+        final avatarFallback = SizedBox(
+          width: 64,
+          height: 64,
+          child: Center(
+            child: Text(
+              user.resolveDisplayName(null).isNotEmpty
+                  ? user.resolveDisplayName(null)[0].toUpperCase()
+                  : '?',
+              style: const TextStyle(fontSize: 24, color: Colors.white),
+            ),
+          ),
+        );
+
+        final avatarWidget = user.avatar != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: Image.network(
+                  user.resolveAvatarUrl(null, autumnBase, apiBase),
+                  width: 64,
+                  height: 64,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) =>
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 255, 0, 0),
+                          shape: BoxShape.circle,
+                        ),
+                        child: avatarFallback,
+                      ),
+                ),
+              )
+            : CircleAvatar(
+                radius: 32,
+                backgroundColor: const Color(0xFF7F5AF0),
+                child: avatarFallback,
+              );
+
         final avatarStack = Stack(
           clipBehavior: Clip.none,
           children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundImage: NetworkImage(
-                  user.resolveAvatarUrl(null, autumnBase, apiBase)),
-              backgroundColor: const Color(0xFF7F5AF0),
-              onBackgroundImageError: (_, __) {},
-              child: user.avatar != null
-                  ? null
-                  : Text(
-                      user.resolveDisplayName(null).isNotEmpty
-                          ? user.resolveDisplayName(null)[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                          fontSize: 24, color: Colors.white),
-                    ),
-            ),
+            avatarWidget,
             Positioned(
               right: -2,
               bottom: -2,
