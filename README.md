@@ -1,6 +1,6 @@
 # fluttering_ermine
 
-An open-source Flutter client for Revolt-compatible chat platforms. Targets Windows, Linux, macOS, Web, Android, and iOS.
+An open-source Flutter client for Stoat(Formerly Revolt)-compatible chat platforms. Targets Windows, Linux, macOS, Web, Android, and iOS.
 
 Supports core messaging with text, reply chains, inline editing, deletion, emoji reactions, and file attachments. Real-time updates come through a WebSocket connection. Voice channels use LiveKit for audio and screen sharing.
 
