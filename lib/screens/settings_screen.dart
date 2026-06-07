@@ -316,7 +316,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
       if (mounted) setState(() => _error = 'Avatar must be smaller than 6 MB');
       return;
     }
-    if (!context.mounted) return;
+    if (!mounted) return;
     final cropped = await CropDialog.show(
       context,
       imageBytes: bytes,
@@ -326,7 +326,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
     if (cropped == null) {
       return;
     }
-    if (!context.mounted) return;
+    if (!mounted) return;
     setState(() {
       _saving = true;
       _error = null;
@@ -363,7 +363,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
       if (mounted) setState(() => _error = 'Banner must be smaller than 6 MB');
       return;
     }
-    if (!context.mounted) return;
+    if (!mounted) return;
     final cropped = await CropDialog.show(
       context,
       imageBytes: bytes,
@@ -373,7 +373,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
     if (cropped == null) {
       return;
     }
-    if (!context.mounted) return;
+    if (!mounted) return;
     setState(() {
       _saving = true;
       _error = null;
