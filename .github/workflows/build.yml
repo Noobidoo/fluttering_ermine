@@ -28,8 +28,10 @@ jobs:
           if [ -n "$TAG" ]; then
             echo "label=$TAG" >> "$GITHUB_OUTPUT"
           else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-            echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+            AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+            echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Flutter
@@ -71,9 +73,14 @@ jobs:
           TAG=$(git tag --points-at HEAD | head -n1)
           if [ -n "$TAG" ]; then
             echo "label=$TAG" >> "$GITHUB_OUTPUT"
+            echo "package_version=$(echo "$TAG" | sed 's/^v//')" >> "$GITHUB_OUTPUT"
           else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-            echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+            AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+            AUTO_VERSION="${MAJOR}.${MINOR}.${AUTO_PATCH}"
+            echo "label=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
+            echo "package_version=$AUTO_VERSION" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install Linux build dependencies
@@ -120,10 +127,10 @@ jobs:
         run: |
           APP_DIR_NAME="fluttering_ermine"
           PACKAGE_NAME="fluttering-ermine"
-          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          PACKAGE_VERSION="${{ steps.version.outputs.package_version }}"
 
           DEB_ROOT="build/linux/deb"
-          DEB_OUTPUT="build/linux/${PACKAGE_NAME}_${PUBSPEC_VERSION}_amd64.deb"
+          DEB_OUTPUT="build/linux/${PACKAGE_NAME}_${PACKAGE_VERSION}_amd64.deb"
 
           rm -rf "$DEB_ROOT"
           mkdir -p "$DEB_ROOT/DEBIAN"
@@ -134,7 +141,7 @@ jobs:
 
           cat > "$DEB_ROOT/DEBIAN/control" <<EOF
           Package: $PACKAGE_NAME
-          Version: $PUBSPEC_VERSION
+          Version: $PACKAGE_VERSION
           Section: utils
           Priority: optional
           Architecture: amd64
@@ -180,8 +187,10 @@ jobs:
           if [ -n "$TAG" ]; then
             echo "label=$TAG" >> "$GITHUB_OUTPUT"
           else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-            echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+            AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+            echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Flutter
@@ -228,8 +237,10 @@ jobs:
           if [ -n "$TAG" ]; then
             echo "label=$TAG" >> "$GITHUB_OUTPUT"
           else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-            echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
+            AUTO_PATCH=$((PATCH + GITHUB_RUN_NUMBER + GITHUB_RUN_ATTEMPT - 1))
+            echo "label=${MAJOR}.${MINOR}.${AUTO_PATCH}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Java
