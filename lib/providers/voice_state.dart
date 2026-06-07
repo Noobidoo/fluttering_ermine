@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,6 +76,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _noiseSuppression = true;
   bool _echoCancellation = true;
   bool _autoGainControl = true;
+  String? _defaultAudioInputId;
 
   // -- Per-participant screen share subscriptions -----------------------------
   final Set<String> _subscribedScreenShares = {};
@@ -95,14 +97,21 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool get echoCancellation => _echoCancellation;
   bool get autoGainControl => _autoGainControl;
 
+  // Returns true if the given participant's screen share is currently subscribed.
   bool isScreenShareSubscribed(String identity) => _subscribedScreenShares.contains(identity);
 
+  // Returns true if the track should be auto-subscribed based on its source and the participant's identity.
+  bool _shouldSubscribeTrack(RemoteTrackPublication publication) =>
+      !publication.isScreenShare || isScreenShareSubscribed(publication.participant.identity);
+
+  // Returns the list of userIds currently in the given voice channel, or null if the channel is not active.
   List<String> voiceParticipantsFor(String channelId) =>
       List.unmodifiable(_voiceChannelMembers[channelId] ?? []);
 
   /// Returns null if state unknown, true if mic active, false if muted.
   bool? voicePublishingFor(String userId) => _voicePublishing[userId];
 
+  // Returns a list of active remote video streams in the current voice room.
   List<RemoteVideoStream> get remoteVideoStreams {
     if (_voiceRoom == null) return const [];
     final streams = <RemoteVideoStream>[];
@@ -338,12 +347,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           notifyListeners();
         })
         ..on<TrackPublishedEvent>((e) {
-          debugPrint('[voice:event] TrackPublishedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
-          if (e.publication.isScreenShare) {
-            if (_subscribedScreenShares.contains(e.participant.identity)) {
-              e.publication.subscribe();
-            }
-          } else {
+          final willSubscribe = _shouldSubscribeTrack(e.publication);
+          if (willSubscribe) {
             e.publication.subscribe();
           }
           notifyListeners();
@@ -373,8 +378,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         ..on<ActiveSpeakersChangedEvent>((_) => notifyListeners());
 
       await room.connect(url, token, connectOptions: const ConnectOptions(autoSubscribe: false));
-      _subscribeInitialTracks();
-      debugPrint('[voice] room.connect() returned, isInVoice=$_isInVoice');
       _isMuted = false;
       final lp = room.localParticipant;
       if (lp == null) {
@@ -382,10 +385,16 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         throw Exception('Failed to get local participant');
       }
       debugPrint('[voice] localParticipant identity=${lp.identity}');
+      // Enumerate devices first to get the default mic deviceId
+      // TODO: remove deviceId workaround once flutter-webrtc#2071 is resolved
+      _defaultAudioInputId = await _getDefaultAudioInputId();
+      // Enable mic before subscribing to ensure ADM is fully initialized before
+      // remote audio sinks are wired up.
       try {
          await lp.setMicrophoneEnabled(
            true,
            audioCaptureOptions: AudioCaptureOptions(
+                   deviceId: _defaultAudioInputId,
                    noiseSuppression: _noiseSuppression,
                    echoCancellation: _echoCancellation,
                    autoGainControl: _autoGainControl,
@@ -396,8 +405,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
          debugPrint('[voice] mic enable failed: $micErr');
          _voiceError = 'Failed to access microphone';
       }
+      _subscribeInitialTracks();
       // Apply stored output volume to any already-connected remote participants
-      //_applyOutputVolume();
+      _applyOutputVolume();
     } catch (e) {
       debugPrint('[voice] join failed: $e');
       _voiceError = e.toString().replaceAll('Exception: ', '');
@@ -469,17 +479,16 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       if (pub.isScreenShare) pub.unsubscribe();
     }
   }
-
-  /// Subscribes to audio/camera for all participants, screen shares only if opted in.
   void _subscribeInitialTracks() {
-    if (_voiceRoom == null) return;
+    if (_voiceRoom == null) {
+      debugPrint('[voice:subscribe] _subscribeInitialTracks: room is null');
+      return;
+    }
+    debugPrint('[voice:subscribe] _subscribeInitialTracks: ${_voiceRoom!.remoteParticipants.length} remote participants');
     for (final p in _voiceRoom!.remoteParticipants.values) {
       for (final pub in p.trackPublications.values) {
-        if (pub.isScreenShare) {
-          if (_subscribedScreenShares.contains(p.identity)) {
-            pub.subscribe();
-          }
-        } else {
+        final shouldSub = _shouldSubscribeTrack(pub);
+        if (shouldSub) {
           pub.subscribe();
         }
       }
@@ -602,6 +611,19 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   void _applyOutputVolume() {
     applyLiveKitVolume(_outputVolume);
+  }
+
+  Future<String?> _getDefaultAudioInputId() async {
+    try {
+      final devices = await rtc.navigator.mediaDevices.enumerateDevices();
+      for (final d in devices) {
+        if (d.kind == 'audioinput') return d.deviceId;
+      }
+    } catch (e) {
+      debugPrint('[voice] Failed to enumerate devices: $e');
+    }
+
+    return null;
   }
 
   Future<void> setOutputVolume(double volume) async {
