@@ -401,10 +401,8 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
 
     // Uncached user: fetch from API
     _service.fetchUser(userId).then((user) {
-      if (user != null) {
-        _userCache[user.id] = user;
-        notifyListeners();
-      }
+      _userCache[user.id] = user;
+      notifyListeners();
     }).catchError((_) {});
   }
 
