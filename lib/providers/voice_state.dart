@@ -677,11 +677,12 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _deepFilterEnabled = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('voice_deep_filter_enabled', value);
-    if (_voiceRoom != null && _isInVoice && value) {
-      // Re-attach if currently in voice and enabling
+    if (_deepFilterProcessor != null) {
+      // APM hook is already attached — toggle instantly via the atomic flag
+      _deepFilterProcessor!.setEnabled(value);
+    } else if (_voiceRoom != null && _isInVoice && value) {
+      // Not yet attached (e.g. was disabled on join) — attach now
       await _attachDeepFilter();
-    } else if (!value) {
-      await _detachDeepFilter();
     }
     notifyListeners();
   }
@@ -705,6 +706,12 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         debugPrint('[voice:df] _attachDeepFilter: processor created, about to setProcessor');
         await (audioPub!.track as LocalAudioTrack)
             .setProcessor(_deepFilterProcessor!);
+        // setProcessor on an already-published track does not call onPublish,
+        // so the processor's _published flag stays false and setApmEnabled is
+        // never invoked. Call onPublish explicitly to activate processing.
+        if (!_deepFilterProcessor!.isProcessing && _voiceRoom != null) {
+          await _deepFilterProcessor!.onPublish(_voiceRoom!);
+        }
         debugPrint('[voice:df] _attachDeepFilter: processor attached to track');
       } else {
         debugPrint('[voice:df] _attachDeepFilter: no audio track found');
