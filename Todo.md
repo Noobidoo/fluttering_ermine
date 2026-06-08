@@ -88,6 +88,8 @@
 - [ ] **Read marker** — visual line/indicator in chat showing where the last read message is
 - [ ] **Mention popup dual-name display** — show server nickname first, then global username if both exist
 - [ ] **Localization** — `flutter_localizations` + `intl`; `.arb` files, EN first
+- [ ] **Remeber email** — Remeber email even if password wrong
+- [ ] **Remeber custom url** — Remeber server url even if password wrong
 
 ---
 
