@@ -14,6 +14,7 @@ dependencies:
   provider: ^6.1.2
   shared_preferences: ^2.3.4
   livekit_client: ^2.7.0
+  flutter_webrtc: ^1.4.0
   connectivity_plus_linux_portal:
     git:
       url: https://github.com/EchoEllet/dart-packages.git
@@ -23,6 +24,8 @@ dependencies:
   url_launcher: ^6.3.0
   web: ^1.1.1
   image: ^4.8.0
+  deepfilter_livekit:
+    path: ../deepfilter_livekit
 
 dependency_overrides:
   flutter_webrtc:

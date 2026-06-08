@@ -617,6 +617,20 @@ class _UserBar extends StatelessWidget {
 class _VoiceBar extends StatelessWidget {
   const _VoiceBar();
 
+  Color _deepFilterColor(VoiceState voice) {
+    if (!voice.deepFilterEnabled) return Colors.white38;
+    if (!VoiceState.deepFilterIsRealLibrary) return Colors.orange;
+    if (!VoiceState.deepFilterIsApmAttached) return Colors.amber;
+    return const Color(0xFF2CB67D);
+  }
+
+  String _deepFilterTooltip(VoiceState voice) {
+    if (!voice.deepFilterEnabled) return 'Neural noise suppression: off';
+    if (!VoiceState.deepFilterIsRealLibrary) return 'Neural noise suppression: stub (library not loaded)';
+    if (!VoiceState.deepFilterIsApmAttached) return 'Neural noise suppression: initializing…';
+    return 'Neural noise suppression: active';
+  }
+
   @override
   Widget build(BuildContext context) {
     final voice = context.watch<VoiceState>();
@@ -638,51 +652,129 @@ class _VoiceBar extends StatelessWidget {
               Text('Connecting to voice…',
                   style: TextStyle(color: Colors.white54, fontSize: 12)),
             ])
-          : Row(
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.graphic_eq,
-                    size: 16, color: Color(0xFF2CB67D)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Voice Connected',
-                          style: TextStyle(
-                              color: Color(0xFF2CB67D),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600)),
-                      Text(channelName,
-                          style: const TextStyle(
-                              color: Colors.white54, fontSize: 11),
-                          overflow: TextOverflow.ellipsis),
+                Row(
+                  children: [
+                    const Icon(Icons.graphic_eq,
+                        size: 16, color: Color(0xFF2CB67D)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('Voice Connected',
+                              style: TextStyle(
+                                  color: Color(0xFF2CB67D),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600)),
+                          Text(channelName,
+                              style: const TextStyle(
+                                  color: Colors.white54, fontSize: 11),
+                              overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    if (VoiceState.deepFilterSupported) ...[
+                      Tooltip(
+                        message: _deepFilterTooltip(voice),
+                        child: IconButton(
+                          icon: Icon(
+                            voice.deepFilterEnabled
+                                ? Icons.noise_aware
+                                : Icons.noise_control_off,
+                            size: 18,
+                            color: _deepFilterColor(voice),
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => context
+                              .read<VoiceState>()
+                              .setDeepFilterEnabled(!voice.deepFilterEnabled),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
                     ],
-                  ),
+                    IconButton(
+                      icon: Icon(
+                        voice.isMuted ? Icons.mic_off : Icons.mic,
+                        size: 18,
+                        color: voice.isMuted ? Colors.redAccent : Colors.white70,
+                      ),
+                      tooltip: voice.isMuted ? 'Unmute' : 'Mute',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => context.read<VoiceState>().toggleMute(),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.call_end,
+                          size: 18, color: Colors.redAccent),
+                      tooltip: 'Leave voice',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () =>
+                          context.read<VoiceState>().leaveVoiceChannel(),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: Icon(
-                    voice.isMuted ? Icons.mic_off : Icons.mic,
-                    size: 18,
-                    color: voice.isMuted ? Colors.redAccent : Colors.white70,
-                  ),
-                  tooltip: voice.isMuted ? 'Unmute' : 'Mute',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () => context.read<VoiceState>().toggleMute(),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.call_end,
-                      size: 18, color: Colors.redAccent),
-                  tooltip: 'Leave voice',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () =>
-                      context.read<VoiceState>().leaveVoiceChannel(),
-                ),
+                if (VoiceState.deepFilterSupported)
+                  const _DeepFilterStatusRow(),
               ],
             ),
-     );
-   }
+    );
+  }
+}
+
+class _DeepFilterStatusRow extends StatelessWidget {
+  const _DeepFilterStatusRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final voice = context.watch<VoiceState>();
+    final isReal = VoiceState.deepFilterIsRealLibrary;
+    final isActive = VoiceState.deepFilterIsApmAttached;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Icon(
+            isReal ? Icons.check_circle_outline : Icons.error_outline,
+            size: 11,
+            color: isReal ? const Color(0xFF2CB67D) : Colors.orange,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            isReal ? 'DeepFilter' : 'DeepFilter (stub)',
+            style: TextStyle(
+              fontSize: 10,
+              color: isReal ? Colors.white38 : Colors.orange,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            isActive ? Icons.graphic_eq : Icons.mic_off,
+            size: 11,
+            color: isActive ? const Color(0xFF2CB67D) : Colors.white38,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            isActive
+                ? 'APM active'
+                : voice.deepFilterEnabled
+                    ? 'APM inactive'
+                    : 'disabled',
+            style: TextStyle(
+              fontSize: 10,
+              color: isActive ? const Color(0xFF2CB67D) : Colors.white38,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

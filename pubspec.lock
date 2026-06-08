@@ -154,6 +154,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.13"
+  deepfilter_livekit:
+    dependency: "direct main"
+    description:
+      path: "../deepfilter_livekit"
+      relative: true
+    source: path
+    version: "0.1.0"
   device_info_plus:
     dependency: transitive
     description:
@@ -250,13 +257,11 @@ packages:
     source: sdk
     version: "0.0.0"
   flutter_webrtc:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
-      path: "."
-      ref: main
-      resolved-ref: "978849b90adfaa6d52381c82cf1fbd74ccf5731b"
-      url: "https://github.com/flutter-webrtc/flutter-webrtc.git"
-    source: git
+      path: "J:\\Development\\flutter-webrtc"
+      relative: false
+    source: path
     version: "1.4.1"
   hooks:
     dependency: transitive

@@ -911,6 +911,30 @@ class _VoiceSection extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          const Text('Neural Noise Suppression',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+          _SettingsCard(
+            children: [
+              _ToggleRow(
+                label: 'DeepFilterNet',
+                subtitle: VoiceState.deepFilterSupported
+                    ? 'AI-powered real-time noise cancellation (replaces WebRTC NS)'
+                    : 'Not available — prebuilt binary not found for this platform',
+                value: VoiceState.deepFilterSupported
+                    ? voice.deepFilterEnabled
+                    : false,
+                onChanged: VoiceState.deepFilterSupported
+                    ? (v) =>
+                        context.read<VoiceState>().setDeepFilterEnabled(v)
+                    : (_) {},
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           const Text(
             'Voice processing options take effect the next time you join a channel.',
