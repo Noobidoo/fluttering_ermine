@@ -920,18 +920,22 @@ class _VoiceSection extends StatelessWidget {
           const SizedBox(height: 10),
           _SettingsCard(
             children: [
-              _ToggleRow(
-                label: 'DeepFilterNet',
-                subtitle: VoiceState.deepFilterSupported
-                    ? 'AI-powered real-time noise cancellation (replaces WebRTC NS)'
-                    : 'Not available — prebuilt binary not found for this platform',
-                value: VoiceState.deepFilterSupported
-                    ? voice.deepFilterEnabled
-                    : false,
-                onChanged: VoiceState.deepFilterSupported
-                    ? (v) =>
-                        context.read<VoiceState>().setDeepFilterEnabled(v)
-                    : (_) {},
+              Opacity(
+                opacity: VoiceState.deepFilterSupported ? 1.0 : 0.5,
+                child: IgnorePointer(
+                  ignoring: !VoiceState.deepFilterSupported,
+                  child: _ToggleRow(
+                    label: 'DeepFilterNet',
+                    subtitle: VoiceState.deepFilterSupported
+                        ? 'AI-powered real-time noise cancellation (replaces WebRTC NS)'
+                        : 'Not available — prebuilt binary not found for this platform',
+                    value: VoiceState.deepFilterSupported
+                        ? voice.deepFilterEnabled
+                        : false,
+                    onChanged: (v) =>
+                        context.read<VoiceState>().setDeepFilterEnabled(v),
+                  ),
+                ),
               ),
             ],
           ),
