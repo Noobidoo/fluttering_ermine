@@ -716,9 +716,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       } else {
         debugPrint('[voice:df] _attachDeepFilter: no audio track found');
       }
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('[voice:df] _attachDeepFilter: FAILED: $e');
-      debugPrint('[voice:df] _attachDeepFilter: stack: ${StackTrace.current}');
+      debugPrint('[voice:df] _attachDeepFilter: stack: $st');
     }
     debugPrint('[voice:df] _attachDeepFilter: exit');
   }
