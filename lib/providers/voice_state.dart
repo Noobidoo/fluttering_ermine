@@ -747,7 +747,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _voiceRoom?.disconnect();
     _voiceRoomListener?.dispose();
     _subscribedScreenShares.clear();
-    _detachDeepFilter();
+    unawaited(_detachDeepFilter());
     super.dispose();
   }
 }
