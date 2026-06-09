@@ -94,7 +94,7 @@ packages:
     description:
       path: "packages/connectivity_plus_linux_portal"
       ref: HEAD
-      resolved-ref: a761d46da905746b75a33f93a6f1dc7039e33609
+      resolved-ref: "4244700e2f2a99cf777d1e94c8ad9942f9b9432a"
       url: "https://github.com/EchoEllet/dart-packages.git"
     source: git
     version: "0.0.4"
@@ -159,7 +159,7 @@ packages:
     description:
       path: "."
       ref: "v0.1.3"
-      resolved-ref: "95d113ac2f32c2405c6e406a967d1fb22112bdb7"
+      resolved-ref: "15d5f98a493adf8dd0d6729e6d9a1dd6bc526bc1"
       url: "https://github.com/Noobidoo/deepfilter_livekit"
     source: git
     version: "0.1.3"
@@ -244,10 +244,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_plugin_android_lifecycle
-      sha256: "38d1c268de9097ff59cf0e844ac38759fc78f76836d37edad06fa21e182055a0"
+      sha256: "3854fe5e3bff0b113c658f260b90c95dea17c92db0f2addeac2e343dd9969785"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.34"
+    version: "2.0.35"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -367,10 +367,10 @@ packages:
     dependency: "direct main"
     description:
       name: livekit_client
-      sha256: "23a71bf6c94f83c0d1146c7ced8b863a5f8fe57c5e3007ea5f1b2881066b4126"
+      sha256: e1ab69a6142de737e89489b099af9da103c3dd156d5ac36f9e7bd8b7edd17ec5
       url: "https://pub.dev"
     source: hosted
-    version: "2.7.0"
+    version: "2.8.0"
   logger:
     dependency: transitive
     description:
@@ -655,10 +655,10 @@ packages:
     dependency: transitive
     description:
       name: shared_preferences_android
-      sha256: "67724122431ea01d9318ad1ce08b6ca79f77a38366826f01a45a8ac61b693a01"
+      sha256: a2c49fc1fed7140cadd892d765bd47edbe4ac0b9c7e7e3c493dcb58126f99cf0
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.24"
+    version: "2.4.25"
   shared_preferences_foundation:
     dependency: transitive
     description:
@@ -780,10 +780,10 @@ packages:
     dependency: transitive
     description:
       name: url_launcher_android
-      sha256: "8a46fcbcd5b865e87053fc5096101d12f56f3fe352c42aa621e7fec9290054b7"
+      sha256: b413d49b73867ac08dd2f9890efd3cc11f2a0e577618d50843440a1fb3776c32
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.31"
+    version: "6.3.32"
   url_launcher_ios:
     dependency: transitive
     description:
