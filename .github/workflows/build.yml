@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: |
           if [ "${{ inputs.upgrade_lock }}" = "true" ]; then
-            flutter pub upgrade flutter_webrtc
+            flutter pub upgrade flutter_webrtc deepfilter_livekit
           else
             flutter pub get
           fi
