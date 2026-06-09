@@ -159,7 +159,7 @@ packages:
     description:
       path: "."
       ref: "v0.1.3"
-      resolved-ref: "15d5f98a493adf8dd0d6729e6d9a1dd6bc526bc1"
+      resolved-ref: b046bafd157839b4b89b18127e83f8472ad6afd6
       url: "https://github.com/Noobidoo/deepfilter_livekit"
     source: git
     version: "0.1.3"
