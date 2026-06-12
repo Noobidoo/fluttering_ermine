@@ -48,3 +48,7 @@ pubspec_overrides.yaml
 
 # Standalone wiki repo (not a submodule)
 wiki/
+
+# Integration test credentials
+integration_test/.env
+integration_test/env.g.dart
