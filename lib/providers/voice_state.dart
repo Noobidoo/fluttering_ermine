@@ -618,12 +618,12 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   // -- Settings ------------------------------------------------------------
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    _outputVolume = prefs.getDouble('voice_output_volume') ?? 1.0;
-    _noiseSuppression = prefs.getBool('voice_noise_suppression') ?? true;
-    _echoCancellation = prefs.getBool('voice_echo_cancellation') ?? true;
-    _autoGainControl = prefs.getBool('voice_auto_gain_control') ?? true;
-    _deepFilterEnabled = prefs.getBool('voice_deep_filter_enabled') ?? true;
+    final asyncPrefs = SharedPreferencesAsync();
+    _outputVolume = await asyncPrefs.getDouble('voice_output_volume') ?? 1.0;
+    _noiseSuppression = await asyncPrefs.getBool('voice_noise_suppression') ?? true;
+    _echoCancellation = await asyncPrefs.getBool('voice_echo_cancellation') ?? true;
+    _autoGainControl = await asyncPrefs.getBool('voice_auto_gain_control') ?? true;
+    _deepFilterEnabled = await asyncPrefs.getBool('voice_deep_filter_enabled') ?? true;
     notifyListeners();
   }
 
@@ -647,36 +647,36 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> setOutputVolume(double volume) async {
     _outputVolume = volume.clamp(0.0, 1.0);
     _applyOutputVolume();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('voice_output_volume', volume);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setDouble('voice_output_volume', volume);
     notifyListeners();
   }
 
   Future<void> setNoiseSuppression(bool value) async {
     _noiseSuppression = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('voice_noise_suppression', value);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setBool('voice_noise_suppression', value);
     notifyListeners();
   }
 
   Future<void> setEchoCancellation(bool value) async {
     _echoCancellation = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('voice_echo_cancellation', value);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setBool('voice_echo_cancellation', value);
     notifyListeners();
   }
 
   Future<void> setAutoGainControl(bool value) async {
     _autoGainControl = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('voice_auto_gain_control', value);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setBool('voice_auto_gain_control', value);
     notifyListeners();
   }
 
   Future<void> setDeepFilterEnabled(bool value) async {
     _deepFilterEnabled = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('voice_deep_filter_enabled', value);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setBool('voice_deep_filter_enabled', value);
     if (_deepFilterProcessor != null) {
       // APM hook is already attached — toggle instantly via the atomic flag
       _deepFilterProcessor!.setEnabled(value);

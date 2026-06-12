@@ -12,7 +12,7 @@ dependencies:
   http: ^1.2.2
   web_socket_channel: ^3.0.1
   provider: ^6.1.2
-  shared_preferences: ^2.3.4
+  shared_preferences: ^2.5.5
   livekit_client: ^2.7.0
   flutter_webrtc: ^1.4.0
   connectivity_plus_linux_portal:
@@ -41,6 +41,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.1
   mocktail: ^1.0.0
+  shared_preferences_platform_interface: ^2.4.2
 
 flutter:
   uses-material-design: true

@@ -52,17 +52,17 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   Future<void> init() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedApi = prefs.getString(_apiBaseKey);
-      final savedWs = prefs.getString(_wsUrlKey);
-      final savedAutumn = prefs.getString(_autumnBaseKey);
+      final asyncPrefs = SharedPreferencesAsync();
+      final savedApi = await asyncPrefs.getString(_apiBaseKey);
+      final savedWs = await asyncPrefs.getString(_wsUrlKey);
+      final savedAutumn = await asyncPrefs.getString(_autumnBaseKey);
       if (savedApi != null && savedWs != null) {
         _service.setServerUrl(savedApi, savedWs);
       }
       if (savedAutumn != null) {
         _service.setAutumnUrl(savedAutumn);
       }
-      final token = prefs.getString(_tokenKey);
+      final token = await asyncPrefs.getString(_tokenKey);
       if (token == null) return;
       _service.setToken(token);
       try {
@@ -80,8 +80,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       _connectWebSocket();
       _isLoggedIn = true;
     } catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_tokenKey);
+      final asyncPrefs = SharedPreferencesAsync();
+      await asyncPrefs.remove(_tokenKey);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -103,10 +103,10 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     _service.setServerUrl(apiBase, wsUrl);
     _service.setAutumnUrl(autumnBase);
     _service.setVoiceNode(voiceNode);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_apiBaseKey, apiBase);
-    await prefs.setString(_wsUrlKey, wsUrl);
-    await prefs.setString(_autumnBaseKey, autumnBase);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setString(_apiBaseKey, apiBase);
+    await asyncPrefs.setString(_wsUrlKey, wsUrl);
+    await asyncPrefs.setString(_autumnBaseKey, autumnBase);
     notifyListeners();
   }
 
@@ -126,8 +126,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       }
       final token = result['token'] as String;
       _service.setToken(token);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_tokenKey, token);
+      final asyncPrefs = SharedPreferencesAsync();
+      await asyncPrefs.setString(_tokenKey, token);
       _currentUser = await _service.fetchSelf();
       _messagingState.setCurrentUserId(_currentUser!.id);
       _connectWebSocket();
@@ -148,8 +148,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.remove(_tokenKey);
     try {
       await _service.logout();
     } catch (_) {}
@@ -159,9 +159,9 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     _service.disconnect();
     _isLoggedIn = false;
     _currentUser = null;
-    await prefs.remove(_apiBaseKey);
-    await prefs.remove(_wsUrlKey);
-    await prefs.remove(_autumnBaseKey);
+    await asyncPrefs.remove(_apiBaseKey);
+    await asyncPrefs.remove(_wsUrlKey);
+    await asyncPrefs.remove(_autumnBaseKey);
     _service.setServerUrl('https://api.revolt.chat', _defaultWsUrl);
     _service.setAutumnUrl('https://autumn.revolt.chat');
     notifyListeners();

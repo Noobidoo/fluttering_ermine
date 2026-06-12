@@ -6,7 +6,8 @@
 // are not unit-tested here.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:fluttering_ermine/providers/voice_state.dart';
 import 'package:fluttering_ermine/services/voice_event_service.dart';
@@ -43,8 +44,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    // VoiceState._loadSettings uses SharedPreferences - use in-memory store.
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
   });
 
   late FakeRevoltService svc;
@@ -166,7 +166,8 @@ void main() {
       // channel membership is preserved by clear (only clears subs + LiveKit state)
     });
 
-    test('dispose does not throw', () {
+    test('dispose does not throw', () async {
+      await Future(() {});
       expect(() => voiceState.dispose(), returnsNormally);
     });
   });
@@ -309,6 +310,11 @@ void main() {
   // -- Settings ---------------------------------------------------------------
 
   group('VoiceState – settings', () {
+    setUp(() async {
+      // Ensure async _loadSettings completes before settings tests.
+      await Future(() {});
+    });
+
     test('setOutputVolume updates volume and notifies', () async {
       var notified = false;
       voiceState.addListener(() => notified = true);
