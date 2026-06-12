@@ -1,0 +1,29 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+
+  - repo: local
+    hooks:
+      - id: dart-format
+        name: Format check
+        entry: dart format --set-exit-if-changed lib/ test/
+        language: system
+        types: [dart]
+
+      - id: flutter-analyze
+        name: Flutter analyze
+        entry: flutter analyze
+        language: system
+        pass_filenames: false
+        types: [dart]
+
+      - id: flutter-test
+        name: Flutter test
+        entry: flutter test
+        language: system
+        pass_filenames: false
+        types: [dart]
