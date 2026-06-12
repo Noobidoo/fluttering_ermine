@@ -33,6 +33,7 @@ class ServerRail extends StatelessWidget {
               itemBuilder: (_, i) {
                 final srv = server.servers[i];
                 return _RailIcon(
+                  key: ValueKey('server_${srv.id}'),
                   tooltip: srv.name,
                   selected: server.selectedServer?.id == srv.id,
                   hasUnread: server.serverUnreadCount(srv.id) > 0,
@@ -151,6 +152,7 @@ class _RailIcon extends StatelessWidget {
   final Widget child;
 
   const _RailIcon({
+    super.key,
     required this.tooltip,
     required this.selected,
     required this.onTap,

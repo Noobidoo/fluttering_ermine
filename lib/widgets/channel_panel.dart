@@ -63,7 +63,7 @@ class ChannelPanel extends StatelessWidget {
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: channels.length,
-                    itemBuilder: (_, i) => _ChannelTile(channels[i]),
+                    itemBuilder: (_, i) => _ChannelTile(channels[i], key: ValueKey('channel_${channels[i].id}')),
                   ),
           ),
           if (auth.currentUser != null)
@@ -77,7 +77,7 @@ class ChannelPanel extends StatelessWidget {
 
 class _ChannelTile extends StatelessWidget {
   final RevoltChannel channel;
-  const _ChannelTile(this.channel);
+  const _ChannelTile(this.channel, {super.key});
 
   IconData _icon() => switch (channel.type) {
         ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
