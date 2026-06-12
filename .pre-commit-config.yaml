@@ -10,8 +10,9 @@ repos:
     hooks:
       - id: dart-format
         name: Format check
-        entry: dart format --set-exit-if-changed lib/ test/
+        entry: dart format --set-exit-if-changed
         language: system
+        pass_filenames: true
         types: [dart]
 
       - id: flutter-analyze

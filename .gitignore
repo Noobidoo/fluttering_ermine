@@ -51,4 +51,4 @@ wiki/
 
 # Integration test credentials
 integration_test/.env
-integration_test/env.g.dart
+integration_test/env_values.dart
