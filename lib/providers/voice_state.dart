@@ -104,7 +104,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool get deepFilterEnabled => _deepFilterEnabled;
   static bool get deepFilterSupported => DeepFilterProcessor.isSupported;
   static bool get deepFilterIsRealLibrary => DeepFilterProcessor.isRealLibrary;
-  static bool get deepFilterIsApmAttached => DeepFilterProcessor.isApmAttached;
+  bool get deepFilterIsApmAttached =>
+      _deepFilterProcessor?.isProcessing ?? false;
 
   // Returns true if the given participant's screen share is currently subscribed.
   bool isScreenShareSubscribed(String identity) => _subscribedScreenShares.contains(identity);
@@ -696,6 +697,10 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     debugPrint('[voice:df] _attachDeepFilter: isSupported=${DeepFilterProcessor.isSupported}');
     if (!DeepFilterProcessor.isSupported) return;
     try {
+      // On Android, ensure the APM hook is attached after flutter_webrtc init
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        await DeepFilterProcessor.attachApmHook();
+      }
       final audioPub = _voiceRoom?.localParticipant?.trackPublications.values
           .where((pub) => pub.kind == TrackType.AUDIO)
           .firstOrNull;

@@ -620,14 +620,14 @@ class _VoiceBar extends StatelessWidget {
   Color _deepFilterColor(VoiceState voice) {
     if (!voice.deepFilterEnabled) return Colors.white38;
     if (!VoiceState.deepFilterIsRealLibrary) return Colors.orange;
-    if (!VoiceState.deepFilterIsApmAttached) return Colors.amber;
+    if (!voice.deepFilterIsApmAttached) return Colors.amber;
     return const Color(0xFF2CB67D);
   }
 
   String _deepFilterTooltip(VoiceState voice) {
     if (!voice.deepFilterEnabled) return 'Neural noise suppression: off';
     if (!VoiceState.deepFilterIsRealLibrary) return 'Neural noise suppression: stub (library not loaded)';
-    if (!VoiceState.deepFilterIsApmAttached) return 'Neural noise suppression: initializing…';
+    if (!voice.deepFilterIsApmAttached) return 'Neural noise suppression: initializing…';
     return 'Neural noise suppression: active';
   }
 
@@ -736,7 +736,7 @@ class _DeepFilterStatusRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final voice = context.watch<VoiceState>();
     final isReal = VoiceState.deepFilterIsRealLibrary;
-    final isActive = VoiceState.deepFilterIsApmAttached;
+    final isActive = voice.deepFilterIsApmAttached;
 
     return Padding(
       padding: const EdgeInsets.only(top: 3),
