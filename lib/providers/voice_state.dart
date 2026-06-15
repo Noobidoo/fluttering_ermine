@@ -108,11 +108,13 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _deepFilterProcessor?.isProcessing ?? false;
 
   // Returns true if the given participant's screen share is currently subscribed.
-  bool isScreenShareSubscribed(String identity) => _subscribedScreenShares.contains(identity);
+  bool isScreenShareSubscribed(String identity) =>
+      _subscribedScreenShares.contains(identity);
 
   // Returns true if the track should be auto-subscribed based on its source and the participant's identity.
   bool _shouldSubscribeTrack(RemoteTrackPublication publication) =>
-      !publication.isScreenShare || isScreenShareSubscribed(publication.participant.identity);
+      !publication.isScreenShare ||
+      isScreenShareSubscribed(publication.participant.identity);
 
   // Returns the list of userIds currently in the given voice channel, or null if the channel is not active.
   List<String> voiceParticipantsFor(String channelId) =>
@@ -130,11 +132,13 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         if (pub.track is VideoTrack &&
             (pub.source == TrackSource.camera ||
                 pub.source == TrackSource.screenShareVideo)) {
-          streams.add(RemoteVideoStream(
-            track: pub.track as VideoTrack,
-            participantIdentity: p.identity,
-            source: pub.source,
-          ));
+          streams.add(
+            RemoteVideoStream(
+              track: pub.track as VideoTrack,
+              participantIdentity: p.identity,
+              source: pub.source,
+            ),
+          );
         }
       }
     }
@@ -146,28 +150,34 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     final result = <VoiceParticipant>[];
     final local = _voiceRoom!.localParticipant;
     if (local != null) {
-      result.add(VoiceParticipant(
-        identity: local.identity,
-        name: local.name,
-        isLocal: true,
-        isMuted: _isMuted,
-        isSpeaking: local.isSpeaking,
-        isScreenSharing: _isScreenSharing,
-      ));
+      result.add(
+        VoiceParticipant(
+          identity: local.identity,
+          name: local.name,
+          isLocal: true,
+          isMuted: _isMuted,
+          isSpeaking: local.isSpeaking,
+          isScreenSharing: _isScreenSharing,
+        ),
+      );
     }
     for (final p in _voiceRoom!.remoteParticipants.values) {
       final audioMuted = p.trackPublications.values
           .where((pub) => pub.kind == TrackType.AUDIO)
           .every((pub) => pub.muted);
-      final hasScreenShare = p.trackPublications.values.any((pub) => pub.isScreenShare);
-      result.add(VoiceParticipant(
-        identity: p.identity,
-        name: p.name,
-        isLocal: false,
-        isMuted: audioMuted,
-        isSpeaking: p.isSpeaking,
-        isScreenSharing: hasScreenShare,
-      ));
+      final hasScreenShare = p.trackPublications.values.any(
+        (pub) => pub.isScreenShare,
+      );
+      result.add(
+        VoiceParticipant(
+          identity: p.identity,
+          name: p.name,
+          isLocal: false,
+          isMuted: audioMuted,
+          isSpeaking: p.isSpeaking,
+          isScreenSharing: hasScreenShare,
+        ),
+      );
     }
     return result;
   }
@@ -177,8 +187,12 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   void subscribeToVoiceEvents() {
     _membershipSub?.cancel();
     _publishingSub?.cancel();
-    _membershipSub = _voiceEventService.membershipEvents.listen(_handleMembershipEvent);
-    _publishingSub = _voiceEventService.publishingEvents.listen(_handlePublishingEvent);
+    _membershipSub = _voiceEventService.membershipEvents.listen(
+      _handleMembershipEvent,
+    );
+    _publishingSub = _voiceEventService.publishingEvents.listen(
+      _handlePublishingEvent,
+    );
   }
 
   void _handleMembershipEvent(dynamic event) {
@@ -189,17 +203,23 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _voicePublishing
         ..clear()
         ..addAll(event.publishingState);
-      debugPrint('[VoiceState] VoiceChannelMembershipReset: $_voiceChannelMembers');
+      debugPrint(
+        '[VoiceState] VoiceChannelMembershipReset: $_voiceChannelMembers',
+      );
       notifyListeners();
     } else if (event is VoiceChannelJoinEvent) {
-      debugPrint('[VoiceState] VoiceChannelJoin channel=${event.channelId} user=${event.userId}');
+      debugPrint(
+        '[VoiceState] VoiceChannelJoin channel=${event.channelId} user=${event.userId}',
+      );
       _voiceChannelMembers.putIfAbsent(event.channelId, () => []);
       if (!_voiceChannelMembers[event.channelId]!.contains(event.userId)) {
         _voiceChannelMembers[event.channelId]!.add(event.userId);
       }
       notifyListeners();
     } else if (event is VoiceChannelLeaveEvent) {
-      debugPrint('[VoiceState] VoiceChannelLeave channel=${event.channelId} user=${event.userId}');
+      debugPrint(
+        '[VoiceState] VoiceChannelLeave channel=${event.channelId} user=${event.userId}',
+      );
       if (event.channelId == null) {
         // null channelId signals removal from all channels
         for (final list in _voiceChannelMembers.values) {
@@ -212,7 +232,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _voicePublishing.remove(event.userId);
       notifyListeners();
     } else if (event is VoiceChannelMoveEvent) {
-      debugPrint('[VoiceState] VoiceChannelMove user=${event.userId} from=${event.fromChannelId} to=${event.toChannelId}');
+      debugPrint(
+        '[VoiceState] VoiceChannelMove user=${event.userId} from=${event.fromChannelId} to=${event.toChannelId}',
+      );
       if (event.fromChannelId != null) {
         _removeParticipant(event.fromChannelId!, event.userId);
       }
@@ -275,7 +297,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _voiceRoomListener!
         ..on<RoomConnectedEvent>((e) {
           debugPrint('[voice:event] RoomConnectedEvent room=${room.name}');
-          debugPrint('[voice:event] Channel ${channel.id} has ${e.room.remoteParticipants.length + (e.room.localParticipant != null ? 1 : 0)} participants');
+          debugPrint(
+            '[voice:event] Channel ${channel.id} has ${e.room.remoteParticipants.length + (e.room.localParticipant != null ? 1 : 0)} participants',
+          );
           debugPrint('[voice:event] _voiceRoom assigned');
           _voiceError = null;
           _isInVoice = true;
@@ -286,7 +310,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           debugPrint('[voice:event] RoomConnectedEvent handler complete');
         })
         ..on<RoomDisconnectedEvent>((e) {
-          debugPrint('[voice:event] RoomDisconnectedEvent channel=${channel.id} reason=${e.reason}');
+          debugPrint(
+            '[voice:event] RoomDisconnectedEvent channel=${channel.id} reason=${e.reason}',
+          );
           final localId = room.localParticipant?.identity;
           if (localId != null) _removeParticipant(channel.id, localId);
           _voiceRoom = null;
@@ -322,7 +348,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         ..on<RoomReconnectingEvent>((e) {
           debugPrint('[voice:event] RoomReconnectingEvent room=${room.name}');
           _voiceError = 'Reconnecting...';
-           _isJoiningVoice = true;
+          _isJoiningVoice = true;
           notifyListeners();
         })
         ..on<RoomReconnectedEvent>((e) {
@@ -333,27 +359,33 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           notifyListeners();
         })
         ..on<TrackSubscribedEvent>((e) {
-          debugPrint('[voice:event] TrackSubscribedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          debugPrint(
+            '[voice:event] TrackSubscribedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}',
+          );
           if (e.track is RemoteAudioTrack &&
               e.publication.source == TrackSource.screenShareAudio) {
             e.track.events.listen((trackEvent) {
               if (trackEvent is AudioReceiverStatsEvent) {
                 final s = trackEvent.stats;
-                debugPrint('[voice:rx] screen audio | '
-                    '${trackEvent.currentBitrate.toStringAsFixed(1)} kbps | '
-                    'jitter=${s.jitter?.toStringAsFixed(4) ?? '-'} | '
-                    'lost=${s.packetsLost ?? '-'} | '
-                    'concealed=${s.concealedSamples ?? '-'} '
-                    '(${s.concealmentEvents ?? '-'} events) | '
-                    'audioEnergy=${s.totalAudioEnergy?.toStringAsFixed(4) ?? '-'} | '
-                    'track.enabled=${e.track.mediaStreamTrack.enabled}');
+                debugPrint(
+                  '[voice:rx] screen audio | '
+                  '${trackEvent.currentBitrate.toStringAsFixed(1)} kbps | '
+                  'jitter=${s.jitter?.toStringAsFixed(4) ?? '-'} | '
+                  'lost=${s.packetsLost ?? '-'} | '
+                  'concealed=${s.concealedSamples ?? '-'} '
+                  '(${s.concealmentEvents ?? '-'} events) | '
+                  'audioEnergy=${s.totalAudioEnergy?.toStringAsFixed(4) ?? '-'} | '
+                  'track.enabled=${e.track.mediaStreamTrack.enabled}',
+                );
               }
             });
           }
           notifyListeners();
         })
         ..on<TrackUnsubscribedEvent>((e) {
-          debugPrint('[voice:event] TrackUnsubscribedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          debugPrint(
+            '[voice:event] TrackUnsubscribedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}',
+          );
           notifyListeners();
         })
         ..on<TrackPublishedEvent>((e) {
@@ -364,30 +396,49 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           notifyListeners();
         })
         ..on<TrackUnpublishedEvent>((e) {
-          debugPrint('[voice:event] TrackUnpublishedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          debugPrint(
+            '[voice:event] TrackUnpublishedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}',
+          );
           notifyListeners();
         })
         ..on<TrackMutedEvent>((e) {
-          debugPrint('[voice:event] TrackMutedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          debugPrint(
+            '[voice:event] TrackMutedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}',
+          );
           notifyListeners();
         })
         ..on<TrackUnmutedEvent>((e) {
-          debugPrint('[voice:event] TrackUnmutedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}');
+          debugPrint(
+            '[voice:event] TrackUnmutedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}',
+          );
           notifyListeners();
         })
         ..on<TrackSubscriptionExceptionEvent>((e) {
-          debugPrint('[voice:event] TrackSubscriptionExceptionEvent participant=${e.participant?.identity} sid=${e.sid} reason=${e.reason}');
+          debugPrint(
+            '[voice:event] TrackSubscriptionExceptionEvent participant=${e.participant?.identity} sid=${e.sid} reason=${e.reason}',
+          );
           notifyListeners();
         })
-        ..on<ParticipantConnectedEvent>((e) { debugPrint('[voice:event] ParticipantConnectedEvent id=${e.participant.identity}'); notifyListeners(); })
+        ..on<ParticipantConnectedEvent>((e) {
+          debugPrint(
+            '[voice:event] ParticipantConnectedEvent id=${e.participant.identity}',
+          );
+          notifyListeners();
+        })
         ..on<ParticipantDisconnectedEvent>((e) {
-            debugPrint('[voice:event] ParticipantDisconnectedEvent id=${e.participant.identity} remaining=${_voiceRoom?.remoteParticipants.length}');
-            _removeParticipant(channel.id, e.participant.identity);
-            notifyListeners();
-          })
+          debugPrint(
+            '[voice:event] ParticipantDisconnectedEvent id=${e.participant.identity} remaining=${_voiceRoom?.remoteParticipants.length}',
+          );
+          _removeParticipant(channel.id, e.participant.identity);
+          notifyListeners();
+        })
         ..on<ActiveSpeakersChangedEvent>((_) => notifyListeners());
 
-      await room.connect(url, token, connectOptions: const ConnectOptions(autoSubscribe: false));
+      await room.connect(
+        url,
+        token,
+        connectOptions: const ConnectOptions(autoSubscribe: false),
+      );
       _isMuted = false;
       final lp = room.localParticipant;
       if (lp == null) {
@@ -401,19 +452,21 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       // Enable mic before subscribing to ensure ADM is fully initialized before
       // remote audio sinks are wired up.
       try {
-         await lp.setMicrophoneEnabled(
-           true,
-           audioCaptureOptions: AudioCaptureOptions(
-                   deviceId: _defaultAudioInputId,
-                   noiseSuppression: _noiseSuppression,
-                   echoCancellation: _echoCancellation,
-                   autoGainControl: _autoGainControl,
-                 ),
-         );
-         debugPrint('[voice] mic enabled, published tracks: ${lp.trackPublications.length}');
-       } catch (micErr) {
-         debugPrint('[voice] mic enable failed: $micErr');
-         _voiceError = 'Failed to access microphone';
+        await lp.setMicrophoneEnabled(
+          true,
+          audioCaptureOptions: AudioCaptureOptions(
+            deviceId: _defaultAudioInputId,
+            noiseSuppression: _noiseSuppression,
+            echoCancellation: _echoCancellation,
+            autoGainControl: _autoGainControl,
+          ),
+        );
+        debugPrint(
+          '[voice] mic enabled, published tracks: ${lp.trackPublications.length}',
+        );
+      } catch (micErr) {
+        debugPrint('[voice] mic enable failed: $micErr');
+        _voiceError = 'Failed to access microphone';
       }
       _subscribeInitialTracks();
       // Apply stored output volume to any already-connected remote participants
@@ -432,7 +485,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> leaveVoiceChannel() async {
-    debugPrint('[voice:leave] leaveVoiceChannel called, room=${_voiceRoom?.name}');
+    debugPrint(
+      '[voice:leave] leaveVoiceChannel called, room=${_voiceRoom?.name}',
+    );
     _leaveCalledAmount++;
     debugPrint('[voice:leave] _leaveCalledAmount=$_leaveCalledAmount');
     // Stop screen share BEFORE disconnecting so the loopback capturer is
@@ -496,12 +551,15 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       if (pub.isScreenShare) pub.unsubscribe();
     }
   }
+
   void _subscribeInitialTracks() {
     if (_voiceRoom == null) {
       debugPrint('[voice:subscribe] _subscribeInitialTracks: room is null');
       return;
     }
-    debugPrint('[voice:subscribe] _subscribeInitialTracks: ${_voiceRoom!.remoteParticipants.length} remote participants');
+    debugPrint(
+      '[voice:subscribe] _subscribeInitialTracks: ${_voiceRoom!.remoteParticipants.length} remote participants',
+    );
     for (final p in _voiceRoom!.remoteParticipants.values) {
       for (final pub in p.trackPublications.values) {
         final shouldSub = _shouldSubscribeTrack(pub);
@@ -541,9 +599,11 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           track.events.listen((event) {
             if (event is AudioSenderStatsEvent) {
               final level = event.stats.audioSourceStats?.audioLevel ?? 0.0;
-              debugPrint('[voice] screen audio: '
-                  '${event.currentBitrate.toStringAsFixed(1)} kbps, '
-                  'level=${level.toStringAsFixed(3)}');
+              debugPrint(
+                '[voice] screen audio: '
+                '${event.currentBitrate.toStringAsFixed(1)} kbps, '
+                'level=${level.toStringAsFixed(3)}',
+              );
             }
           });
           publishFutures.add(
@@ -621,10 +681,14 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> _loadSettings() async {
     final asyncPrefs = SharedPreferencesAsync();
     _outputVolume = await asyncPrefs.getDouble('voice_output_volume') ?? 1.0;
-    _noiseSuppression = await asyncPrefs.getBool('voice_noise_suppression') ?? true;
-    _echoCancellation = await asyncPrefs.getBool('voice_echo_cancellation') ?? true;
-    _autoGainControl = await asyncPrefs.getBool('voice_auto_gain_control') ?? true;
-    _deepFilterEnabled = await asyncPrefs.getBool('voice_deep_filter_enabled') ?? true;
+    _noiseSuppression =
+        await asyncPrefs.getBool('voice_noise_suppression') ?? true;
+    _echoCancellation =
+        await asyncPrefs.getBool('voice_echo_cancellation') ?? true;
+    _autoGainControl =
+        await asyncPrefs.getBool('voice_auto_gain_control') ?? true;
+    _deepFilterEnabled =
+        await asyncPrefs.getBool('voice_deep_filter_enabled') ?? true;
     notifyListeners();
   }
 
@@ -694,8 +758,11 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       debugPrint('[voice:df] _attachDeepFilter: already attached, skipping');
       return;
     }
-    debugPrint('[voice:df] _attachDeepFilter: isSupported=${DeepFilterProcessor.isSupported}');
-    if (!DeepFilterProcessor.isSupported) return;
+    debugPrint(
+      '[voice:df] _attachDeepFilter: isSupported=${DeepFilterProcessor.isSupported}',
+    );
+    if (!DeepFilterProcessor.isSupported || !DeepFilterProcessor.isRealLibrary)
+      return;
     try {
       // On Android, ensure the APM hook is attached after flutter_webrtc init
       if (defaultTargetPlatform == TargetPlatform.android) {
@@ -704,13 +771,20 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       final audioPub = _voiceRoom?.localParticipant?.trackPublications.values
           .where((pub) => pub.kind == TrackType.AUDIO)
           .firstOrNull;
-      debugPrint('[voice:df] _attachDeepFilter: audioPub=$audioPub isAudioTrack=${audioPub?.track is LocalAudioTrack}');
+      debugPrint(
+        '[voice:df] _attachDeepFilter: audioPub=$audioPub isAudioTrack=${audioPub?.track is LocalAudioTrack}',
+      );
       if (audioPub?.track is LocalAudioTrack) {
-        debugPrint('[voice:df] _attachDeepFilter: about to create DeepFilterProcessor');
+        debugPrint(
+          '[voice:df] _attachDeepFilter: about to create DeepFilterProcessor',
+        );
         _deepFilterProcessor = DeepFilterProcessor(enabled: true);
-        debugPrint('[voice:df] _attachDeepFilter: processor created, about to setProcessor');
-        await (audioPub!.track as LocalAudioTrack)
-            .setProcessor(_deepFilterProcessor!);
+        debugPrint(
+          '[voice:df] _attachDeepFilter: processor created, about to setProcessor',
+        );
+        await (audioPub!.track as LocalAudioTrack).setProcessor(
+          _deepFilterProcessor!,
+        );
         // setProcessor on an already-published track does not call onPublish,
         // so the processor's _published flag stays false and setApmEnabled is
         // never invoked. Call onPublish explicitly to activate processing.

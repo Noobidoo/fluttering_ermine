@@ -16,8 +16,7 @@ class ChatPanel extends StatefulWidget {
   final TextEditingController msgCtrl;
   final ScrollController scrollCtrl;
 
-  const ChatPanel(
-      {required this.msgCtrl, required this.scrollCtrl, super.key});
+  const ChatPanel({required this.msgCtrl, required this.scrollCtrl, super.key});
 
   @override
   State<ChatPanel> createState() => _ChatPanelState();
@@ -44,7 +43,8 @@ class _ChatPanelState extends State<ChatPanel> {
             content: Text(error),
             action: SnackBarAction(
               label: 'Retry',
-              onPressed: () => context.read<MessagingState>().retryLoadMessages(),
+              onPressed: () =>
+                  context.read<MessagingState>().retryLoadMessages(),
             ),
           ),
         );
@@ -58,11 +58,15 @@ class _ChatPanelState extends State<ChatPanel> {
           children: [
             Icon(Icons.chat_bubble_outline, size: 72, color: Colors.white12),
             SizedBox(height: 16),
-            Text('Select a channel',
-                style: TextStyle(color: Colors.white38, fontSize: 18)),
+            Text(
+              'Select a channel',
+              style: TextStyle(color: Colors.white38, fontSize: 18),
+            ),
             SizedBox(height: 4),
-            Text('Pick a channel from the left to start chatting.',
-                style: TextStyle(color: Colors.white24, fontSize: 13)),
+            Text(
+              'Pick a channel from the left to start chatting.',
+              style: TextStyle(color: Colors.white24, fontSize: 13),
+            ),
           ],
         ),
       );
@@ -185,16 +189,20 @@ class _VoiceTabBar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.volume_up_rounded,
-                        size: 14,
-                        color: showVoice ? active : textInactive),
+                    Icon(
+                      Icons.volume_up_rounded,
+                      size: 14,
+                      color: showVoice ? active : textInactive,
+                    ),
                     const SizedBox(width: 6),
-                    Text('Voice',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: showVoice ? textActive : textInactive,
-                        )),
+                    Text(
+                      'Voice',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: showVoice ? textActive : textInactive,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -216,16 +224,20 @@ class _VoiceTabBar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.tag,
-                        size: 14,
-                        color: !showVoice ? active : textInactive),
+                    Icon(
+                      Icons.tag,
+                      size: 14,
+                      color: !showVoice ? active : textInactive,
+                    ),
                     const SizedBox(width: 6),
-                    Text('Chat',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: !showVoice ? textActive : textInactive,
-                        )),
+                    Text(
+                      'Chat',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: !showVoice ? textActive : textInactive,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -243,13 +255,13 @@ class _ChatHeader extends StatelessWidget {
   const _ChatHeader(this.channel, {this.actions = const []});
 
   IconData _icon() => switch (channel.type) {
-        ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
-        ChannelType.textChannel => Icons.tag,
-        ChannelType.directMessage => Icons.person_rounded,
-        ChannelType.group => Icons.group_rounded,
-        ChannelType.savedMessages => Icons.bookmark_rounded,
-        _ => Icons.chat_bubble_outline,
-      };
+    ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
+    ChannelType.textChannel => Icons.tag,
+    ChannelType.directMessage => Icons.person_rounded,
+    ChannelType.group => Icons.group_rounded,
+    ChannelType.savedMessages => Icons.bookmark_rounded,
+    _ => Icons.chat_bubble_outline,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +285,9 @@ class _ChatHeader extends StatelessWidget {
                   child: Text(
                     messaging.channelDisplayName(channel),
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -286,7 +300,9 @@ class _ChatHeader extends StatelessWidget {
                     child: Text(
                       channel.description!,
                       style: const TextStyle(
-                          color: Colors.white38, fontSize: 13),
+                        color: Colors.white38,
+                        fontSize: 13,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -294,10 +310,7 @@ class _ChatHeader extends StatelessWidget {
               ],
             ),
           ),
-          if (actions.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            ...actions,
-          ],
+          if (actions.isNotEmpty) ...[const SizedBox(width: 8), ...actions],
         ],
       ),
     );
@@ -326,8 +339,9 @@ class _VoiceChannelView extends StatelessWidget {
             icon: Icon(voice.isMuted ? Icons.mic_off : Icons.mic),
             label: Text(voice.isMuted ? 'Unmute' : 'Mute'),
             style: FilledButton.styleFrom(
-              backgroundColor:
-                  voice.isMuted ? Colors.redAccent : const Color(0xFF2CB67D),
+              backgroundColor: voice.isMuted
+                  ? Colors.redAccent
+                  : const Color(0xFF2CB67D),
             ),
           ),
           FilledButton.icon(
@@ -352,11 +366,14 @@ class _VoiceChannelView extends StatelessWidget {
                 voiceState.toggleScreenShare();
               }
             },
-            icon: Icon(voice.isScreenSharing
-                ? Icons.stop_screen_share
-                : Icons.screen_share),
+            icon: Icon(
+              voice.isScreenSharing
+                  ? Icons.stop_screen_share
+                  : Icons.screen_share,
+            ),
             label: Text(
-                voice.isScreenSharing ? 'Stop Sharing' : 'Share Screen'),
+              voice.isScreenSharing ? 'Stop Sharing' : 'Share Screen',
+            ),
             style: FilledButton.styleFrom(
               backgroundColor: voice.isScreenSharing
                   ? Colors.orangeAccent
@@ -366,8 +383,10 @@ class _VoiceChannelView extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => context.read<VoiceState>().leaveVoiceChannel(),
             icon: const Icon(Icons.call_end, color: Colors.redAccent),
-            label: const Text('Leave',
-                style: TextStyle(color: Colors.redAccent)),
+            label: const Text(
+              'Leave',
+              style: TextStyle(color: Colors.redAccent),
+            ),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Colors.redAccent),
             ),
@@ -420,8 +439,7 @@ class _VoiceChannelView extends StatelessWidget {
                   isActive ? 'You are in this channel' : 'Voice Channel',
                   style: TextStyle(
                     fontSize: 18,
-                    color:
-                        isActive ? const Color(0xFF2CB67D) : Colors.white38,
+                    color: isActive ? const Color(0xFF2CB67D) : Colors.white38,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -432,7 +450,9 @@ class _VoiceChannelView extends StatelessWidget {
                       voice.voiceError!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          color: Colors.redAccent, fontSize: 13),
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -456,8 +476,8 @@ class _VideoGrid extends StatelessWidget {
     final crossAxisCount = streams.length <= 1
         ? 1
         : streams.length <= 4
-            ? 2
-            : 3;
+        ? 2
+        : 3;
     return GridView.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
@@ -489,8 +509,7 @@ class _RemoteVideoTile extends StatelessWidget {
             left: 0,
             right: 0,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
@@ -548,14 +567,16 @@ class _MessageList extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline,
-                  size: 48, color: Colors.redAccent),
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Colors.redAccent,
+              ),
               const SizedBox(height: 12),
               Text(
                 messaging.currentChannelError!,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(color: Colors.white54, fontSize: 13),
+                style: const TextStyle(color: Colors.white54, fontSize: 13),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
@@ -564,7 +585,8 @@ class _MessageList extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF7F5AF0)),
+                  backgroundColor: const Color(0xFF7F5AF0),
+                ),
               ),
             ],
           ),
@@ -574,8 +596,8 @@ class _MessageList extends StatelessWidget {
 
     if (messages.isEmpty) {
       return const Center(
-          child: Text('No messages yet',
-              style: TextStyle(color: Colors.white38)));
+        child: Text('No messages yet', style: TextStyle(color: Colors.white38)),
+      );
     }
 
     return ListView.builder(
@@ -597,4 +619,3 @@ class _MessageList extends StatelessWidget {
     );
   }
 }
-

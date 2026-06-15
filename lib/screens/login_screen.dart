@@ -90,14 +90,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'Custom server',
                         style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withAlpha(120)),
+                          fontSize: 12,
+                          color: Colors.white.withAlpha(120),
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
-                        _showAdvanced
-                            ? Icons.expand_less
-                            : Icons.expand_more,
+                        _showAdvanced ? Icons.expand_less : Icons.expand_more,
                         size: 16,
                         color: Colors.white38,
                       ),
@@ -145,7 +144,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
-                          _obscure ? Icons.visibility_off : Icons.visibility),
+                        _obscure ? Icons.visibility_off : Icons.visibility,
+                      ),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
@@ -156,7 +156,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red.withAlpha(30),
                       borderRadius: BorderRadius.circular(8),
@@ -165,7 +167,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(
                       state.error!,
                       style: const TextStyle(
-                          color: Colors.redAccent, fontSize: 13),
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -180,17 +184,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     backgroundColor: const Color(0xFF7F5AF0),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: state.isLoading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
-                      : const Text('Sign In',
-                          style: TextStyle(fontSize: 16, color: Colors.white)),
+                      : const Text(
+                          'Sign In',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
 
                 const SizedBox(height: 12),
@@ -198,7 +207,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   'Sign in with your Stoat account credentials.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: Colors.white.withAlpha(100), fontSize: 12),
+                    color: Colors.white.withAlpha(100),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),

@@ -30,9 +30,7 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
         final profileContent = isSelf
             ? user.profileContent
             : snapshot.data?.content;
-        final banner = isSelf
-            ? user.banner
-            : snapshot.data?.background;
+        final banner = isSelf ? user.banner : snapshot.data?.background;
 
         final avatarFallback = SizedBox(
           width: 64,
@@ -55,16 +53,15 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
                   width: 64,
                   height: 64,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: const BoxDecoration(
-                          color: Color.fromARGB(255, 255, 0, 0),
-                          shape: BoxShape.circle,
-                        ),
-                        child: avatarFallback,
-                      ),
+                  errorBuilder: (_, _, _) => Container(
+                    width: 64,
+                    height: 64,
+                    decoration: const BoxDecoration(
+                      color: Color.fromARGB(255, 255, 0, 0),
+                      shape: BoxShape.circle,
+                    ),
+                    child: avatarFallback,
+                  ),
                 ),
               )
             : CircleAvatar(
@@ -86,8 +83,7 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
                 decoration: BoxDecoration(
                   color: presenceColor(p),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                      color: const Color(0xFF1E1E26), width: 2),
+                  border: Border.all(color: const Color(0xFF1E1E26), width: 2),
                 ),
               ),
             ),
@@ -110,15 +106,10 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
                         height: 120,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            const SizedBox(height: 120),
+                        errorBuilder: (_, _, _) => const SizedBox(height: 120),
                       ),
                     ),
-                    Positioned(
-                      left: 16,
-                      top: 28,
-                      child: avatarStack,
-                    ),
+                    Positioned(left: 16, top: 28, child: avatarStack),
                   ],
                 ),
               if (banner == null) avatarStack,
@@ -126,19 +117,22 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
               Text(
                 user.resolveDisplayName(null),
                 style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 '@${user.username}',
                 style: const TextStyle(color: Colors.white54),
               ),
-              if (user.statusText != null &&
-                  user.statusText!.isNotEmpty) ...[
+              if (user.statusText != null && user.statusText!.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF16161A),
                     borderRadius: BorderRadius.circular(12),
@@ -149,8 +143,7 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
                   ),
                 ),
               ],
-              if (profileContent != null &&
-                  profileContent.isNotEmpty) ...[
+              if (profileContent != null && profileContent.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
                   profileContent,

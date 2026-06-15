@@ -13,16 +13,86 @@ enum _MsgAction { reply, react, edit, delete, copy }
 
 // Curated list of common Unicode emojis for the picker
 const _kCommonEmojis = [
-  '👍', '👎', '❤️', '😂', '😮', '😢', '😡', '🎉',
-  '🔥', '✅', '❌', '⭐', '🙏', '👀', '💯', '🚀',
-  '😀', '😃', '😄', '😁', '😅', '🤣', '😊', '😇',
-  '🥰', '😍', '🤩', '😘', '😜', '🤔', '🤭', '😎',
-  '😴', '🥳', '😤', '😭', '😱', '🤯', '🥺', '😏',
-  '👋', '🤝', '✌️', '🤞', '🙌', '👏', '🫂', '💪',
-  '🐱', '🐶', '🦊', '🐻', '🐼', '🐨', '🦁', '🐸',
-  '🍕', '🍔', '🍣', '🍜', '☕', '🍺', '🥂', '🍭',
-  '⚽', '🏀', '🎮', '🎵', '🎸', '🎹', '🎲', '🃏',
-  '🌍', '🌈', '⚡', '❄️', '🌊', '🍀', '🌸', '🌻',
+  '👍',
+  '👎',
+  '❤️',
+  '😂',
+  '😮',
+  '😢',
+  '😡',
+  '🎉',
+  '🔥',
+  '✅',
+  '❌',
+  '⭐',
+  '🙏',
+  '👀',
+  '💯',
+  '🚀',
+  '😀',
+  '😃',
+  '😄',
+  '😁',
+  '😅',
+  '🤣',
+  '😊',
+  '😇',
+  '🥰',
+  '😍',
+  '🤩',
+  '😘',
+  '😜',
+  '🤔',
+  '🤭',
+  '😎',
+  '😴',
+  '🥳',
+  '😤',
+  '😭',
+  '😱',
+  '🤯',
+  '🥺',
+  '😏',
+  '👋',
+  '🤝',
+  '✌️',
+  '🤞',
+  '🙌',
+  '👏',
+  '🫂',
+  '💪',
+  '🐱',
+  '🐶',
+  '🦊',
+  '🐻',
+  '🐼',
+  '🐨',
+  '🦁',
+  '🐸',
+  '🍕',
+  '🍔',
+  '🍣',
+  '🍜',
+  '☕',
+  '🍺',
+  '🥂',
+  '🍭',
+  '⚽',
+  '🏀',
+  '🎮',
+  '🎵',
+  '🎸',
+  '🎹',
+  '🎲',
+  '🃏',
+  '🌍',
+  '🌈',
+  '⚡',
+  '❄️',
+  '🌊',
+  '🍀',
+  '🌸',
+  '🌻',
 ];
 
 class MessageBubble extends StatefulWidget {
@@ -49,7 +119,8 @@ class _MessageBubbleState extends State<MessageBubble> {
   late TextEditingController _editCtrl;
 
   String get _username =>
-      widget.author?.resolveDisplayName(widget.serverId) ?? widget.message.authorId;
+      widget.author?.resolveDisplayName(widget.serverId) ??
+      widget.message.authorId;
 
   TextSpan _renderContent(String content) {
     final messaging = context.read<MessagingState>();
@@ -128,7 +199,10 @@ class _MessageBubbleState extends State<MessageBubble> {
       return;
     }
     context.read<MessagingState>().editMessage(
-        widget.message.channelId, widget.message.id, text);
+      widget.message.channelId,
+      widget.message.id,
+      text,
+    );
     setState(() => _editing = false);
   }
 
@@ -151,10 +225,14 @@ class _MessageBubbleState extends State<MessageBubble> {
             onPressed: () {
               Navigator.pop(ctx);
               context.read<MessagingState>().deleteMessage(
-                  widget.message.channelId, widget.message.id);
+                widget.message.channelId,
+                widget.message.id,
+              );
             },
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -167,8 +245,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       barrierColor: Colors.black45,
       builder: (ctx) => Dialog(
         backgroundColor: const Color(0xFF1E1E24),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: SizedBox(
           width: 320,
           height: 340,
@@ -178,17 +255,19 @@ class _MessageBubbleState extends State<MessageBubble> {
                 padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Add Reaction',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white70)),
+                  child: Text(
+                    'Add Reaction',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white70,
+                    ),
+                  ),
                 ),
               ),
               Expanded(
                 child: GridView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 8,
                     mainAxisSpacing: 4,
                     crossAxisSpacing: 4,
@@ -200,14 +279,16 @@ class _MessageBubbleState extends State<MessageBubble> {
                       Navigator.pop(ctx);
                       if (!context.mounted) return;
                       context.read<MessagingState>().addReaction(
-                            widget.message.channelId,
-                            widget.message.id,
-                            _kCommonEmojis[i],
-                          );
+                        widget.message.channelId,
+                        widget.message.id,
+                        _kCommonEmojis[i],
+                      );
                     },
                     child: Center(
-                      child: Text(_kCommonEmojis[i],
-                          style: const TextStyle(fontSize: 20)),
+                      child: Text(
+                        _kCommonEmojis[i],
+                        style: const TextStyle(fontSize: 20),
+                      ),
                     ),
                   ),
                 ),
@@ -256,8 +337,11 @@ class _MessageBubbleState extends State<MessageBubble> {
           const PopupMenuDivider(),
           const PopupMenuItem(
             value: _MsgAction.delete,
-            child: _MenuItem(Icons.delete_rounded, 'Delete',
-                color: Colors.redAccent),
+            child: _MenuItem(
+              Icons.delete_rounded,
+              'Delete',
+              color: Colors.redAccent,
+            ),
           ),
         ],
       ],
@@ -273,8 +357,7 @@ class _MessageBubbleState extends State<MessageBubble> {
         case _MsgAction.delete:
           _confirmDelete(context);
         case _MsgAction.copy:
-          Clipboard.setData(
-              ClipboardData(text: widget.message.content ?? ''));
+          Clipboard.setData(ClipboardData(text: widget.message.content ?? ''));
       }
     });
   }
@@ -310,9 +393,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                 right: 8,
                 child: _HoverBar(
                   isOwn: isOwn,
-                  onReply: () => context
-                      .read<MessagingState>()
-                      .setReplyTarget(widget.message),
+                  onReply: () => context.read<MessagingState>().setReplyTarget(
+                    widget.message,
+                  ),
                   onReact: () => _showEmojiPicker(context),
                   onEdit: isOwn ? _startEdit : null,
                   onMore: (pos) => _openContextMenu(context, pos),
@@ -367,13 +450,16 @@ class _MessageBubbleState extends State<MessageBubble> {
                     Text(
                       _formatTimestamp(widget.message.timestamp),
                       style: const TextStyle(
-                          fontSize: 11, color: Colors.white38),
+                        fontSize: 11,
+                        color: Colors.white38,
+                      ),
                     ),
                     if (widget.message.edited != null) ...[
                       const SizedBox(width: 4),
-                      const Text('(edited)',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.white38)),
+                      const Text(
+                        '(edited)',
+                        style: TextStyle(fontSize: 11, color: Colors.white38),
+                      ),
                     ],
                   ],
                 ),
@@ -413,26 +499,32 @@ class _MessageBubbleState extends State<MessageBubble> {
           SelectableText.rich(
             _renderContent(widget.message.content!),
             style: const TextStyle(
-                fontSize: 14, color: Color(0xDEFFFFFF), height: 1.45),
+              fontSize: 14,
+              color: Color(0xDEFFFFFF),
+              height: 1.45,
+            ),
           ),
         for (final file in widget.message.attachments)
           _AttachmentWidget(file: file, autumnBase: autumnBase),
         if (widget.message.reactions.isNotEmpty)
           _ReactionsRow(
             reactions: widget.message.reactions,
-            currentUserId:
-                context.read<AuthState>().currentUser?.id ?? '',
+            currentUserId: context.read<AuthState>().currentUser?.id ?? '',
             onToggle: (emoji) {
-              final uid =
-                  context.read<AuthState>().currentUser?.id ?? '';
+              final uid = context.read<AuthState>().currentUser?.id ?? '';
               final messaging = context.read<MessagingState>();
-              if (widget.message.reactions[emoji]?.contains(uid) ==
-                  true) {
+              if (widget.message.reactions[emoji]?.contains(uid) == true) {
                 messaging.removeReaction(
-                    widget.message.channelId, widget.message.id, emoji);
+                  widget.message.channelId,
+                  widget.message.id,
+                  emoji,
+                );
               } else {
                 messaging.addReaction(
-                    widget.message.channelId, widget.message.id, emoji);
+                  widget.message.channelId,
+                  widget.message.id,
+                  emoji,
+                );
               }
             },
           ),
@@ -465,8 +557,7 @@ class _HoverBar extends StatelessWidget {
         color: const Color(0xFF242428),
         borderRadius: BorderRadius.circular(6),
         boxShadow: const [
-          BoxShadow(
-              color: Colors.black38, blurRadius: 4, offset: Offset(0, 1))
+          BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 1)),
         ],
         border: Border.all(color: const Color(0xFF2A2A30)),
       ),
@@ -585,21 +676,28 @@ class _EditField extends StatelessWidget {
             autofocus: true,
             maxLines: null,
             style: const TextStyle(
-                fontSize: 14, color: Color(0xDEFFFFFF), height: 1.45),
+              fontSize: 14,
+              color: Color(0xDEFFFFFF),
+              height: 1.45,
+            ),
             decoration: InputDecoration(
               isDense: true,
               filled: true,
               fillColor: const Color(0xFF1A1A20),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 8,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
                 borderSide: const BorderSide(color: Color(0xFF7F5AF0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide:
-                    const BorderSide(color: Color(0xFF7F5AF0), width: 2),
+                borderSide: const BorderSide(
+                  color: Color(0xFF7F5AF0),
+                  width: 2,
+                ),
               ),
             ),
           ),
@@ -607,23 +705,31 @@ class _EditField extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Escape to ',
-                  style: TextStyle(fontSize: 11, color: Colors.white38)),
+              const Text(
+                'Escape to ',
+                style: TextStyle(fontSize: 11, color: Colors.white38),
+              ),
               GestureDetector(
                 onTap: onCancel,
-                child: const Text('cancel',
-                    style: TextStyle(
-                        fontSize: 11, color: Color(0xFF7F5AF0))),
+                child: const Text(
+                  'cancel',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF7F5AF0)),
+                ),
               ),
-              const Text(' · ',
-                  style: TextStyle(fontSize: 11, color: Colors.white38)),
-              const Text('Enter to ',
-                  style: TextStyle(fontSize: 11, color: Colors.white38)),
+              const Text(
+                ' · ',
+                style: TextStyle(fontSize: 11, color: Colors.white38),
+              ),
+              const Text(
+                'Enter to ',
+                style: TextStyle(fontSize: 11, color: Colors.white38),
+              ),
               GestureDetector(
                 onTap: onCommit,
-                child: const Text('save',
-                    style: TextStyle(
-                        fontSize: 11, color: Color(0xFF7F5AF0))),
+                child: const Text(
+                  'save',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF7F5AF0)),
+                ),
               ),
             ],
           ),
@@ -647,8 +753,9 @@ class _ReplyPreview extends StatelessWidget {
     final author = msg != null ? messaging.getUser(msg.authorId) : null;
     final name = author?.resolveDisplayName(null) ?? msg?.authorId ?? 'Unknown';
     final preview = msg?.content?.trim() ?? '(message unavailable)';
-    final truncated =
-        preview.length > 80 ? '${preview.substring(0, 80)}…' : preview;
+    final truncated = preview.length > 80
+        ? '${preview.substring(0, 80)}…'
+        : preview;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -657,31 +764,33 @@ class _ReplyPreview extends StatelessWidget {
         color: const Color(0xFF1A1A20),
         borderRadius: BorderRadius.circular(4),
         border: const Border(
-            left: BorderSide(color: Color(0xFF7F5AF0), width: 2)),
+          left: BorderSide(color: Color(0xFF7F5AF0), width: 2),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.reply_rounded,
-              size: 12, color: Color(0xFF7F5AF0)),
+          const Icon(Icons.reply_rounded, size: 12, color: Color(0xFF7F5AF0)),
           const SizedBox(width: 4),
           Flexible(
             child: RichText(
               overflow: TextOverflow.ellipsis,
-              text: TextSpan(children: [
-                TextSpan(
-                  text: '$name  ',
-                  style: const TextStyle(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$name  ',
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFFCBBDF7),
-                      fontWeight: FontWeight.w600),
-                ),
-                TextSpan(
-                  text: truncated,
-                  style:
-                      const TextStyle(fontSize: 12, color: Colors.white38),
-                ),
-              ]),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: truncated,
+                    style: const TextStyle(fontSize: 12, color: Colors.white38),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -748,14 +857,10 @@ class _ReactionChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: mine
-              ? const Color(0x337F5AF0)
-              : const Color(0xFF2A2A30),
+          color: mine ? const Color(0x337F5AF0) : const Color(0xFF2A2A30),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: mine
-                ? const Color(0xFF7F5AF0)
-                : const Color(0xFF3A3A42),
+            color: mine ? const Color(0xFF7F5AF0) : const Color(0xFF3A3A42),
             width: 1,
           ),
         ),
@@ -768,11 +873,8 @@ class _ReactionChip extends StatelessWidget {
               '$count',
               style: TextStyle(
                 fontSize: 12,
-                color: mine
-                    ? const Color(0xFFCBBDF7)
-                    : Colors.white54,
-                fontWeight:
-                    mine ? FontWeight.w600 : FontWeight.normal,
+                color: mine ? const Color(0xFFCBBDF7) : Colors.white54,
+                fontWeight: mine ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],
@@ -815,14 +917,14 @@ class _AttachmentWidget extends StatelessWidget {
                 child: Image.network(
                   file.urlFor(autumnBase),
                   fit: BoxFit.contain,
-                  loadingBuilder: (ctx, child, progress) =>
-                      progress == null
-                          ? child
-                          : const Center(
-                              child: CircularProgressIndicator()),
-                  errorBuilder: (ctx, err, stack) =>
-                      const Icon(Icons.broken_image,
-                          size: 64, color: Colors.white38),
+                  loadingBuilder: (ctx, child, progress) => progress == null
+                      ? child
+                      : const Center(child: CircularProgressIndicator()),
+                  errorBuilder: (ctx, err, stack) => const Icon(
+                    Icons.broken_image,
+                    size: 64,
+                    color: Colors.white38,
+                  ),
                 ),
               ),
             ),
@@ -830,8 +932,7 @@ class _AttachmentWidget extends StatelessWidget {
               top: 40,
               right: 16,
               child: IconButton(
-                icon: const Icon(Icons.close,
-                    color: Colors.white70, size: 28),
+                icon: const Icon(Icons.close, color: Colors.white70, size: 28),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -868,9 +969,11 @@ class _AttachmentWidget extends StatelessWidget {
               child: Image.network(
                 file.urlFor(autumnBase),
                 fit: BoxFit.contain,
-                errorBuilder: (ctx, err, stack) =>
-                    const Icon(Icons.broken_image,
-                        size: 48, color: Colors.white24),
+                errorBuilder: (ctx, err, stack) => const Icon(
+                  Icons.broken_image,
+                  size: 48,
+                  color: Colors.white24,
+                ),
               ),
             ),
           ),
@@ -882,8 +985,7 @@ class _AttachmentWidget extends StatelessWidget {
       child: GestureDetector(
         onTap: () => _openFile(context),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: const Color(0xFF242428),
             borderRadius: BorderRadius.circular(8),
@@ -891,12 +993,12 @@ class _AttachmentWidget extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.attach_file,
-                  size: 16, color: Colors.white54),
+              const Icon(Icons.attach_file, size: 16, color: Colors.white54),
               const SizedBox(width: 8),
-              Text(file.filename,
-                  style: const TextStyle(
-                      fontSize: 13, color: Color(0xFF7F5AF0))),
+              Text(
+                file.filename,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF7F5AF0)),
+              ),
             ],
           ),
         ),

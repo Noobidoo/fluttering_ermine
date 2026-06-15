@@ -11,12 +11,18 @@ import 'mention_chip.dart';
 class _MentionRenderController extends TextEditingController {
   final MessagingState Function() _getMessaging;
 
-  _MentionRenderController({required String text, required MessagingState Function() getMessaging})
-      : _getMessaging = getMessaging,
-        super(text: text);
+  _MentionRenderController({
+    required String text,
+    required MessagingState Function() getMessaging,
+  }) : _getMessaging = getMessaging,
+       super(text: text);
 
   @override
-  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
     final raw = text;
     if (!raw.contains('<@')) {
       return TextSpan(text: raw, style: style);
@@ -27,7 +33,9 @@ class _MentionRenderController extends TextEditingController {
     int lastEnd = 0;
     for (final m in regex.allMatches(raw)) {
       if (m.start > lastEnd) {
-        spans.add(TextSpan(text: raw.substring(lastEnd, m.start), style: style));
+        spans.add(
+          TextSpan(text: raw.substring(lastEnd, m.start), style: style),
+        );
       }
       final userId = m.group(1)!;
       spans.add(buildMentionChip(userId, messaging, baseStyle: style));
@@ -197,20 +205,23 @@ class _MessageInputState extends State<MessageInput> {
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       setState(() {
-        _mentionIndex =
-            (_mentionIndex + 1) % _mentionResults.length;
+        _mentionIndex = (_mentionIndex + 1) % _mentionResults.length;
       });
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       setState(() {
-        _mentionIndex = (_mentionIndex - 1 + _mentionResults.length) %
+        _mentionIndex =
+            (_mentionIndex - 1 + _mentionResults.length) %
             _mentionResults.length;
       });
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.tab) {
-      _insertMention(_mentionResults[_mentionIndex].key, _mentionResults[_mentionIndex].value);
+      _insertMention(
+        _mentionResults[_mentionIndex].key,
+        _mentionResults[_mentionIndex].value,
+      );
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -237,7 +248,8 @@ class _MessageInputState extends State<MessageInput> {
     _renderCtrl.value = TextEditingValue(
       text: '$before$replacement$after',
       selection: TextSelection.collapsed(
-          offset: before.length + replacement.length),
+        offset: before.length + replacement.length,
+      ),
     );
     _hideMentions();
   }
@@ -250,16 +262,15 @@ class _MessageInputState extends State<MessageInput> {
     if (file.bytes == null) return;
     setState(() => _uploading = true);
     try {
-      final id = await service.uploadAttachment(
-          file.bytes!, file.name);
+      final id = await service.uploadAttachment(file.bytes!, file.name);
       setState(() {
         _pendingAttachments.add((id, file.name));
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -273,9 +284,7 @@ class _MessageInputState extends State<MessageInput> {
     widget.msgCtrl.text = text;
     _renderCtrl.clear();
     setState(() => _pendingAttachments.clear());
-    context
-        .read<MessagingState>()
-        .sendMessage(text, attachmentIds: ids);
+    context.read<MessagingState>().sendMessage(text, attachmentIds: ids);
   }
 
   @override
@@ -311,11 +320,15 @@ class _MessageInputState extends State<MessageInput> {
                 return Chip(
                   backgroundColor: const Color(0xFF242428),
                   side: const BorderSide(color: Color(0xFF3A3A42)),
-                  label: Text(a.$2,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.white70)),
-                  deleteIcon: const Icon(Icons.close,
-                      size: 14, color: Colors.white38),
+                  label: Text(
+                    a.$2,
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                  deleteIcon: const Icon(
+                    Icons.close,
+                    size: 14,
+                    color: Colors.white38,
+                  ),
                   onDeleted: () =>
                       setState(() => _pendingAttachments.remove(a)),
                 );
@@ -334,20 +347,21 @@ class _MessageInputState extends State<MessageInput> {
             padding: EdgeInsets.zero,
             shrinkWrap: true,
             itemCount: _mentionResults.length,
-              itemBuilder: (_, i) => InkWell(
-                onTap: () => _insertMention(_mentionResults[i].key, _mentionResults[i].value),
-                child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                color: i == _mentionIndex
-                    ? const Color(0x207F5AF0)
-                    : null,
+            itemBuilder: (_, i) => InkWell(
+              onTap: () => _insertMention(
+                _mentionResults[i].key,
+                _mentionResults[i].value,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                color: i == _mentionIndex ? const Color(0x207F5AF0) : null,
                 child: Text(
                   '@${_mentionResults[i].value}',
                   style: TextStyle(
-                    color: i == _mentionIndex
-                        ? Colors.white
-                        : Colors.white70,
+                    color: i == _mentionIndex ? Colors.white : Colors.white70,
                     fontWeight: i == _mentionIndex
                         ? FontWeight.w600
                         : FontWeight.normal,
@@ -372,11 +386,13 @@ class _MessageInputState extends State<MessageInput> {
                   ? const Padding(
                       padding: EdgeInsets.only(right: 4),
                       child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Color(0xFF7F5AF0))),
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF7F5AF0),
+                        ),
+                      ),
                     )
                   : IconButton(
                       onPressed: _pickFile,
@@ -403,7 +419,9 @@ class _MessageInputState extends State<MessageInput> {
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                   onSubmitted: (_) => _send(context),
                 ),
@@ -443,39 +461,39 @@ class _ReplyBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = author?.resolveDisplayName(null) ?? message.authorId;
     final preview = message.content?.trim() ?? '';
-    final truncated =
-        preview.length > 60 ? '${preview.substring(0, 60)}…' : preview;
+    final truncated = preview.length > 60
+        ? '${preview.substring(0, 60)}…'
+        : preview;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A20),
-        border: Border(
-          left: BorderSide(color: Color(0xFF7F5AF0), width: 3),
-        ),
+        border: Border(left: BorderSide(color: Color(0xFF7F5AF0), width: 3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.reply_rounded,
-              size: 14, color: Color(0xFF7F5AF0)),
+          const Icon(Icons.reply_rounded, size: 14, color: Color(0xFF7F5AF0)),
           const SizedBox(width: 6),
           Expanded(
             child: RichText(
               overflow: TextOverflow.ellipsis,
-              text: TextSpan(children: [
-                TextSpan(
-                  text: '$name  ',
-                  style: const TextStyle(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$name  ',
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFFCBBDF7),
-                      fontWeight: FontWeight.w600),
-                ),
-                TextSpan(
-                  text: truncated.isEmpty ? '(attachment)' : truncated,
-                  style:
-                      const TextStyle(fontSize: 12, color: Colors.white54),
-                ),
-              ]),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: truncated.isEmpty ? '(attachment)' : truncated,
+                    style: const TextStyle(fontSize: 12, color: Colors.white54),
+                  ),
+                ],
+              ),
             ),
           ),
           InkWell(
@@ -483,8 +501,7 @@ class _ReplyBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: const Padding(
               padding: EdgeInsets.all(4),
-              child:
-                  Icon(Icons.close, size: 14, color: Colors.white38),
+              child: Icon(Icons.close, size: 14, color: Colors.white38),
             ),
           ),
         ],
@@ -499,8 +516,7 @@ class _TypingIndicator extends StatelessWidget {
   final List<String> userIds;
   final MessagingState messaging;
 
-  const _TypingIndicator(
-      {required this.userIds, required this.messaging});
+  const _TypingIndicator({required this.userIds, required this.messaging});
 
   @override
   Widget build(BuildContext context) {

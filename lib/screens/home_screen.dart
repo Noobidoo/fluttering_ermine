@@ -39,10 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const ServerRail(),
             SizedBox(width: 230, child: ChannelPanel()),
             Expanded(
-              child: ChatPanel(
-                msgCtrl: _msgCtrl,
-                scrollCtrl: _scrollCtrl,
-              ),
+              child: ChatPanel(msgCtrl: _msgCtrl, scrollCtrl: _scrollCtrl),
             ),
             if (context.watch<ServerState>().selectedServer != null)
               const SizedBox(width: 280, child: MemberPanel()),
@@ -75,12 +72,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppBar(
       backgroundColor: const Color(0xFF16161A),
       title: channel != null
-          ? Row(children: [
-              Icon(_channelIcon(channel), size: 18, color: Colors.white54),
-              const SizedBox(width: 6),
-              Text(messaging.channelDisplayName(channel),
-                  style: const TextStyle(fontSize: 16)),
-            ])
+          ? Row(
+              children: [
+                Icon(_channelIcon(channel), size: 18, color: Colors.white54),
+                const SizedBox(width: 6),
+                Text(
+                  messaging.channelDisplayName(channel),
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            )
           : const Text('Fluttering Ermine'),
       actions: [
         IconButton(
@@ -93,12 +94,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   IconData _channelIcon(RevoltChannel channel) => switch (channel.type) {
-        ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
-        ChannelType.textChannel => Icons.tag,
-        ChannelType.directMessage => Icons.person_rounded,
-        ChannelType.group => Icons.group_rounded,
-        ChannelType.savedMessages => Icons.bookmark_rounded,
-        _ => Icons.chat_bubble_outline,
-      };
+    ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
+    ChannelType.textChannel => Icons.tag,
+    ChannelType.directMessage => Icons.person_rounded,
+    ChannelType.group => Icons.group_rounded,
+    ChannelType.savedMessages => Icons.bookmark_rounded,
+    _ => Icons.chat_bubble_outline,
+  };
 }
-

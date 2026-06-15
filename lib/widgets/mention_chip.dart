@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../providers/messaging_state.dart';
 
-InlineSpan buildMentionChip(String userId, MessagingState messaging, {TextStyle? baseStyle}) {
+InlineSpan buildMentionChip(
+  String userId,
+  MessagingState messaging, {
+  TextStyle? baseStyle,
+}) {
   final user = messaging.getUser(userId);
   final name = '@${user?.resolveDisplayName(null) ?? userId}';
   final style = (baseStyle ?? const TextStyle()).copyWith(

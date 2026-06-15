@@ -119,7 +119,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       final resultType = result['result'] as String?;
       if (resultType == 'MFA') {
         throw Exception(
-            'Account has MFA/2FA enabled. Please use an app-password or disable MFA temporarily.');
+          'Account has MFA/2FA enabled. Please use an app-password or disable MFA temporarily.',
+        );
       }
       if (resultType == 'Disabled') {
         throw Exception('This account has been disabled.');
@@ -142,7 +143,9 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   Future<void> updateDisplayName(String name) async {
     await _service.updateProfile(displayName: name.isEmpty ? '' : name);
-    _currentUser = _currentUser?.copyWith(displayName: name.isEmpty ? '' : name);
+    _currentUser = _currentUser?.copyWith(
+      displayName: name.isEmpty ? '' : name,
+    );
     _syncCurrentUser();
     notifyListeners();
   }
@@ -195,7 +198,11 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> updateAvatar(Uint8List bytes, String filename) async {
     final fileId = await _service.uploadAvatar(bytes, filename);
     await _service.updateProfile(avatar: fileId);
-    final oldUrl = _currentUser?.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
+    final oldUrl = _currentUser?.resolveAvatarUrl(
+      null,
+      _service.autumnBase,
+      _service.apiBase,
+    );
     _currentUser = _currentUser?.copyWith(
       avatar: RevoltFile(id: fileId, tag: 'avatars', filename: filename),
     );
@@ -233,8 +240,13 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       remove.add('Nickname');
       effectiveNickname = null;
     }
-    await _service.updateServerMember(serverId, userId,
-        nickname: effectiveNickname, avatar: avatar, remove: remove);
+    await _service.updateServerMember(
+      serverId,
+      userId,
+      nickname: effectiveNickname,
+      avatar: avatar,
+      remove: remove,
+    );
     notifyListeners();
   }
 
@@ -259,7 +271,9 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       return;
     }
     if (event['type'] != 'UserUpdate') return;
-    debugPrint('[Auth/UserUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}');
+    debugPrint(
+      '[Auth/UserUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}',
+    );
     final id = event['id'] as String?;
     if (id == null || id != _currentUser?.id) return;
     final data = (event['data'] as Map?)?.cast<String, dynamic>();
@@ -284,41 +298,49 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
 
     // Evict old avatar if avatar changed or cleared
-    if (data != null && (data.containsKey('avatar') || clear.contains('avatar'))) {
-      final oldUrl = cached.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
+    if (data != null &&
+        (data.containsKey('avatar') || clear.contains('avatar'))) {
+      final oldUrl = cached.resolveAvatarUrl(
+        null,
+        _service.autumnBase,
+        _service.apiBase,
+      );
       PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
     }
 
     final user = RevoltUser(
       id: cached.id,
       username: data?['username'] as String? ?? cached.username,
-      discriminator: (data?['discriminator'] as String? ?? cached.discriminator),
+      discriminator:
+          (data?['discriminator'] as String? ?? cached.discriminator),
       displayName: data?['display_name'] as String? ?? cached.displayName,
       avatar: clear.contains('avatar')
           ? null
           : data?.containsKey('avatar') == true
-              ? parseFile(data!['avatar'])
-              : cached.avatar,
+          ? parseFile(data!['avatar'])
+          : cached.avatar,
       banner: clear.contains('banner')
           ? null
           : data?.containsKey('banner') == true
-              ? parseFile(data!['banner'])
-              : cached.banner,
+          ? parseFile(data!['banner'])
+          : cached.banner,
       presence: clear.contains('status')
           ? UserPresence.invisible
-          : data?['status'] is Map && (data!['status'] as Map).containsKey('presence')
-              ? parsePresence((data['status'] as Map)['presence'] as String?)
-              : cached.presence,
+          : data?['status'] is Map &&
+                (data!['status'] as Map).containsKey('presence')
+          ? parsePresence((data['status'] as Map)['presence'] as String?)
+          : cached.presence,
       statusText: clear.contains('status')
           ? null
           : data?['status'] is Map
-              ? (data!['status'] as Map)['text'] as String? ?? cached.statusText
-              : cached.statusText,
+          ? (data!['status'] as Map)['text'] as String? ?? cached.statusText
+          : cached.statusText,
       profileContent: clear.contains('profile')
           ? null
           : data?['profile'] is Map
-              ? (data!['profile'] as Map)['content'] as String? ?? cached.profileContent
-              : cached.profileContent,
+          ? (data!['profile'] as Map)['content'] as String? ??
+                cached.profileContent
+          : cached.profileContent,
       serverProfiles: cached.serverProfiles,
     );
     _currentUser = user;

@@ -59,7 +59,11 @@ class ServerRail extends StatelessWidget {
             tooltip: 'Settings',
             selected: false,
             onTap: () => SettingsScreen.show(context),
-            child: const Icon(Icons.settings_outlined, size: 20, color: Colors.white54),
+            child: const Icon(
+              Icons.settings_outlined,
+              size: 20,
+              color: Colors.white54,
+            ),
           ),
           _RailIcon(
             tooltip: 'Join Server',
@@ -103,14 +107,14 @@ void _showJoinDialog(BuildContext context) {
           try {
             await context.read<ServerState>().joinInvite(code);
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Joined server!')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Joined server!')));
           } catch (e) {
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to join: $e')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Failed to join: $e')));
           }
         },
       ),
@@ -127,14 +131,14 @@ void _showJoinDialog(BuildContext context) {
             try {
               await context.read<ServerState>().joinInvite(code);
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Joined server!')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Joined server!')));
             } catch (e) {
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Failed to join: $e')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Failed to join: $e')));
             }
           },
           child: const Text('Join'),
@@ -209,10 +213,15 @@ class _Initials extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        name.split(' ').map((w) => w.isNotEmpty ? w[0] : '').take(2).join();
-    return Text(initials,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold));
+    final initials = name
+        .split(' ')
+        .map((w) => w.isNotEmpty ? w[0] : '')
+        .take(2)
+        .join();
+    return Text(
+      initials,
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+    );
   }
 }
 

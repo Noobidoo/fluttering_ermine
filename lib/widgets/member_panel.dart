@@ -42,26 +42,30 @@ class MemberPanel extends StatelessWidget {
           else if (memberIds == null || memberIds.isEmpty)
             const Expanded(
               child: Center(
-                child: Text('No members',
-                    style: TextStyle(color: Colors.white38)),
+                child: Text(
+                  'No members',
+                  style: TextStyle(color: Colors.white38),
+                ),
               ),
             )
           else
             Expanded(
-              child: Builder(builder: (ctx) {
-                ctx.read<MessagingState>().ensureUsersCached(memberIds);
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  itemCount: memberIds.length,
-                  itemBuilder: (_, i) => _MemberTile(
-                    userId: memberIds[i],
-                    serverId: serverId!,
-                    user: messaging.getUser(memberIds[i]),
-                    autumnBase: auth.autumnBase,
-                    apiBase: auth.apiBase,
-                  ),
-                );
-              }),
+              child: Builder(
+                builder: (ctx) {
+                  ctx.read<MessagingState>().ensureUsersCached(memberIds);
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: memberIds.length,
+                    itemBuilder: (_, i) => _MemberTile(
+                      userId: memberIds[i],
+                      serverId: serverId!,
+                      user: messaging.getUser(memberIds[i]),
+                      autumnBase: auth.autumnBase,
+                      apiBase: auth.apiBase,
+                    ),
+                  );
+                },
+              ),
             ),
         ],
       ),
@@ -101,8 +105,7 @@ class _MemberTile extends StatelessWidget {
     final u = user;
     final name = u?.resolveDisplayName(serverId) ?? userId;
     final p = u?.presence ?? UserPresence.online;
-    final isOnline =
-        p == UserPresence.online || p == UserPresence.focus;
+    final isOnline = p == UserPresence.online || p == UserPresence.focus;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -115,15 +118,16 @@ class _MemberTile extends StatelessWidget {
             CircleAvatar(
               radius: 14,
               backgroundImage: u != null
-                  ? NetworkImage(u.resolveAvatarUrl(serverId, autumnBase, apiBase))
+                  ? NetworkImage(
+                      u.resolveAvatarUrl(serverId, autumnBase, apiBase),
+                    )
                   : null,
               backgroundColor: const Color(0xFF7F5AF0),
               onBackgroundImageError: u != null ? (_, _) {} : null,
               child: u == null
                   ? Text(
                       name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                          fontSize: 11, color: Colors.white),
+                      style: const TextStyle(fontSize: 11, color: Colors.white),
                     )
                   : null,
             ),
@@ -136,8 +140,7 @@ class _MemberTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: presenceColor(p),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                      color: const Color(0xFF141418), width: 2),
+                  border: Border.all(color: const Color(0xFF141418), width: 2),
                 ),
               ),
             ),

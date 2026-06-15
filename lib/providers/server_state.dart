@@ -16,8 +16,13 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   /// Called when a member's server profile changes (ServerMemberUpdate).
   /// Passes raw data (fields that changed) and clear list so the receiver
   /// can merge with any existing profile.
-  void Function(String userId, String serverId, Map<String, dynamic>? data,
-      List<String> clear)? onServerProfileUpdated;
+  void Function(
+    String userId,
+    String serverId,
+    Map<String, dynamic>? data,
+    List<String> clear,
+  )?
+  onServerProfileUpdated;
 
   ServerState(this._service);
 
@@ -53,10 +58,12 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   List<RevoltChannel> get dmChannels => _allChannels
-      .where((c) =>
-          c.type == ChannelType.directMessage ||
-          c.type == ChannelType.group ||
-          c.type == ChannelType.savedMessages)
+      .where(
+        (c) =>
+            c.type == ChannelType.directMessage ||
+            c.type == ChannelType.group ||
+            c.type == ChannelType.savedMessages,
+      )
       .toList();
 
   // -- WebSocket -------------------------------------------------------------
@@ -87,7 +94,6 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   void _onReady(Map<String, dynamic> event) {
-
     final servers = (event['servers'] as List<dynamic>?) ?? [];
     _servers = servers
         .map((s) => RevoltServer.fromJson(s as Map<String, dynamic>))
@@ -106,7 +112,8 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
       final channelId = data['_id'] as String;
       final lastId = data['last_id'] as String?;
       if (lastId != null) _channelUnreads[channelId] = lastId;
-      final mentions = (data['mentions'] as List<dynamic>?)
+      final mentions =
+          (data['mentions'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [];
@@ -183,25 +190,21 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _loadingMembers = true;
     notifyListeners();
     try {
-      final (memberProfiles, users) =
-          await _service.fetchServerMembers(server.id);
-      _memberIdsByServer[server.id] =
-          memberProfiles.map((m) => m.userId).toList();
+      final (memberProfiles, users) = await _service.fetchServerMembers(
+        server.id,
+      );
+      _memberIdsByServer[server.id] = memberProfiles
+          .map((m) => m.userId)
+          .toList();
 
       // Attach server profiles to each user
-      final profileByUserId = {
-        for (final m in memberProfiles) m.userId: m,
-      };
+      final profileByUserId = {for (final m in memberProfiles) m.userId: m};
       final updatedUsers = users.map((u) {
         final p = profileByUserId[u.id];
         if (p == null) return u;
         return u.copyWithServerProfile(
           server.id,
-          ServerProfile(
-            nickname: p.nickname,
-            roles: p.roles,
-            avatar: p.avatar,
-          ),
+          ServerProfile(nickname: p.nickname, roles: p.roles, avatar: p.avatar),
         );
       }).toList();
 
@@ -216,7 +219,8 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   void _onServerMemberUpdate(Map<String, dynamic> event) {
     debugPrint(
-        '[ServerMemberUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}');
+      '[ServerMemberUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}',
+    );
     final idMap = event['id'];
     if (idMap is! Map) return;
     final serverId = idMap['server'] as String?;
@@ -246,8 +250,9 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (latest != null) return unread != latest;
     if (unread == null) return false;
     final channel = _allChannels.cast<RevoltChannel?>().firstWhere(
-        (c) => c?.id == channelId,
-        orElse: () => null);
+      (c) => c?.id == channelId,
+      orElse: () => null,
+    );
     if (channel == null || channel.lastMessageId == null) return false;
     return unread != channel.lastMessageId;
   }

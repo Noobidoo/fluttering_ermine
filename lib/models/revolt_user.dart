@@ -22,18 +22,18 @@ UserPresence parsePresence(String? raw) {
 }
 
 String presenceToString(UserPresence p) => switch (p) {
-      UserPresence.online => 'Online',
-      UserPresence.idle => 'Idle',
-      UserPresence.focus => 'Focus',
-      UserPresence.invisible => 'Invisible',
-    };
+  UserPresence.online => 'Online',
+  UserPresence.idle => 'Idle',
+  UserPresence.focus => 'Focus',
+  UserPresence.invisible => 'Invisible',
+};
 
 Color presenceColor(UserPresence p) => switch (p) {
-      UserPresence.online => const Color(0xFF2CB67D),
-      UserPresence.idle => const Color(0xFFFFAA33),
-      UserPresence.focus => const Color(0xFF7F5AF0),
-      UserPresence.invisible => Colors.grey,
-    };
+  UserPresence.online => const Color(0xFF2CB67D),
+  UserPresence.idle => const Color(0xFFFFAA33),
+  UserPresence.focus => const Color(0xFF7F5AF0),
+  UserPresence.invisible => Colors.grey,
+};
 
 class RevoltUser {
   final String id;
@@ -93,8 +93,7 @@ class RevoltUser {
   }
 
   /// Returns the server-specific nickname, or null if none is set.
-  String? serverNickname(String serverId) =>
-      serverProfiles[serverId]?.nickname;
+  String? serverNickname(String serverId) => serverProfiles[serverId]?.nickname;
 
   /// Returns the server-specific avatar, falling back to the global avatar.
   RevoltFile? serverAvatar(String? serverId) {
@@ -118,10 +117,13 @@ class RevoltUser {
   /// Pass `null` for [serverId] to skip server-specific overrides.
   String resolveAvatarUrl(String? serverId, String autumnBase, String apiBase) {
     final a = serverAvatar(serverId);
-    return a != null ? a.urlFor(autumnBase) : '$apiBase/users/$id/default_avatar';
+    return a != null
+        ? a.urlFor(autumnBase)
+        : '$apiBase/users/$id/default_avatar';
   }
 
-  bool get online => presence == UserPresence.online || presence == UserPresence.focus;
+  bool get online =>
+      presence == UserPresence.online || presence == UserPresence.focus;
 
   factory RevoltUser.fromJson(Map<String, dynamic> json) {
     final status = json['status'] as Map<String, dynamic>?;
@@ -145,8 +147,9 @@ class RevoltUser {
 
   String get displayUsername => displayName ?? username;
 
-  String avatarUrlFor(String autumnBase, String apiBase) =>
-      avatar != null ? avatar!.urlFor(autumnBase) : '$apiBase/users/$id/default_avatar';
+  String avatarUrlFor(String autumnBase, String apiBase) => avatar != null
+      ? avatar!.urlFor(autumnBase)
+      : '$apiBase/users/$id/default_avatar';
 
   String? bannerUrlFor(String autumnBase) => banner?.urlFor(autumnBase);
 

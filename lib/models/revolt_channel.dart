@@ -1,10 +1,4 @@
-enum ChannelType {
-  textChannel,
-  directMessage,
-  group,
-  savedMessages,
-  unknown,
-}
+enum ChannelType { textChannel, directMessage, group, savedMessages, unknown }
 
 class RevoltChannel {
   final String id;
@@ -42,8 +36,7 @@ class RevoltChannel {
       isVoice: json['voice'] != null,
       name: json['name'] as String?,
       serverId: json['server'] as String?,
-      recipientIds:
-          (json['recipients'] as List<dynamic>?)?.cast<String>(),
+      recipientIds: (json['recipients'] as List<dynamic>?)?.cast<String>(),
       description: json['description'] as String?,
       lastMessageId: json['last_message_id'] as String?,
     );
