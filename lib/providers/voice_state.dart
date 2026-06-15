@@ -80,7 +80,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   String? _defaultAudioInputId;
 
   // -- DeepFilterNet noise suppression ---------------------------------------
-  DeepFilterProcessor? _deepFilterProcessor;
+  final _liveKitDeepFilter = LiveKitDeepFilter();
   bool _deepFilterEnabled = true;
 
   // -- Per-participant screen share subscriptions -----------------------------
@@ -102,10 +102,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool get echoCancellation => _echoCancellation;
   bool get autoGainControl => _autoGainControl;
   bool get deepFilterEnabled => _deepFilterEnabled;
-  static bool get deepFilterSupported => DeepFilterProcessor.isSupported;
-  static bool get deepFilterIsRealLibrary => DeepFilterProcessor.isRealLibrary;
-  bool get deepFilterIsApmAttached =>
-      _deepFilterProcessor?.isProcessing ?? false;
+  static bool get deepFilterSupported => LiveKitDeepFilter.isSupported;
+  static bool get deepFilterIsRealLibrary => LiveKitDeepFilter.isRealLibrary;
+  bool get deepFilterIsApmAttached => _liveKitDeepFilter.isProcessing;
 
   // Returns true if the given participant's screen share is currently subscribed.
   bool isScreenShareSubscribed(String identity) =>
@@ -265,9 +264,10 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> joinVoiceChannel(RevoltChannel channel) async {
     if (_isJoiningVoice) return;
 
-    // permission_handler has no Linux implementation; the OS handles mic
+    // permission_handler has no Linux/Windows implementation; the OS handles mic
     // access natively (PipeWire/PulseAudio prompts when the stream opens).
-    if (!defaultTargetPlatform.name.toLowerCase().contains('linux')) {
+    if (!defaultTargetPlatform.name.toLowerCase().contains('linux') &&
+        !defaultTargetPlatform.name.toLowerCase().contains('windows')) {
       final micStatus = await Permission.microphone.request();
       if (!micStatus.isGranted) {
         _voiceError = 'Microphone permission denied';
@@ -449,6 +449,12 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       // Enumerate devices first to get the default mic deviceId
       // TODO: remove deviceId workaround once flutter-webrtc#2071 is resolved
       _defaultAudioInputId = await _getDefaultAudioInputId();
+      // Initialize DeepFilterNet before enabling the mic so the processor
+      // can be passed via AudioCaptureOptions. The SDK handles init/onPublish.
+      if (_deepFilterEnabled) {
+        await _liveKitDeepFilter.enable(enabled: true);
+      }
+
       // Enable mic before subscribing to ensure ADM is fully initialized before
       // remote audio sinks are wired up.
       try {
@@ -459,6 +465,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
             noiseSuppression: _noiseSuppression,
             echoCancellation: _echoCancellation,
             autoGainControl: _autoGainControl,
+            processor: _liveKitDeepFilter.processor,
           ),
         );
         debugPrint(
@@ -471,10 +478,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _subscribeInitialTracks();
       // Apply stored output volume to any already-connected remote participants
       _applyOutputVolume();
-      // Attach DeepFilterNet neural noise suppression
-      if (_deepFilterEnabled) {
-        await _attachDeepFilter();
-      }
     } catch (e) {
       debugPrint('[voice] join failed: $e');
       _voiceError = e.toString().replaceAll('Exception: ', '');
@@ -499,8 +502,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       _isScreenSharing = false;
       _screenShareTrack = null;
     }
-    // Detach DeepFilterNet processor before tearing down the connection
-    await _detachDeepFilter();
+    // Destroy DeepFilterNet processor
+    await _liveKitDeepFilter.disable();
 
     try {
       await _voiceRoom?.disconnect();
@@ -660,7 +663,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> clear() async {
-    await _detachDeepFilter();
+    await _liveKitDeepFilter.disable();
     await _voiceRoom?.disconnect();
     await _voiceRoomListener?.dispose();
     _voiceRoomListener = null;
@@ -742,82 +745,21 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _deepFilterEnabled = value;
     final asyncPrefs = SharedPreferencesAsync();
     await asyncPrefs.setBool('voice_deep_filter_enabled', value);
-    if (_deepFilterProcessor != null) {
-      // APM hook is already attached — toggle instantly via the atomic flag
-      _deepFilterProcessor!.setEnabled(value);
-    } else if (_voiceRoom != null && _isInVoice && value) {
-      // Not yet attached (e.g. was disabled on join) — attach now
-      await _attachDeepFilter();
+    if (value && _voiceRoom != null && _isInVoice && !_liveKitDeepFilter.isEnabled) {
+      await _liveKitDeepFilter.enable(enabled: true);
+      final audioTrack = _voiceRoom!.localParticipant?.trackPublications.values
+          .where((pub) => pub.kind == TrackType.AUDIO)
+          .firstOrNull?.track;
+      if (audioTrack is LocalAudioTrack) {
+        await _liveKitDeepFilter.attachToTrack(audioTrack);
+      }
+    } else {
+      _liveKitDeepFilter.setEnabled(value);
     }
     notifyListeners();
   }
 
-  Future<void> _attachDeepFilter() async {
-    debugPrint('[voice:df] _attachDeepFilter enter');
-    if (_deepFilterProcessor != null) {
-      debugPrint('[voice:df] _attachDeepFilter: already attached, skipping');
-      return;
-    }
-    debugPrint(
-      '[voice:df] _attachDeepFilter: isSupported=${DeepFilterProcessor.isSupported}',
-    );
-    if (!DeepFilterProcessor.isSupported || !DeepFilterProcessor.isRealLibrary)
-      return;
-    try {
-      // On Android, ensure the APM hook is attached after flutter_webrtc init
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        await DeepFilterProcessor.attachApmHook();
-      }
-      final audioPub = _voiceRoom?.localParticipant?.trackPublications.values
-          .where((pub) => pub.kind == TrackType.AUDIO)
-          .firstOrNull;
-      debugPrint(
-        '[voice:df] _attachDeepFilter: audioPub=$audioPub isAudioTrack=${audioPub?.track is LocalAudioTrack}',
-      );
-      if (audioPub?.track is LocalAudioTrack) {
-        debugPrint(
-          '[voice:df] _attachDeepFilter: about to create DeepFilterProcessor',
-        );
-        _deepFilterProcessor = DeepFilterProcessor(enabled: true);
-        debugPrint(
-          '[voice:df] _attachDeepFilter: processor created, about to setProcessor',
-        );
-        await (audioPub!.track as LocalAudioTrack).setProcessor(
-          _deepFilterProcessor!,
-        );
-        // setProcessor on an already-published track does not call onPublish,
-        // so the processor's _published flag stays false and setApmEnabled is
-        // never invoked. Call onPublish explicitly to activate processing.
-        if (!_deepFilterProcessor!.isProcessing && _voiceRoom != null) {
-          await _deepFilterProcessor!.onPublish(_voiceRoom!);
-        }
-        debugPrint('[voice:df] _attachDeepFilter: processor attached to track');
-      } else {
-        debugPrint('[voice:df] _attachDeepFilter: no audio track found');
-      }
-    } catch (e, st) {
-      debugPrint('[voice:df] _attachDeepFilter: FAILED: $e');
-      debugPrint('[voice:df] _attachDeepFilter: stack: $st');
-    }
-    debugPrint('[voice:df] _attachDeepFilter: exit');
-  }
 
-  Future<void> _detachDeepFilter() async {
-    if (_deepFilterProcessor == null) return;
-    try {
-      final audioPub = _voiceRoom?.localParticipant?.trackPublications.values
-          .where((pub) => pub.kind == TrackType.AUDIO)
-          .firstOrNull;
-      if (audioPub?.track is LocalAudioTrack) {
-        await (audioPub!.track as LocalAudioTrack).setProcessor(null);
-      }
-    } catch (e) {
-      debugPrint('[voice] DeepFilterNet detach failed: $e');
-    }
-    await _deepFilterProcessor?.destroy();
-    _deepFilterProcessor = null;
-    debugPrint('[voice] DeepFilterNet processor detached');
-  }
 
   @override
   void dispose() {
@@ -826,7 +768,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _voiceRoom?.disconnect();
     _voiceRoomListener?.dispose();
     _subscribedScreenShares.clear();
-    unawaited(_detachDeepFilter());
+    unawaited(_liveKitDeepFilter.disable());
     super.dispose();
   }
 }
