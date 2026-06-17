@@ -45,3 +45,15 @@ Use `flutter driver` to inspect the widget tree and interact with the applicatio
 - After every interaction, get the widget tree to see the updated state.
 - Avoid reading source files to verify UI state — inspect the live app and widget tree directly.
 - If stuck or the driver cannot find a widget, ask the user for help.
+
+## Debugging Procedure
+
+1. **Obtain a stack trace first** — use Flutter's runtime error tools or DTD to capture one. It pinpoints the exact failure site.
+
+2. **No stack trace?** Start at the function where the symptom appears (`function1`). Read its body and analyze what could go wrong.
+
+3. **Widen context outward** — read the callers of `function1`, then their callers, repeating until you either:
+   - Find the root cause, or
+   - Reach the app boundary (platform channel, service, event stream).
+
+4. **No error found inside the app?** Ask the user for permission before inspecting external dependency sources. Apply the same expanding-context strategy from the call site outward.
