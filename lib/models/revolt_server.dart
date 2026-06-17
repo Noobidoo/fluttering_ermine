@@ -16,15 +16,14 @@ class RevoltServer {
   });
 
   factory RevoltServer.fromJson(Map<String, dynamic> json) => RevoltServer(
-        id: json['_id'] as String,
-        name: json['name'] as String,
-        description: json['description'] as String?,
-        channelIds:
-            (json['channels'] as List<dynamic>?)?.cast<String>() ?? [],
-        icon: json['icon'] != null
-            ? RevoltFile.fromJson(json['icon'] as Map<String, dynamic>)
-            : null,
-      );
+    id: json['_id'] as String,
+    name: json['name'] as String,
+    description: json['description'] as String?,
+    channelIds: (json['channels'] as List<dynamic>?)?.cast<String>() ?? [],
+    icon: json['icon'] != null
+        ? RevoltFile.fromJson(json['icon'] as Map<String, dynamic>)
+        : null,
+  );
 
   String? iconUrlFor(String autumnBase) => icon?.urlFor(autumnBase);
 }

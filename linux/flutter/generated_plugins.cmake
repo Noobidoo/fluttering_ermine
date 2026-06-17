@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  deepfilter_livekit
   flutter_webrtc
   livekit_client
   url_launcher_linux

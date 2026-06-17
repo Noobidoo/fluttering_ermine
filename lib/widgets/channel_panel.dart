@@ -19,7 +19,8 @@ class ChannelPanel extends StatelessWidget {
     final channels = server.selectedServer != null
         ? server.selectedServerChannels
         : server.dmChannels;
-    final title = server.selectedServer?.name ??
+    final title =
+        server.selectedServer?.name ??
         (server.showDMs ? 'Direct Messages' : 'Fluttering Ermine');
 
     return Material(
@@ -39,14 +40,19 @@ class ChannelPanel extends StatelessWidget {
                   child: Text(
                     title,
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (server.selectedServer != null)
                   IconButton(
-                    icon: const Icon(Icons.settings_rounded,
-                        size: 18, color: Colors.white54),
+                    icon: const Icon(
+                      Icons.settings_rounded,
+                      size: 18,
+                      color: Colors.white54,
+                    ),
                     tooltip: 'Server settings',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -58,12 +64,18 @@ class ChannelPanel extends StatelessWidget {
           Expanded(
             child: channels.isEmpty
                 ? const Center(
-                    child: Text('No channels',
-                        style: TextStyle(color: Colors.white38)))
+                    child: Text(
+                      'No channels',
+                      style: TextStyle(color: Colors.white38),
+                    ),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: channels.length,
-                    itemBuilder: (_, i) => _ChannelTile(channels[i]),
+                    itemBuilder: (_, i) => _ChannelTile(
+                      channels[i],
+                      key: ValueKey('channel_${channels[i].id}'),
+                    ),
                   ),
           ),
           if (auth.currentUser != null)
@@ -77,16 +89,16 @@ class ChannelPanel extends StatelessWidget {
 
 class _ChannelTile extends StatelessWidget {
   final RevoltChannel channel;
-  const _ChannelTile(this.channel);
+  const _ChannelTile(this.channel, {super.key});
 
   IconData _icon() => switch (channel.type) {
-        ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
-        ChannelType.textChannel => Icons.tag,
-        ChannelType.directMessage => Icons.person_rounded,
-        ChannelType.group => Icons.group_rounded,
-        ChannelType.savedMessages => Icons.bookmark_rounded,
-        _ => Icons.chat_bubble_outline,
-      };
+    ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
+    ChannelType.textChannel => Icons.tag,
+    ChannelType.directMessage => Icons.person_rounded,
+    ChannelType.group => Icons.group_rounded,
+    ChannelType.savedMessages => Icons.bookmark_rounded,
+    _ => Icons.chat_bubble_outline,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +125,9 @@ class _ChannelTile extends StatelessWidget {
     final isActiveVoice =
         channel.isVoice && voice.activeVoiceChannel?.id == channel.id;
     final liveKitByIdentity = {
-      for (final p in (isActiveVoice ? voice.voiceParticipants : <VoiceParticipant>[])) p.identity: p,
+      for (final p
+          in (isActiveVoice ? voice.voiceParticipants : <VoiceParticipant>[]))
+        p.identity: p,
     };
 
     return Padding(
@@ -123,8 +137,9 @@ class _ChannelTile extends StatelessWidget {
         children: [
           ListTile(
             dense: true,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
             selected: selected,
             selectedTileColor: const Color(0x207F5AF0),
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
@@ -161,8 +176,9 @@ class _ChannelTile extends StatelessWidget {
                       color: selected
                           ? Colors.white
                           : (unread ? Colors.white : Colors.white60),
-                      fontWeight:
-                          selected || unread ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: selected || unread
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -170,8 +186,10 @@ class _ChannelTile extends StatelessWidget {
                 if (mentionCount > 0)
                   Container(
                     margin: const EdgeInsets.only(left: 6),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.redAccent,
                       borderRadius: BorderRadius.circular(8),
@@ -213,7 +231,11 @@ class _ChannelTile extends StatelessWidget {
                     isMuted: lkParticipant?.isMuted,
                     isSpeaking: lkParticipant?.isSpeaking ?? false,
                     isScreenSharing: lkParticipant?.isScreenSharing ?? false,
-                    avatarUrl: user?.resolveAvatarUrl(null, auth.autumnBase, auth.apiBase),
+                    avatarUrl: user?.resolveAvatarUrl(
+                      null,
+                      auth.autumnBase,
+                      auth.apiBase,
+                    ),
                   );
                 }).toList(),
               ),
@@ -259,26 +281,27 @@ class _VoiceParticipantRow extends StatelessWidget {
                 width: 2,
               ),
               boxShadow: isSpeaking
-                  ? [BoxShadow(
-                      color: speakingColor.withValues(alpha: 0.5),
-                      blurRadius: 6,
-                    )]
+                  ? [
+                      BoxShadow(
+                        color: speakingColor.withValues(alpha: 0.5),
+                        blurRadius: 6,
+                      ),
+                    ]
                   : null,
             ),
             child: CircleAvatar(
               radius: 10,
-              backgroundImage:
-                  avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl!)
+                  : null,
               backgroundColor: const Color(0xFF7F5AF0),
-              onBackgroundImageError:
-                  avatarUrl != null ? (_, _) {} : null,
+              onBackgroundImageError: avatarUrl != null ? (_, _) {} : null,
               child: avatarUrl == null
                   ? Text(
                       displayName.isNotEmpty
                           ? displayName[0].toUpperCase()
                           : '?',
-                      style: const TextStyle(
-                          fontSize: 9, color: Colors.white),
+                      style: const TextStyle(fontSize: 9, color: Colors.white),
                     )
                   : null,
             ),
@@ -296,19 +319,16 @@ class _VoiceParticipantRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 color: isSpeaking ? Colors.white70 : Colors.white54,
-                fontWeight:
-                    isSpeaking ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: isSpeaking ? FontWeight.w600 : FontWeight.normal,
               ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
           if (!isLocal && isScreenSharing)
             GestureDetector(
-              onTap: () =>
-                  voice.toggleScreenShareSubscription(identity),
+              onTap: () => voice.toggleScreenShareSubscription(identity),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: voice.isScreenShareSubscribed(identity)
                       ? const Color(0xFF7F5AF0)
@@ -416,18 +436,23 @@ class _ServerSettingsDialogState extends State<_ServerSettingsDialog> {
           const SizedBox(height: 12),
           const Divider(color: Color(0xFF2A2A30), height: 1),
           const SizedBox(height: 12),
-          const Text('Existing invites',
-              style: TextStyle(fontSize: 13, color: Colors.white54)),
+          const Text(
+            'Existing invites',
+            style: TextStyle(fontSize: 13, color: Colors.white54),
+          ),
           const SizedBox(height: 8),
           if (_error != null)
-            Text('Failed to load: $_error',
-                style:
-                    const TextStyle(fontSize: 12, color: Colors.redAccent)),
+            Text(
+              'Failed to load: $_error',
+              style: const TextStyle(fontSize: 12, color: Colors.redAccent),
+            ),
           if (_invites == null)
             const Center(child: CircularProgressIndicator(strokeWidth: 2))
           else if (_invites!.isEmpty)
-            const Text('No invites yet',
-                style: TextStyle(fontSize: 12, color: Colors.white38))
+            const Text(
+              'No invites yet',
+              style: TextStyle(fontSize: 12, color: Colors.white38),
+            )
           else
             ..._invites!.map(
               (inv) => Padding(
@@ -440,9 +465,10 @@ class _ServerSettingsDialogState extends State<_ServerSettingsDialog> {
                       child: Text(
                         inv.id,
                         style: const TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                            color: Colors.white70),
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                          color: Colors.white70,
+                        ),
                       ),
                     ),
                   ],
@@ -463,11 +489,12 @@ class _ServerSettingsDialogState extends State<_ServerSettingsDialog> {
 
 void _createInvite(BuildContext context) async {
   final server = context.read<ServerState>();
-  final channel = server.selectedChannel ??
+  final channel =
+      server.selectedChannel ??
       server.selectedServerChannels.cast<RevoltChannel?>().firstWhere(
-            (c) => c?.type == ChannelType.textChannel && !c!.isVoice,
-            orElse: () => null,
-          );
+        (c) => c?.type == ChannelType.textChannel && !c!.isVoice,
+        orElse: () => null,
+      );
   if (channel == null) return;
   try {
     final code = await server.createInvite(channel.id);
@@ -491,9 +518,10 @@ void _createInvite(BuildContext context) async {
               child: SelectableText(
                 code,
                 style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
               ),
             ),
           ],
@@ -508,9 +536,9 @@ void _createInvite(BuildContext context) async {
     );
   } catch (e) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to create invite: $e')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Failed to create invite: $e')));
   }
 }
 
@@ -563,8 +591,9 @@ class _UserBar extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundImage:
-                      NetworkImage(user.resolveAvatarUrl(null, autumnBase, apiBase)),
+                  backgroundImage: NetworkImage(
+                    user.resolveAvatarUrl(null, autumnBase, apiBase),
+                  ),
                   backgroundColor: const Color(0xFF7F5AF0),
                   onBackgroundImageError: (e, stack) {},
                 ),
@@ -578,7 +607,9 @@ class _UserBar extends StatelessWidget {
                       color: presenceColor(user.presence),
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: const Color(0xFF0D0D0F), width: 2),
+                        color: const Color(0xFF0D0D0F),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -593,15 +624,18 @@ class _UserBar extends StatelessWidget {
                   Text(
                     user.resolveDisplayName(null),
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w500),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (user.statusText != null &&
-                      user.statusText!.isNotEmpty)
+                  if (user.statusText != null && user.statusText!.isNotEmpty)
                     Text(
                       user.statusText!,
                       style: const TextStyle(
-                          fontSize: 11, color: Colors.white38),
+                        fontSize: 11,
+                        color: Colors.white38,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],
@@ -617,6 +651,22 @@ class _UserBar extends StatelessWidget {
 class _VoiceBar extends StatelessWidget {
   const _VoiceBar();
 
+  Color _deepFilterColor(VoiceState voice) {
+    if (!voice.deepFilterEnabled) return Colors.white38;
+    if (!VoiceState.deepFilterIsRealLibrary) return Colors.orange;
+    if (!voice.deepFilterIsApmAttached) return Colors.amber;
+    return const Color(0xFF2CB67D);
+  }
+
+  String _deepFilterTooltip(VoiceState voice) {
+    if (!voice.deepFilterEnabled) return 'Neural noise suppression: off';
+    if (!VoiceState.deepFilterIsRealLibrary)
+      return 'Neural noise suppression: stub (library not loaded)';
+    if (!voice.deepFilterIsApmAttached)
+      return 'Neural noise suppression: initializing…';
+    return 'Neural noise suppression: active';
+  }
+
   @override
   Widget build(BuildContext context) {
     final voice = context.watch<VoiceState>();
@@ -629,60 +679,158 @@ class _VoiceBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       color: const Color(0xFF1A3A2A),
       child: voice.isJoiningVoice
-          ? const Row(children: [
-              SizedBox(
+          ? const Row(
+              children: [
+                SizedBox(
                   width: 14,
                   height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
-              SizedBox(width: 8),
-              Text('Connecting to voice…',
-                  style: TextStyle(color: Colors.white54, fontSize: 12)),
-            ])
-          : Row(
-              children: [
-                const Icon(Icons.graphic_eq,
-                    size: 16, color: Color(0xFF2CB67D)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Voice Connected',
-                          style: TextStyle(
-                              color: Color(0xFF2CB67D),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600)),
-                      Text(channelName,
-                          style: const TextStyle(
-                              color: Colors.white54, fontSize: 11),
-                          overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                IconButton(
-                  icon: Icon(
-                    voice.isMuted ? Icons.mic_off : Icons.mic,
-                    size: 18,
-                    color: voice.isMuted ? Colors.redAccent : Colors.white70,
-                  ),
-                  tooltip: voice.isMuted ? 'Unmute' : 'Mute',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () => context.read<VoiceState>().toggleMute(),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.call_end,
-                      size: 18, color: Colors.redAccent),
-                  tooltip: 'Leave voice',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () =>
-                      context.read<VoiceState>().leaveVoiceChannel(),
+                SizedBox(width: 8),
+                Text(
+                  'Connecting to voice…',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.graphic_eq,
+                      size: 16,
+                      color: Color(0xFF2CB67D),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Voice Connected',
+                            style: TextStyle(
+                              color: Color(0xFF2CB67D),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            channelName,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (VoiceState.deepFilterSupported) ...[
+                      Tooltip(
+                        message: _deepFilterTooltip(voice),
+                        child: IconButton(
+                          icon: Icon(
+                            voice.deepFilterEnabled
+                                ? Icons.noise_aware
+                                : Icons.noise_control_off,
+                            size: 18,
+                            color: _deepFilterColor(voice),
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => context
+                              .read<VoiceState>()
+                              .setDeepFilterEnabled(!voice.deepFilterEnabled),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    IconButton(
+                      icon: Icon(
+                        voice.isMuted ? Icons.mic_off : Icons.mic,
+                        size: 18,
+                        color: voice.isMuted
+                            ? Colors.redAccent
+                            : Colors.white70,
+                      ),
+                      tooltip: voice.isMuted ? 'Unmute' : 'Mute',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => context.read<VoiceState>().toggleMute(),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.call_end,
+                        size: 18,
+                        color: Colors.redAccent,
+                      ),
+                      tooltip: 'Leave voice',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () =>
+                          context.read<VoiceState>().leaveVoiceChannel(),
+                    ),
+                  ],
+                ),
+                if (VoiceState.deepFilterSupported)
+                  const _DeepFilterStatusRow(),
+              ],
             ),
-     );
-   }
+    );
+  }
+}
+
+class _DeepFilterStatusRow extends StatelessWidget {
+  const _DeepFilterStatusRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final voice = context.watch<VoiceState>();
+    final isReal = VoiceState.deepFilterIsRealLibrary;
+    final isActive = voice.deepFilterIsApmAttached;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Icon(
+            isReal ? Icons.check_circle_outline : Icons.error_outline,
+            size: 11,
+            color: isReal ? const Color(0xFF2CB67D) : Colors.orange,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            isReal ? 'DeepFilter' : 'DeepFilter (stub)',
+            style: TextStyle(
+              fontSize: 10,
+              color: isReal ? Colors.white38 : Colors.orange,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            isActive ? Icons.graphic_eq : Icons.mic_off,
+            size: 11,
+            color: isActive ? const Color(0xFF2CB67D) : Colors.white38,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            isActive
+                ? 'APM active'
+                : voice.deepFilterEnabled
+                ? 'APM inactive'
+                : 'disabled',
+            style: TextStyle(
+              fontSize: 10,
+              color: isActive ? const Color(0xFF2CB67D) : Colors.white38,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

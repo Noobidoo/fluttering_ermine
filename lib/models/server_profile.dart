@@ -5,11 +5,7 @@ class ServerProfile {
   final List<String> roles;
   final RevoltFile? avatar;
 
-  ServerProfile({
-    this.nickname,
-    this.roles = const [],
-    this.avatar,
-  });
+  ServerProfile({this.nickname, this.roles = const [], this.avatar});
 
   factory ServerProfile.fromJson(Map<String, dynamic> json) {
     return ServerProfile(

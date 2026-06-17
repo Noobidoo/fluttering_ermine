@@ -52,17 +52,17 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   Future<void> init() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedApi = prefs.getString(_apiBaseKey);
-      final savedWs = prefs.getString(_wsUrlKey);
-      final savedAutumn = prefs.getString(_autumnBaseKey);
+      final asyncPrefs = SharedPreferencesAsync();
+      final savedApi = await asyncPrefs.getString(_apiBaseKey);
+      final savedWs = await asyncPrefs.getString(_wsUrlKey);
+      final savedAutumn = await asyncPrefs.getString(_autumnBaseKey);
       if (savedApi != null && savedWs != null) {
         _service.setServerUrl(savedApi, savedWs);
       }
       if (savedAutumn != null) {
         _service.setAutumnUrl(savedAutumn);
       }
-      final token = prefs.getString(_tokenKey);
+      final token = await asyncPrefs.getString(_tokenKey);
       if (token == null) return;
       _service.setToken(token);
       try {
@@ -80,8 +80,8 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       _connectWebSocket();
       _isLoggedIn = true;
     } catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_tokenKey);
+      final asyncPrefs = SharedPreferencesAsync();
+      await asyncPrefs.remove(_tokenKey);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -103,10 +103,10 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     _service.setServerUrl(apiBase, wsUrl);
     _service.setAutumnUrl(autumnBase);
     _service.setVoiceNode(voiceNode);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_apiBaseKey, apiBase);
-    await prefs.setString(_wsUrlKey, wsUrl);
-    await prefs.setString(_autumnBaseKey, autumnBase);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setString(_apiBaseKey, apiBase);
+    await asyncPrefs.setString(_wsUrlKey, wsUrl);
+    await asyncPrefs.setString(_autumnBaseKey, autumnBase);
     notifyListeners();
   }
 
@@ -119,15 +119,16 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       final resultType = result['result'] as String?;
       if (resultType == 'MFA') {
         throw Exception(
-            'Account has MFA/2FA enabled. Please use an app-password or disable MFA temporarily.');
+          'Account has MFA/2FA enabled. Please use an app-password or disable MFA temporarily.',
+        );
       }
       if (resultType == 'Disabled') {
         throw Exception('This account has been disabled.');
       }
       final token = result['token'] as String;
       _service.setToken(token);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_tokenKey, token);
+      final asyncPrefs = SharedPreferencesAsync();
+      await asyncPrefs.setString(_tokenKey, token);
       _currentUser = await _service.fetchSelf();
       _messagingState.setCurrentUserId(_currentUser!.id);
       _connectWebSocket();
@@ -142,14 +143,16 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   Future<void> updateDisplayName(String name) async {
     await _service.updateProfile(displayName: name.isEmpty ? '' : name);
-    _currentUser = _currentUser?.copyWith(displayName: name.isEmpty ? '' : name);
+    _currentUser = _currentUser?.copyWith(
+      displayName: name.isEmpty ? '' : name,
+    );
     _syncCurrentUser();
     notifyListeners();
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.remove(_tokenKey);
     try {
       await _service.logout();
     } catch (_) {}
@@ -159,9 +162,9 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     _service.disconnect();
     _isLoggedIn = false;
     _currentUser = null;
-    await prefs.remove(_apiBaseKey);
-    await prefs.remove(_wsUrlKey);
-    await prefs.remove(_autumnBaseKey);
+    await asyncPrefs.remove(_apiBaseKey);
+    await asyncPrefs.remove(_wsUrlKey);
+    await asyncPrefs.remove(_autumnBaseKey);
     _service.setServerUrl('https://api.revolt.chat', _defaultWsUrl);
     _service.setAutumnUrl('https://autumn.revolt.chat');
     notifyListeners();
@@ -195,7 +198,11 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   Future<void> updateAvatar(Uint8List bytes, String filename) async {
     final fileId = await _service.uploadAvatar(bytes, filename);
     await _service.updateProfile(avatar: fileId);
-    final oldUrl = _currentUser?.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
+    final oldUrl = _currentUser?.resolveAvatarUrl(
+      null,
+      _service.autumnBase,
+      _service.apiBase,
+    );
     _currentUser = _currentUser?.copyWith(
       avatar: RevoltFile(id: fileId, tag: 'avatars', filename: filename),
     );
@@ -233,8 +240,13 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       remove.add('Nickname');
       effectiveNickname = null;
     }
-    await _service.updateServerMember(serverId, userId,
-        nickname: effectiveNickname, avatar: avatar, remove: remove);
+    await _service.updateServerMember(
+      serverId,
+      userId,
+      nickname: effectiveNickname,
+      avatar: avatar,
+      remove: remove,
+    );
     notifyListeners();
   }
 
@@ -259,7 +271,9 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       return;
     }
     if (event['type'] != 'UserUpdate') return;
-    debugPrint('[Auth/UserUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}');
+    debugPrint(
+      '[Auth/UserUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}',
+    );
     final id = event['id'] as String?;
     if (id == null || id != _currentUser?.id) return;
     final data = (event['data'] as Map?)?.cast<String, dynamic>();
@@ -284,41 +298,49 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
 
     // Evict old avatar if avatar changed or cleared
-    if (data != null && (data.containsKey('avatar') || clear.contains('avatar'))) {
-      final oldUrl = cached.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
+    if (data != null &&
+        (data.containsKey('avatar') || clear.contains('avatar'))) {
+      final oldUrl = cached.resolveAvatarUrl(
+        null,
+        _service.autumnBase,
+        _service.apiBase,
+      );
       PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
     }
 
     final user = RevoltUser(
       id: cached.id,
       username: data?['username'] as String? ?? cached.username,
-      discriminator: (data?['discriminator'] as String? ?? cached.discriminator),
+      discriminator:
+          (data?['discriminator'] as String? ?? cached.discriminator),
       displayName: data?['display_name'] as String? ?? cached.displayName,
       avatar: clear.contains('avatar')
           ? null
           : data?.containsKey('avatar') == true
-              ? parseFile(data!['avatar'])
-              : cached.avatar,
+          ? parseFile(data!['avatar'])
+          : cached.avatar,
       banner: clear.contains('banner')
           ? null
           : data?.containsKey('banner') == true
-              ? parseFile(data!['banner'])
-              : cached.banner,
+          ? parseFile(data!['banner'])
+          : cached.banner,
       presence: clear.contains('status')
           ? UserPresence.invisible
-          : data?['status'] is Map && (data!['status'] as Map).containsKey('presence')
-              ? parsePresence((data['status'] as Map)['presence'] as String?)
-              : cached.presence,
+          : data?['status'] is Map &&
+                (data!['status'] as Map).containsKey('presence')
+          ? parsePresence((data['status'] as Map)['presence'] as String?)
+          : cached.presence,
       statusText: clear.contains('status')
           ? null
           : data?['status'] is Map
-              ? (data!['status'] as Map)['text'] as String? ?? cached.statusText
-              : cached.statusText,
+          ? (data!['status'] as Map)['text'] as String? ?? cached.statusText
+          : cached.statusText,
       profileContent: clear.contains('profile')
           ? null
           : data?['profile'] is Map
-              ? (data!['profile'] as Map)['content'] as String? ?? cached.profileContent
-              : cached.profileContent,
+          ? (data!['profile'] as Map)['content'] as String? ??
+                cached.profileContent
+          : cached.profileContent,
       serverProfiles: cached.serverProfiles,
     );
     _currentUser = user;

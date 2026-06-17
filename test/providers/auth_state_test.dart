@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:fluttering_ermine/models/models.dart';
 import 'package:fluttering_ermine/providers/auth_state.dart';
@@ -15,8 +16,8 @@ import '../helpers/mocks.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+  setUp(() {
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
   });
 
   group('AuthState – profile updates', () {
@@ -55,8 +56,9 @@ void main() {
         profileContent: 'My bio',
       ));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('revolt_session_token', 'test-token');
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
+        'revolt_session_token': 'test-token',
+      });
       await authState.init();
 
       await authState.updateDisplayName('NewDisplay');
@@ -78,8 +80,9 @@ void main() {
         profileContent: 'My bio',
       ));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('revolt_session_token', 'test-token');
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
+        'revolt_session_token': 'test-token',
+      });
       await authState.init();
 
       await authState.updateStatus(presence: 'Idle', statusText: 'busy');
@@ -101,8 +104,9 @@ void main() {
         profileContent: 'My bio',
       ));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('revolt_session_token', 'test-token');
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
+        'revolt_session_token': 'test-token',
+      });
       await authState.init();
 
       await authState.updateStatus(presence: 'Focus');
@@ -123,8 +127,9 @@ void main() {
         discriminator: '0000',
       ));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('revolt_session_token', 'test-token');
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
+        'revolt_session_token': 'test-token',
+      });
       await authState.init();
 
       await authState.updateBio('My bio');
@@ -144,8 +149,9 @@ void main() {
         profileContent: 'My bio',
       ));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('revolt_session_token', 'test-token');
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
+        'revolt_session_token': 'test-token',
+      });
       await authState.init();
 
       final bytes = Uint8List.fromList([1, 2, 3]);
@@ -170,8 +176,9 @@ void main() {
         profileContent: 'My bio',
       ));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('revolt_session_token', 'test-token');
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
+        'revolt_session_token': 'test-token',
+      });
       await authState.init();
 
       final bytes = Uint8List.fromList([4, 5, 6]);
@@ -195,8 +202,9 @@ void main() {
         discriminator: '0000',
       ));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('revolt_session_token', 'test-token');
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
+        'revolt_session_token': 'test-token',
+      });
       await authState.init();
 
       await authState.updateServerProfile('srv1', nickname: 'ServerNick');
@@ -215,8 +223,9 @@ void main() {
         discriminator: '0000',
       ));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('revolt_session_token', 'test-token');
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
+        'revolt_session_token': 'test-token',
+      });
       await authState.init();
 
       await authState.updateServerProfile('srv1', avatar: 'file-id');

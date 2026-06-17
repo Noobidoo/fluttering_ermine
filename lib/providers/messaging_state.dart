@@ -10,6 +10,7 @@ import 'server_state.dart';
 
 class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   final RevoltService _service;
+
   /// Exposed so widgets can call low-level service operations (e.g. upload).
   RevoltService get service => _service;
   final ServerState _serverState;
@@ -84,7 +85,8 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
         orElse: () => '',
       );
       if (otherId != null && otherId.isNotEmpty) {
-        return _userCache[otherId]?.resolveDisplayName(null) ?? 'Direct Message';
+        return _userCache[otherId]?.resolveDisplayName(null) ??
+            'Direct Message';
       }
     }
     return 'Unknown Channel';
@@ -223,8 +225,8 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   void _ackChannel(RevoltChannel channel) {
-    final lastId = _serverState.latestMessageId(channel.id) ??
-        channel.lastMessageId;
+    final lastId =
+        _serverState.latestMessageId(channel.id) ?? channel.lastMessageId;
     if (lastId == null) return;
     _service.ackMessage(channel.id, lastId).catchError((Object e) {
       debugPrint('[ack] channel=${channel.id} failed: $e');
@@ -234,10 +236,13 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   void _ensureUserCached(String userId) {
     if (userId.isEmpty || _userCache.containsKey(userId)) return;
-    _service.fetchUser(userId).then((user) {
-      _userCache[user.id] = user;
-      notifyListeners();
-    }).catchError((_) {});
+    _service
+        .fetchUser(userId)
+        .then((user) {
+          _userCache[user.id] = user;
+          notifyListeners();
+        })
+        .catchError((_) {});
   }
 
   void _onMessageReact(Map<String, dynamic> event) {
@@ -245,8 +250,10 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     final messageId = event['id'] as String?;
     final userId = event['user_id'] as String?;
     final emojiId = event['emoji_id'] as String?;
-    if (channelId == null || messageId == null ||
-        userId == null || emojiId == null) {
+    if (channelId == null ||
+        messageId == null ||
+        userId == null ||
+        emojiId == null) {
       return;
     }
     final list = _messages[channelId];
@@ -255,7 +262,8 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (idx < 0) return;
     final msg = list[idx];
     final newReactions = msg.reactions.map(
-        (k, v) => MapEntry(k, List<String>.from(v)));
+      (k, v) => MapEntry(k, List<String>.from(v)),
+    );
     newReactions.putIfAbsent(emojiId, () => []);
     if (!newReactions[emojiId]!.contains(userId)) {
       newReactions[emojiId]!.add(userId);
@@ -269,8 +277,10 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     final messageId = event['id'] as String?;
     final userId = event['user_id'] as String?;
     final emojiId = event['emoji_id'] as String?;
-    if (channelId == null || messageId == null ||
-        userId == null || emojiId == null) {
+    if (channelId == null ||
+        messageId == null ||
+        userId == null ||
+        emojiId == null) {
       return;
     }
     final list = _messages[channelId];
@@ -279,7 +289,8 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (idx < 0) return;
     final msg = list[idx];
     final newReactions = msg.reactions.map(
-        (k, v) => MapEntry(k, List<String>.from(v)));
+      (k, v) => MapEntry(k, List<String>.from(v)),
+    );
     newReactions[emojiId]?.remove(userId);
     if (newReactions[emojiId]?.isEmpty == true) {
       newReactions.remove(emojiId);
@@ -342,7 +353,9 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   void _onUserUpdate(Map<String, dynamic> event) {
-    debugPrint('[UserUpdate] raw event: ${String.fromCharCodes(utf8.encode(event.toString()))}');
+    debugPrint(
+      '[UserUpdate] raw event: ${String.fromCharCodes(utf8.encode(event.toString()))}',
+    );
     final userId = event['id'] as String?;
     if (userId == null) return;
     final cached = _userCache[userId];
@@ -352,7 +365,11 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (cached != null && (data != null || clear.isNotEmpty)) {
       // Evict old avatar if avatar changed or cleared
       if (data?.containsKey('avatar') == true || clear.contains('avatar')) {
-        final oldUrl = cached.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
+        final oldUrl = cached.resolveAvatarUrl(
+          null,
+          _service.autumnBase,
+          _service.apiBase,
+        );
         PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
       }
 
@@ -360,33 +377,36 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
         _userCache[userId] = RevoltUser(
           id: cached.id,
           username: data?['username'] as String? ?? cached.username,
-          discriminator: (data?['discriminator'] as String? ?? cached.discriminator),
+          discriminator:
+              (data?['discriminator'] as String? ?? cached.discriminator),
           displayName: data?['display_name'] as String? ?? cached.displayName,
           avatar: clear.contains('avatar')
               ? null
               : data?.containsKey('avatar') == true
-                  ? _parseFile(data!['avatar'])
-                  : cached.avatar,
+              ? _parseFile(data!['avatar'])
+              : cached.avatar,
           banner: clear.contains('banner')
               ? null
               : data?.containsKey('banner') == true
-                  ? _parseFile(data!['banner'])
-                  : cached.banner,
+              ? _parseFile(data!['banner'])
+              : cached.banner,
           presence: clear.contains('status')
               ? UserPresence.invisible
-              : data?['status'] is Map && (data!['status'] as Map).containsKey('presence')
-                  ? parsePresence((data['status'] as Map)['presence'] as String?)
-                  : cached.presence,
+              : data?['status'] is Map &&
+                    (data!['status'] as Map).containsKey('presence')
+              ? parsePresence((data['status'] as Map)['presence'] as String?)
+              : cached.presence,
           statusText: clear.contains('status')
               ? null
               : data?['status'] is Map
-                  ? (data!['status'] as Map)['text'] as String? ?? cached.statusText
-                  : cached.statusText,
+              ? (data!['status'] as Map)['text'] as String? ?? cached.statusText
+              : cached.statusText,
           profileContent: clear.contains('profile')
               ? null
               : data?['profile'] is Map
-                  ? (data!['profile'] as Map)['content'] as String? ?? cached.profileContent
-                  : cached.profileContent,
+              ? (data!['profile'] as Map)['content'] as String? ??
+                    cached.profileContent
+              : cached.profileContent,
           serverProfiles: cached.serverProfiles,
         );
       } catch (_) {
@@ -400,30 +420,39 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (cached != null) return;
 
     // Uncached user: fetch from API
-    _service.fetchUser(userId).then((user) {
-      _userCache[user.id] = user;
-      notifyListeners();
-    }).catchError((_) {});
+    _service
+        .fetchUser(userId)
+        .then((user) {
+          _userCache[user.id] = user;
+          notifyListeners();
+        })
+        .catchError((_) {});
   }
 
   /// Merges a ServerMemberUpdate event into the cached user.
-  void updateServerProfile(String userId, String serverId,
-      Map<String, dynamic>? data, List<String> clear) {
+  void updateServerProfile(
+    String userId,
+    String serverId,
+    Map<String, dynamic>? data,
+    List<String> clear,
+  ) {
     final cached = _userCache[userId];
     if (cached == null) return;
     final existing = cached.serverProfiles[serverId] ?? ServerProfile();
     final profile = existing.copyWith(
-      nickname: clear.contains('Nickname') ? null : (data?['nickname'] as String?),
+      nickname: clear.contains('Nickname')
+          ? null
+          : (data?['nickname'] as String?),
       roles: clear.contains('Roles')
           ? []
           : data?['roles'] != null
-              ? (data!['roles'] as List<dynamic>).cast<String>()
-              : null,
+          ? (data!['roles'] as List<dynamic>).cast<String>()
+          : null,
       avatar: clear.contains('Avatar')
           ? null
           : data?.containsKey('avatar') == true
-              ? _parseFile(data!['avatar'])
-              : null,
+          ? _parseFile(data!['avatar'])
+          : null,
       clearNickname: clear.contains('Nickname'),
       clearAvatar: clear.contains('Avatar'),
       clearRoles: clear.contains('Roles'),
@@ -478,8 +507,10 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   // -- Actions ---------------------------------------------------------------
 
-  Future<void> sendMessage(String content,
-      {List<String> attachmentIds = const []}) async {
+  Future<void> sendMessage(
+    String content, {
+    List<String> attachmentIds = const [],
+  }) async {
     final channel = _serverState.selectedChannel;
     if (channel == null || (content.trim().isEmpty && attachmentIds.isEmpty)) {
       return;
@@ -502,19 +533,28 @@ class MessagingState extends ChangeNotifier with DiagnosticableTreeMixin {
   }
 
   Future<void> addReaction(
-      String channelId, String messageId, String emoji) async {
+    String channelId,
+    String messageId,
+    String emoji,
+  ) async {
     await _service.addReaction(channelId, messageId, emoji);
     // WS MessageReact will update local state
   }
 
   Future<void> removeReaction(
-      String channelId, String messageId, String emoji) async {
+    String channelId,
+    String messageId,
+    String emoji,
+  ) async {
     await _service.removeReaction(channelId, messageId, emoji);
     // WS MessageUnreact will update local state
   }
 
   Future<void> editMessage(
-      String channelId, String messageId, String content) async {
+    String channelId,
+    String messageId,
+    String content,
+  ) async {
     await _service.editMessage(channelId, messageId, content);
     // WS MessageUpdate will update local state
   }

@@ -15,10 +15,10 @@ class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   static Future<void> show(BuildContext context) => showDialog<void>(
-        context: context,
-        barrierColor: Colors.black54,
-        builder: (_) => const SettingsScreen(),
-      );
+    context: context,
+    barrierColor: Colors.black54,
+    builder: (_) => const SettingsScreen(),
+  );
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -150,17 +150,17 @@ class _Sidebar extends StatelessWidget {
   }
 
   Widget _sectionHeader(String text) => Padding(
-        padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: Colors.white38,
-            letterSpacing: 0.8,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: Colors.white38,
+        letterSpacing: 0.8,
+      ),
+    ),
+  );
 }
 
 class _NavItem extends StatelessWidget {
@@ -190,18 +190,17 @@ class _NavItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             children: [
-              Icon(icon,
-                  size: 18,
-                  color: selected
-                      ? const Color(0xFF7F5AF0)
-                      : Colors.white54),
+              Icon(
+                icon,
+                size: 18,
+                color: selected ? const Color(0xFF7F5AF0) : Colors.white54,
+              ),
               const SizedBox(width: 10),
               Text(
                 label,
                 style: TextStyle(
                   color: selected ? Colors.white : Colors.white70,
-                  fontWeight:
-                      selected ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: 14,
                 ),
               ),
@@ -236,11 +235,10 @@ class _ProfileSectionState extends State<_ProfileSection> {
     super.initState();
     final user = context.read<AuthState>().currentUser;
     _displayNameCtrl = TextEditingController(
-        text: user?.resolveDisplayName(null) ?? '');
-    _statusTextCtrl =
-        TextEditingController(text: user?.statusText ?? '');
-    _bioCtrl =
-        TextEditingController(text: user?.profileContent ?? '');
+      text: user?.resolveDisplayName(null) ?? '',
+    );
+    _statusTextCtrl = TextEditingController(text: user?.statusText ?? '');
+    _bioCtrl = TextEditingController(text: user?.profileContent ?? '');
     _serverNicknameCtrl = TextEditingController(text: '');
     WidgetsBinding.instance.addPostFrameCallback((_) => _initServerNickname());
   }
@@ -291,8 +289,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
       if (mounted) setState(() => _success = 'Profile saved!');
     } catch (e) {
       if (mounted) {
-        setState(
-            () => _error = e.toString().replaceAll('Exception: ', ''));
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -335,7 +332,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
     try {
       await auth.updateAvatar(cropped, file.name);
       if (mounted) {
-        setState(() => _success = 'Avatar updated! (cropped ${cropped.length} bytes)');
+        setState(
+          () => _success = 'Avatar updated! (cropped ${cropped.length} bytes)',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -382,7 +381,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
     try {
       await auth.updateBanner(cropped, file.name);
       if (mounted) {
-        setState(() => _success = 'Banner updated! (cropped ${cropped.length} bytes)');
+        setState(
+          () => _success = 'Banner updated! (cropped ${cropped.length} bytes)',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -416,11 +417,14 @@ class _ProfileSectionState extends State<_ProfileSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Profile',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold)),
+          const Text(
+            'Profile',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 24),
           // Identity card
           Container(
@@ -440,15 +444,22 @@ class _ProfileSectionState extends State<_ProfileSection> {
                         radius: 28,
                         backgroundColor: const Color(0xFF7F5AF0),
                         backgroundImage: user?.avatar != null
-                            ? NetworkImage(user!
-                                .resolveAvatarUrl(null, auth.autumnBase, auth.apiBase))
+                            ? NetworkImage(
+                                user!.resolveAvatarUrl(
+                                  null,
+                                  auth.autumnBase,
+                                  auth.apiBase,
+                                ),
+                              )
                             : null,
                         child: user?.avatar == null
                             ? Text(
                                 (user?.resolveDisplayName(null) ?? '?')[0]
                                     .toUpperCase(),
                                 style: const TextStyle(
-                                    color: Colors.white, fontSize: 22),
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                ),
                               )
                             : null,
                       ),
@@ -464,8 +475,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
                                 : Colors.grey,
                             shape: BoxShape.circle,
                             border: Border.all(
-                                color: const Color(0xFF16161A),
-                                width: 2),
+                              color: const Color(0xFF16161A),
+                              width: 2,
+                            ),
                           ),
                         ),
                       ),
@@ -480,14 +492,17 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       Text(
                         user?.resolveDisplayName(null) ?? '',
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       Text(
                         '${user?.username ?? ''}#${user?.discriminator ?? ''}',
                         style: const TextStyle(
-                            color: Colors.white54, fontSize: 13),
+                          color: Colors.white54,
+                          fontSize: 13,
+                        ),
                       ),
                       if (user != null &&
                           user.statusText != null &&
@@ -495,7 +510,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
                         Text(
                           user.statusText!,
                           style: const TextStyle(
-                              color: Colors.white38, fontSize: 12),
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                     ],
@@ -506,11 +523,14 @@ class _ProfileSectionState extends State<_ProfileSection> {
           ),
           const SizedBox(height: 16),
           // Banner area
-          const Text('Profile Banner',
-              style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Profile Banner',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 6),
           GestureDetector(
             onTap: _pickBanner,
@@ -523,7 +543,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 image: user?.banner != null
                     ? DecorationImage(
                         image: NetworkImage(
-                            user!.bannerUrlFor(auth.autumnBase)!),
+                          user!.bannerUrlFor(auth.autumnBase)!,
+                        ),
                         fit: BoxFit.cover,
                         onError: (_, _) {},
                       )
@@ -546,7 +567,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
                           ? 'Tap to change banner'
                           : 'Tap to add banner',
                       style: const TextStyle(
-                          color: Colors.white38, fontSize: 13),
+                        color: Colors.white38,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -554,11 +577,14 @@ class _ProfileSectionState extends State<_ProfileSection> {
             ),
           ),
           const SizedBox(height: 28),
-          const Text('Online Status',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Online Status',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 12),
           // Presence dropdown
           Container(
@@ -597,22 +623,25 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 onChanged: (v) {
                   if (v == null) return;
                   context.read<AuthState>().updateStatus(
-                        presence: presenceToString(v),
-                        statusText: _statusTextCtrl.text.trim().isEmpty
-                            ? null
-                            : _statusTextCtrl.text.trim(),
-                      );
+                    presence: presenceToString(v),
+                    statusText: _statusTextCtrl.text.trim().isEmpty
+                        ? null
+                        : _statusTextCtrl.text.trim(),
+                  );
                 },
               ),
             ),
           ),
           const SizedBox(height: 12),
           // Custom status text
-          const Text('Custom Status',
-              style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Custom Status',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -629,10 +658,11 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       borderSide: BorderSide.none,
                     ),
                     counterStyle: const TextStyle(
-                        color: Colors.white38, fontSize: 11),
+                      color: Colors.white38,
+                      fontSize: 11,
+                    ),
                     hintText: 'What\'s on your mind?',
-                    hintStyle:
-                        const TextStyle(color: Colors.white30),
+                    hintStyle: const TextStyle(color: Colors.white30),
                   ),
                   onSubmitted: (_) => _saveStatus(),
                 ),
@@ -641,23 +671,30 @@ class _ProfileSectionState extends State<_ProfileSection> {
               FilledButton(
                 onPressed: _saveStatus,
                 style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF7F5AF0)),
+                  backgroundColor: const Color(0xFF7F5AF0),
+                ),
                 child: const Text('Set'),
               ),
             ],
           ),
           const SizedBox(height: 28),
-          const Text('Edit Global Profile',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Edit Global Profile',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 16),
-          const Text('Display Name',
-              style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Display Name',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _displayNameCtrl,
@@ -670,18 +707,23 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
-              counterStyle:
-                  const TextStyle(color: Colors.white38, fontSize: 11),
+              counterStyle: const TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+              ),
               hintText: 'Display name',
               hintStyle: const TextStyle(color: Colors.white30),
             ),
           ),
           const SizedBox(height: 16),
-          const Text('Bio',
-              style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Bio',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _bioCtrl,
@@ -695,8 +737,10 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
-              counterStyle:
-                  const TextStyle(color: Colors.white38, fontSize: 11),
+              counterStyle: const TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+              ),
               hintText: 'Tell us about yourself...',
               hintStyle: const TextStyle(color: Colors.white30),
             ),
@@ -705,14 +749,18 @@ class _ProfileSectionState extends State<_ProfileSection> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_error!,
-                  style: const TextStyle(color: Colors.redAccent)),
+              child: Text(
+                _error!,
+                style: const TextStyle(color: Colors.redAccent),
+              ),
             ),
           if (_success != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_success!,
-                  style: const TextStyle(color: Colors.greenAccent)),
+              child: Text(
+                _success!,
+                style: const TextStyle(color: Colors.greenAccent),
+              ),
             ),
           Row(
             children: [
@@ -739,13 +787,16 @@ class _ProfileSectionState extends State<_ProfileSection> {
               FilledButton(
                 onPressed: _saving ? null : _save,
                 style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF7F5AF0)),
+                  backgroundColor: const Color(0xFF7F5AF0),
+                ),
                 child: _saving
                     ? const SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Save'),
               ),
@@ -757,15 +808,20 @@ class _ProfileSectionState extends State<_ProfileSection> {
             Text(
               'Server Profile - ${context.watch<ServerState>().selectedServer!.name}',
               style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600)),
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 16),
-            const Text('Server Nickname',
-                style: TextStyle(
-                    color: Colors.white60,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
+            const Text(
+              'Server Nickname',
+              style: TextStyle(
+                color: Colors.white60,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 6),
             Row(
               children: [
@@ -782,10 +838,11 @@ class _ProfileSectionState extends State<_ProfileSection> {
                         borderSide: BorderSide.none,
                       ),
                       counterStyle: const TextStyle(
-                          color: Colors.white38, fontSize: 11),
+                        color: Colors.white38,
+                        fontSize: 11,
+                      ),
                       hintText: 'Leave empty to use global name',
-                      hintStyle:
-                          const TextStyle(color: Colors.white30),
+                      hintStyle: const TextStyle(color: Colors.white30),
                     ),
                   ),
                 ),
@@ -793,7 +850,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 FilledButton(
                   onPressed: _saveServerProfile,
                   style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF7F5AF0)),
+                    backgroundColor: const Color(0xFF7F5AF0),
+                  ),
                   child: const Text('Set'),
                 ),
               ],
@@ -805,11 +863,11 @@ class _ProfileSectionState extends State<_ProfileSection> {
   }
 
   String _presenceLabel(UserPresence p) => switch (p) {
-        UserPresence.online => 'Online',
-        UserPresence.idle => 'Idle',
-        UserPresence.focus => 'Focus',
-        UserPresence.invisible => 'Invisible',
-      };
+    UserPresence.online => 'Online',
+    UserPresence.idle => 'Idle',
+    UserPresence.focus => 'Focus',
+    UserPresence.invisible => 'Invisible',
+  };
 }
 
 // -- Voice section -------------------------------------------------------------
@@ -826,31 +884,41 @@ class _VoiceSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Voice',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold)),
+          const Text(
+            'Voice',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 24),
           // Output Volume
           _SettingsCard(
             children: [
-              const Text('Output Volume',
-                  style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600)),
+              const Text(
+                'Output Volume',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.volume_down_rounded,
-                      color: Colors.white38, size: 20),
+                  const Icon(
+                    Icons.volume_down_rounded,
+                    color: Colors.white38,
+                    size: 20,
+                  ),
                   Expanded(
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         trackHeight: 3,
                         thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 7),
+                          enabledThumbRadius: 7,
+                        ),
                       ),
                       child: Slider(
                         value: voice.outputVolume,
@@ -861,15 +929,20 @@ class _VoiceSection extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Icon(Icons.volume_up_rounded,
-                      color: Colors.white38, size: 20),
+                  const Icon(
+                    Icons.volume_up_rounded,
+                    color: Colors.white38,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   SizedBox(
                     width: 40,
                     child: Text(
                       '${(voice.outputVolume * 100).round()}%',
                       style: const TextStyle(
-                          color: Colors.white54, fontSize: 13),
+                        color: Colors.white54,
+                        fontSize: 13,
+                      ),
                       textAlign: TextAlign.right,
                     ),
                   ),
@@ -878,11 +951,14 @@ class _VoiceSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          const Text('Voice Processing',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Voice Processing',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 10),
           _SettingsCard(
             children: [
@@ -908,6 +984,37 @@ class _VoiceSection extends StatelessWidget {
                 value: voice.autoGainControl,
                 onChanged: (v) =>
                     context.read<VoiceState>().setAutoGainControl(v),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Neural Noise Suppression',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _SettingsCard(
+            children: [
+              Opacity(
+                opacity: VoiceState.deepFilterSupported ? 1.0 : 0.5,
+                child: IgnorePointer(
+                  ignoring: !VoiceState.deepFilterSupported,
+                  child: _ToggleRow(
+                    label: 'DeepFilterNet',
+                    subtitle: VoiceState.deepFilterSupported
+                        ? 'AI-powered real-time noise cancellation (replaces WebRTC NS)'
+                        : 'Not available — prebuilt binary not found for this platform',
+                    value: VoiceState.deepFilterSupported
+                        ? voice.deepFilterEnabled
+                        : false,
+                    onChanged: (v) =>
+                        context.read<VoiceState>().setDeepFilterEnabled(v),
+                  ),
+                ),
               ),
             ],
           ),
@@ -968,14 +1075,16 @@ class _ToggleRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        color: Colors.white70, fontSize: 14)),
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(subtitle!,
-                      style: const TextStyle(
-                          color: Colors.white38, fontSize: 12)),
+                  Text(
+                    subtitle!,
+                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
                 ],
               ],
             ),
@@ -984,8 +1093,7 @@ class _ToggleRow extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             activeThumbColor: const Color(0xFF7F5AF0),
-            activeTrackColor:
-                const Color(0xFF7F5AF0).withAlpha(80),
+            activeTrackColor: const Color(0xFF7F5AF0).withAlpha(80),
           ),
         ],
       ),

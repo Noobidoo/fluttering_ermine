@@ -12,9 +12,9 @@ class RevoltInvite {
   });
 
   factory RevoltInvite.fromJson(Map<String, dynamic> json) => RevoltInvite(
-        id: json['_id'] as String,
-        serverId: json['server'] as String,
-        creatorId: json['creator'] as String,
-        channelId: json['channel'] as String,
-      );
+    id: json['_id'] as String,
+    serverId: json['server'] as String,
+    creatorId: json['creator'] as String,
+    channelId: json['channel'] as String,
+  );
 }

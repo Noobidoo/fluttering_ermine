@@ -92,12 +92,26 @@ class _CropDialogState extends State<CropDialog> {
     final ratio = newScale / oldScale;
     final cx = _cropViewport.width / 2;
     final cy = _cropViewport.height / 2;
-    _transformController.value = Matrix4(
-      ratio, 0, 0, 0,
-      0, ratio, 0, 0,
-      0, 0, 1, 0,
-      cx * (1 - ratio), cy * (1 - ratio), 0, 1,
-    ) * current;
+    _transformController.value =
+        Matrix4(
+          ratio,
+          0,
+          0,
+          0,
+          0,
+          ratio,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          cx * (1 - ratio),
+          cy * (1 - ratio),
+          0,
+          1,
+        ) *
+        current;
   }
 
   void _resetZoom() {
@@ -108,7 +122,10 @@ class _CropDialogState extends State<CropDialog> {
     if (_imageSize == Size.zero || viewport == Size.zero) return Rect.zero;
 
     // BoxFit.contain: scale the image to fit within the viewport
-    final s = min(viewport.width / _imageSize.width, viewport.height / _imageSize.height);
+    final s = min(
+      viewport.width / _imageSize.width,
+      viewport.height / _imageSize.height,
+    );
     final ox = (viewport.width - _imageSize.width * s) / 2;
     final oy = (viewport.height - _imageSize.height * s) / 2;
 
@@ -154,7 +171,8 @@ class _CropDialogState extends State<CropDialog> {
   Future<Uint8List> _crop(Size viewport) async {
     final rect = _cropRect(viewport);
 
-    final isGif = widget.imageBytes.length >= 6 &&
+    final isGif =
+        widget.imageBytes.length >= 6 &&
         widget.imageBytes[0] == 0x47 &&
         widget.imageBytes[1] == 0x49 &&
         widget.imageBytes[2] == 0x46 &&
@@ -340,9 +358,9 @@ class _CropDialogState extends State<CropDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Crop failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Crop failed: $e')));
       }
     }
   }
@@ -359,11 +377,9 @@ class _CropOverlayPainter extends CustomPainter {
       Path.combine(
         PathOperation.difference,
         Path()..addRect(Offset.zero & size),
-        Path()
-          ..addRRect(RRect.fromRectAndRadius(
-            cropRect,
-            const Radius.circular(8),
-          )),
+        Path()..addRRect(
+          RRect.fromRectAndRadius(cropRect, const Radius.circular(8)),
+        ),
       ),
       Paint()..color = Colors.black54,
     );

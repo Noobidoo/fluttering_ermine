@@ -78,8 +78,7 @@ class FlutteringErmineApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide:
-                const BorderSide(color: Color(0xFF7F5AF0), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF7F5AF0), width: 2),
           ),
         ),
       ),
@@ -96,4 +95,3 @@ class FlutteringErmineApp extends StatelessWidget {
     );
   }
 }
-

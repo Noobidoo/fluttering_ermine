@@ -9,10 +9,7 @@ class VoiceChannelJoinEvent {
   final String channelId;
   final String userId;
 
-  const VoiceChannelJoinEvent({
-    required this.channelId,
-    required this.userId,
-  });
+  const VoiceChannelJoinEvent({required this.channelId, required this.userId});
 }
 
 /// A user left a voice channel.
@@ -21,10 +18,7 @@ class VoiceChannelLeaveEvent {
   final String? channelId;
   final String userId;
 
-  const VoiceChannelLeaveEvent({
-    this.channelId,
-    required this.userId,
-  });
+  const VoiceChannelLeaveEvent({this.channelId, required this.userId});
 }
 
 /// A user moved from one voice channel to another.
@@ -67,12 +61,7 @@ class VoicePublishingStateChangeEvent {
 // -- Room Connection Events ---------------------------------------------------
 
 /// LiveKit room connection state.
-enum RoomConnectionState {
-  disconnected,
-  connecting,
-  connected,
-  reconnecting,
-}
+enum RoomConnectionState { disconnected, connecting, connected, reconnecting }
 
 /// Room connection state changed.
 class RoomConnectionStateChangeEvent {
@@ -134,9 +123,7 @@ class VoiceTrackSubscribedEvent {
 class VoiceTrackUnsubscribedEvent {
   final String participantId;
 
-  const VoiceTrackUnsubscribedEvent({
-    required this.participantId,
-  });
+  const VoiceTrackUnsubscribedEvent({required this.participantId});
 }
 
 // -- Speaking State -----------------------------------------------------------
@@ -145,7 +132,5 @@ class VoiceTrackUnsubscribedEvent {
 class VoiceActiveSpeakersChangedEvent {
   final List<String> activeSpeakers;
 
-  const VoiceActiveSpeakersChangedEvent({
-    required this.activeSpeakers,
-  });
+  const VoiceActiveSpeakersChangedEvent({required this.activeSpeakers});
 }
