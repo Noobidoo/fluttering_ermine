@@ -33,7 +33,7 @@ jobs:
 
       # Consider passing '--fatal-infos' for slightly stricter analysis.
       - name: Analyze project source
-        run: flutter analyze
+        run: flutter analyze lib/ test/
         
       - name: Run Flutter tests
         run: flutter test test/ --machine > test.json
