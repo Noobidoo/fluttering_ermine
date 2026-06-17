@@ -106,14 +106,6 @@ foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
     COMPONENT Runtime)
 endforeach(bundled_library)
 
-# Copy DeepFilterNet model files into the bundle for libdeepfilter_livekit_plugin
-set(DF_MODELS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../deepfilter_livekit/assets/models")
-if(EXISTS "${DF_MODELS_DIR}/DeepFilterNet3_onnx.tar.gz")
-  install(DIRECTORY "${DF_MODELS_DIR}"
-    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-    COMPONENT Runtime)
-endif()
-
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/linux/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"
