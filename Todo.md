@@ -74,6 +74,7 @@
 - [ ] **Camera / video toggle** — `room.localParticipant.setCameraEnabled(bool)`; local video preview tile in `_VoiceChannelView`
 - [ ] **Noise suppression** — verify `noiseSuppression: true` in `AudioCaptureOptions` is wired through `VoiceState` → `RoomOptions` (settings toggle exists but may be disconnected)
 - [ ] **Per-participant volume** — slider per remote participant; `RemoteParticipant.setVolume(0.0–1.0)`
+- [ ] **Notify user on voice device fallback** — When the stored audio input preference is unavailable on join, the app falls back to the first available device and silently overwrites the preference. Show a notification so the user knows their saved device wasn't found.
 
 **Relevant files:** `lib/providers/voice_state.dart`, `lib/widgets/chat_panel.dart` (`_VoiceChannelView`), `lib/screens/settings_screen.dart`
 
