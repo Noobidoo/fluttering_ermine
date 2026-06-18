@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 
 import '../models/models.dart';
 import '../providers/auth_state.dart';
@@ -947,6 +948,84 @@ class _VoiceSection extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Audio Input Device',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _SettingsCard(
+            children: [
+              FutureBuilder<List<rtc.MediaDeviceInfo>>(
+                future: voice.audioInputDeviceIds,
+                builder: (context, snapshot) {
+                  final devices = snapshot.data ?? [];
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const SizedBox(
+                      height: 40,
+                      child: Center(
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white38,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  if (devices.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'No audio input devices found',
+                        style: TextStyle(color: Colors.white38, fontSize: 13),
+                      ),
+                    );
+                  }
+                  return DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: devices.any(
+                            (d) => d.deviceId == voice.selectedAudioInputId,
+                          )
+                          ? voice.selectedAudioInputId
+                          : null,
+                      dropdownColor: const Color(0xFF16161A),
+                      isExpanded: true,
+                      hint: const Text(
+                        'Select a device',
+                        style: TextStyle(color: Colors.white38, fontSize: 14),
+                      ),
+                      items: devices.map((d) {
+                        return DropdownMenuItem(
+                          value: d.deviceId,
+                          child: Text(
+                            d.label.isNotEmpty ? d.label : d.deviceId,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (v) {
+                        if (v == null) return;
+                        context
+                            .read<VoiceState>()
+                            .selectAudioInput(v);
+                      },
+                    ),
+                  );
+                },
               ),
             ],
           ),

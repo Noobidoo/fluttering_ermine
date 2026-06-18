@@ -77,7 +77,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool _noiseSuppression = true;
   bool _echoCancellation = true;
   bool _autoGainControl = true;
-  String? _defaultAudioInputId;
+  String? _selectedAudioInputId;
+
 
   // -- DeepFilterNet noise suppression ---------------------------------------
   final _liveKitDeepFilter = LiveKitDeepFilter();
@@ -105,7 +106,11 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   static bool get deepFilterSupported => LiveKitDeepFilter.isSupported;
   static bool get deepFilterIsRealLibrary => LiveKitDeepFilter.isRealLibrary;
   bool get deepFilterIsApmAttached => _liveKitDeepFilter.isProcessing;
-
+  String? get selectedAudioInputId => _selectedAudioInputId;
+  Future<List<rtc.MediaDeviceInfo>> get audioInputDeviceIds async =>
+      (await rtc.navigator.mediaDevices.enumerateDevices())
+          .where((d) => d.kind == 'audioinput')
+          .toList();
   // Returns true if the given participant's screen share is currently subscribed.
   bool isScreenShareSubscribed(String identity) =>
       _subscribedScreenShares.contains(identity);
@@ -446,9 +451,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         throw Exception('Failed to get local participant');
       }
       debugPrint('[voice] localParticipant identity=${lp.identity}');
-      // Enumerate devices first to get the default mic deviceId
-      // TODO: remove deviceId workaround once flutter-webrtc#2071 is resolved
-      _defaultAudioInputId = await _getDefaultAudioInputId();
+      // Enumerate devices first to get the selected audio input deviceId
+      await setSelectedAudioInput(await _getSelectedAudioInputId());
+      
       // Initialize DeepFilterNet before enabling the mic so the processor
       // can be passed via AudioCaptureOptions. The SDK handles init/onPublish.
       if (_deepFilterEnabled) {
@@ -461,7 +466,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         await lp.setMicrophoneEnabled(
           true,
           audioCaptureOptions: AudioCaptureOptions(
-            deviceId: _defaultAudioInputId,
+            deviceId: _selectedAudioInputId,
             noiseSuppression: _noiseSuppression,
             echoCancellation: _echoCancellation,
             autoGainControl: _autoGainControl,
@@ -692,6 +697,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         await asyncPrefs.getBool('voice_auto_gain_control') ?? true;
     _deepFilterEnabled =
         await asyncPrefs.getBool('voice_deep_filter_enabled') ?? true;
+    _selectedAudioInputId =
+        await asyncPrefs.getString('voice_selected_audio_input_id');
     notifyListeners();
   }
 
@@ -699,16 +706,20 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     applyLiveKitVolume(_outputVolume);
   }
 
-  Future<String?> _getDefaultAudioInputId() async {
+  /// Returns the deviceId of the currently selected audio input, or first if not found or on error.
+  Future<String?> _getSelectedAudioInputId() async {
     try {
       final devices = await rtc.navigator.mediaDevices.enumerateDevices();
-      for (final d in devices) {
-        if (d.kind == 'audioinput') return d.deviceId;
-      }
+      return devices.firstWhere(
+        (d) => d.kind == 'audioinput' && _selectedAudioInputId != '' && d.deviceId == _selectedAudioInputId,
+        orElse: () => devices.firstWhere(
+          (d) => d.kind == 'audioinput',
+          orElse: () => throw Exception('No audio input devices found'),
+        ),
+      ).deviceId;
     } catch (e) {
       debugPrint('[voice] Failed to enumerate devices: $e');
     }
-
     return null;
   }
 
@@ -739,6 +750,41 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     final asyncPrefs = SharedPreferencesAsync();
     await asyncPrefs.setBool('voice_auto_gain_control', value);
     notifyListeners();
+  }
+
+  Future<void> setSelectedAudioInput(String? deviceId) async {
+    if (_selectedAudioInputId == deviceId) return;
+    _selectedAudioInputId = deviceId;
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setString('voice_selected_audio_input_id', deviceId ?? '');
+    notifyListeners();
+  }
+
+  Future<void> selectAudioInput(String? deviceId) async {
+    if (_selectedAudioInputId == deviceId) return;
+    _selectedAudioInputId = deviceId;
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setString(
+      'voice_selected_audio_input_id',
+      deviceId ?? '',
+    );
+    notifyListeners();
+    if (_voiceRoom != null && _isInVoice) {
+      final lp = _voiceRoom!.localParticipant;
+      if (lp != null) {
+        await lp.setMicrophoneEnabled(false);
+        await lp.setMicrophoneEnabled(
+          true,
+          audioCaptureOptions: AudioCaptureOptions(
+            deviceId: deviceId,
+            noiseSuppression: _noiseSuppression,
+            echoCancellation: _echoCancellation,
+            autoGainControl: _autoGainControl,
+            processor: _liveKitDeepFilter.processor,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> setDeepFilterEnabled(bool value) async {
