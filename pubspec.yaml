@@ -27,7 +27,7 @@ dependencies:
   deepfilter_livekit:
     git:
       url: https://github.com/Noobidoo/deepfilter_livekit
-      ref: v0.1.9
+      ref: v0.1.8
 
 dependency_overrides:
   permission_handler_windows:
