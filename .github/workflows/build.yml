@@ -184,6 +184,9 @@ jobs:
             echo "label=${PUBSPEC_VERSION}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: get-cmake
+        uses: lukka/get-cmake@v4.3.3
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
