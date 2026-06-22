@@ -45,6 +45,7 @@ class RevoltUser {
   final String? statusText;
   final String? profileContent;
   final RevoltFile? banner;
+  final bool privileged;
   final Map<String, ServerProfile> serverProfiles;
 
   RevoltUser({
@@ -57,6 +58,7 @@ class RevoltUser {
     this.statusText,
     this.profileContent,
     this.banner,
+    this.privileged = false,
     this.serverProfiles = const {},
   });
 
@@ -69,6 +71,7 @@ class RevoltUser {
     String? statusText,
     String? profileContent,
     RevoltFile? banner,
+    bool? privileged,
     Map<String, ServerProfile>? serverProfiles,
   }) {
     return RevoltUser(
@@ -81,6 +84,7 @@ class RevoltUser {
       statusText: statusText ?? this.statusText,
       profileContent: profileContent ?? this.profileContent,
       banner: banner ?? this.banner,
+      privileged: privileged ?? this.privileged,
       serverProfiles: serverProfiles ?? this.serverProfiles,
     );
   }
@@ -142,6 +146,7 @@ class RevoltUser {
       banner: profile?['background'] != null
           ? RevoltFile.fromJson(profile!['background'] as Map<String, dynamic>)
           : null,
+      privileged: json['privileged'] as bool? ?? false,
     );
   }
 

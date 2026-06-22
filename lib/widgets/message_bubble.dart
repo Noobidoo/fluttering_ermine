@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/auth_state.dart';
 import '../providers/messaging_state.dart';
+import '../providers/server_state.dart';
 import 'mention_chip.dart';
 import 'user_profile_sheet.dart';
 
@@ -414,6 +415,19 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   Widget _fullBubble(String apiBase, String autumnBase, BuildContext context) {
+    final serverState = context.watch<ServerState>();
+    final sid = widget.serverId;
+    // Compute role colour
+    final roleColour = (sid != null && widget.author != null)
+        ? serverState.roleColourFor(
+            sid,
+            widget.author!.serverProfiles[sid]?.roles ?? [],
+          )
+        : null;
+    final nameColour = roleColour != null
+        ? Color(roleColour)
+        : const Color(0xFFCBBDF7);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
       child: Row(
@@ -439,10 +453,10 @@ class _MessageBubbleState extends State<MessageBubble> {
                       onTap: () => _openProfile(context),
                       child: Text(
                         _username,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: Color(0xFFCBBDF7),
+                          color: nameColour,
                         ),
                       ),
                     ),

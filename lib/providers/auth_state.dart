@@ -48,6 +48,41 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
   String get autumnBase => _service.autumnBase;
   RevoltUser? get currentUser => _currentUser;
 
+  /// Returns the effective permission bitmask for [currentUser] in [serverId].
+  ///
+  /// Algorithm matches the Stoat JS SDK reference:
+  ///   - Privileged (bot/admin) users → [Permission.grantAllSafe].
+  ///   - Server owner → [Permission.grantAllSafe].
+  ///   - Otherwise → calculated from server default_permissions + role overrides.
+  int effectivePermissions(String serverId) {
+    final user = _currentUser;
+    if (user == null) return 0;
+
+    // Privileged users (bot / admin) get all permissions.
+    if (user.privileged) return Permission.grantAllSafe;
+
+    final server = _serverState.servers.firstWhere(
+      (s) => s.id == serverId,
+      orElse: () => _serverState.servers.first,
+    );
+    if (server.id != serverId) return 0;
+
+    // Server owner gets all permissions.
+    if (server.ownerId == user.id) return Permission.grantAllSafe;
+
+    // Use the cached user from MessagingState (populated by fetchMembers with
+    // server profiles) rather than _currentUser, which never has serverProfiles
+    // because the User API schema doesn't include them.
+    final cached = _messagingState.getUser(user.id) ?? user;
+    final userRoleIds = cached.serverProfiles[serverId]?.roles ?? [];
+    return _serverState.userEffectivePermissions(serverId, userRoleIds);
+  }
+
+  /// Checks if the current user has [bit] permission in [serverId].
+  bool hasPermission(String serverId, int bit) {
+    return (effectivePermissions(serverId) & bit) != 0;
+  }
+
   // -- Init / Auth -----------------------------------------------------------
 
   Future<void> init() async {
@@ -77,6 +112,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       } catch (_) {}
       _currentUser = await _service.fetchSelf();
       _messagingState.setCurrentUserId(_currentUser!.id);
+      _serverState.currentUserId = _currentUser!.id;
       _connectWebSocket();
       _isLoggedIn = true;
     } catch (_) {
@@ -131,6 +167,7 @@ class AuthState extends ChangeNotifier with DiagnosticableTreeMixin {
       await asyncPrefs.setString(_tokenKey, token);
       _currentUser = await _service.fetchSelf();
       _messagingState.setCurrentUserId(_currentUser!.id);
+      _serverState.currentUserId = _currentUser!.id;
       _connectWebSocket();
       _isLoggedIn = true;
     } catch (e) {

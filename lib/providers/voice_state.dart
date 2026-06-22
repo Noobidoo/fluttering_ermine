@@ -6,7 +6,7 @@ import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/models.dart';
+import '../models/models.dart' hide Permission;
 import '../services/revolt_service.dart';
 import '../services/voice_event_service.dart';
 import '../services/volume_helper.dart';

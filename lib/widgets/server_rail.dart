@@ -37,7 +37,7 @@ class ServerRail extends StatelessWidget {
                   tooltip: srv.name,
                   selected: server.selectedServer?.id == srv.id,
                   hasUnread: server.serverUnreadCount(srv.id) > 0,
-                  onTap: () => server.selectServer(srv),
+                  onTap: () => server.selectServer(srv, userId: auth.currentUser?.id),
                   child: srv.iconUrlFor(auth.autumnBase) != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
@@ -66,6 +66,12 @@ class ServerRail extends StatelessWidget {
             ),
           ),
           _RailIcon(
+            tooltip: 'Create Server',
+            selected: false,
+            onTap: () => _showCreateServerDialog(context),
+            child: const Icon(Icons.add_box_rounded, size: 18, color: Color(0xFF7F5AF0)),
+          ),
+          _RailIcon(
             tooltip: 'Join Server',
             selected: false,
             onTap: () => _showJoinDialog(context),
@@ -82,6 +88,78 @@ class ServerRail extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showCreateServerDialog(BuildContext context) {
+  final nameCtrl = TextEditingController();
+  final descCtrl = TextEditingController();
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1E1E26),
+      title: const Text('Create Server'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Server name',
+              border: OutlineInputBorder(),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            style: const TextStyle(fontSize: 14),
+            autofocus: true,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: descCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Description (optional)',
+              border: OutlineInputBorder(),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            style: const TextStyle(fontSize: 14),
+            maxLines: 2,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () async {
+            final name = nameCtrl.text.trim();
+            if (name.isEmpty) return;
+            Navigator.pop(ctx);
+            try {
+              final server = context.read<ServerState>();
+              await server.createServer(
+                name,
+                description: descCtrl.text.trim().isNotEmpty
+                    ? descCtrl.text.trim()
+                    : null,
+              );
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Server "$name" created!')),
+              );
+            } catch (e) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to create server: $e')),
+              );
+            }
+          },
+          child: const Text('Create'),
+        ),
+      ],
+    ),
+  );
 }
 
 void _showJoinDialog(BuildContext context) {

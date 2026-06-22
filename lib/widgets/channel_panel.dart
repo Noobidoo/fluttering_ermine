@@ -7,6 +7,8 @@ import '../providers/messaging_state.dart';
 import '../providers/server_state.dart';
 import '../providers/voice_state.dart';
 import '../screens/settings_screen.dart';
+import '../screens/channel_permissions_screen.dart';
+import '../screens/server_settings_screen.dart';
 
 class ChannelPanel extends StatelessWidget {
   const ChannelPanel({super.key});
@@ -46,18 +48,34 @@ class ChannelPanel extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (server.selectedServer != null)
-                  IconButton(
-                    icon: const Icon(
-                      Icons.settings_rounded,
-                      size: 18,
-                      color: Colors.white54,
+                if (server.selectedServer != null) ...[
+                  if (auth.hasPermission(server.selectedServer!.id, Permission.manageChannel))
+                    IconButton(
+                      icon: const Icon(
+                        Icons.add_rounded,
+                        size: 18,
+                        color: Colors.white54,
+                      ),
+                      tooltip: 'Create channel',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => showCreateChannelDialog(context),
                     ),
-                    tooltip: 'Server settings',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _showServerSettings(context),
-                  ),
+                  if (auth.hasPermission(server.selectedServer!.id, Permission.manageServer) ||
+                      auth.hasPermission(server.selectedServer!.id, Permission.manageChannel) ||
+                      auth.hasPermission(server.selectedServer!.id, Permission.manageRole))
+                    IconButton(
+                      icon: const Icon(
+                        Icons.settings_rounded,
+                        size: 18,
+                        color: Colors.white54,
+                      ),
+                      tooltip: 'Server settings',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => showServerSettingsDialog(context),
+                    ),
+                ],
               ],
             ),
           ),
@@ -91,6 +109,9 @@ class _ChannelTile extends StatelessWidget {
   final RevoltChannel channel;
   const _ChannelTile(this.channel, {super.key});
 
+  bool get _isDeletable => channel.type == ChannelType.textChannel;
+  bool get _isEditable => channel.type == ChannelType.textChannel;
+
   IconData _icon() => switch (channel.type) {
     ChannelType.textChannel when channel.isVoice => Icons.volume_up_rounded,
     ChannelType.textChannel => Icons.tag,
@@ -110,6 +131,8 @@ class _ChannelTile extends StatelessWidget {
     final name = messaging.channelDisplayName(channel);
     final unread = server.isChannelUnread(channel.id);
     final mentionCount = server.mentionCountFor(channel.id);
+    final srvId = server.selectedServer?.id;
+    final canManageCh = srvId != null && auth.hasPermission(srvId, Permission.manageChannel);
 
     // Voice participant tracking (shows for all voice channels)
     final participantIds = channel.isVoice
@@ -215,6 +238,20 @@ class _ChannelTile extends StatelessWidget {
                 Navigator.of(context).pop();
               }
             },
+            onLongPress: () => _showChannelContextMenu(context),
+            trailing: canManageCh
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: IconButton(
+                      icon: const Icon(Icons.settings_rounded,
+                          size: 14, color: Colors.white38),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _showChannelPermissions(context),
+                    ),
+                  )
+                : null,
           ),
           if (participantIds.isNotEmpty)
             Padding(
@@ -241,6 +278,204 @@ class _ChannelTile extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  void _showChannelContextMenu(BuildContext context) {
+    final auth = context.read<AuthState>();
+    final server = context.read<ServerState>();
+    final srvId = server.selectedServer?.id;
+    final canManageCh = srvId != null && auth.hasPermission(srvId, Permission.manageChannel);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E26),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                channel.name ?? 'Channel',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            const Divider(color: Color(0xFF2A2A30), height: 1),
+            if (_isEditable && canManageCh)
+              ListTile(
+                leading: const Icon(Icons.edit_rounded, color: Colors.white70),
+                title: const Text('Edit Channel'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showEditChannelDialog(context);
+                },
+              ),
+            if (canManageCh)
+              ListTile(
+                leading: const Icon(Icons.security_rounded,
+                    color: Colors.white70),
+                title: const Text('Channel Permissions'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showChannelPermissions(context);
+                },
+              ),
+            if (_isDeletable && canManageCh)
+              ListTile(
+                leading: const Icon(Icons.delete_rounded,
+                    color: Colors.redAccent),
+                title: const Text('Delete Channel'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDeleteChannel(context);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditChannelDialog(BuildContext context) {
+    final nameCtrl = TextEditingController(text: channel.name ?? '');
+    final descCtrl =
+        TextEditingController(text: channel.description ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text('Edit Channel'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Channel name',
+                labelStyle: TextStyle(color: Colors.white54),
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+                labelStyle: TextStyle(color: Colors.white54),
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              style: const TextStyle(fontSize: 14),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _doEditChannel(context, nameCtrl.text.trim(),
+                  descCtrl.text.trim());
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _doEditChannel(
+      BuildContext context, String name, String description) async {
+    if (name.isEmpty) return;
+    try {
+      final server = context.read<ServerState>();
+      await server.updateChannel(
+        channel.id,
+        name: name,
+        description: description.isNotEmpty ? description : null,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Channel updated')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update channel: $e')),
+      );
+    }
+  }
+
+  void _confirmDeleteChannel(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text('Delete Channel'),
+        content: Text(
+          'Permanently delete #${channel.name ?? channel.id}?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _doDeleteChannel(context);
+            },
+            child: const Text('Delete',
+                style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _doDeleteChannel(BuildContext context) async {
+    try {
+      final server = context.read<ServerState>();
+      await server.deleteChannel(channel.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Channel deleted')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete channel: $e')),
+      );
+    }
+  }
+
+  void _showChannelPermissions(BuildContext context) {
+    final ss = context.read<ServerState>();
+    final srv = ss.selectedServer;
+    if (srv == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChannelPermissionsScreen(
+          channel: channel,
+          server: srv,
+        ),
       ),
     );
   }
@@ -370,202 +605,6 @@ class _VoiceParticipantRow extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-void _showServerSettings(BuildContext context) {
-  final server = context.read<ServerState>();
-  final srv = server.selectedServer;
-  if (srv == null) return;
-
-  showDialog(
-    context: context,
-    builder: (ctx) => _ServerSettingsDialog(srv: srv),
-  );
-}
-
-class _ServerSettingsDialog extends StatefulWidget {
-  final RevoltServer srv;
-  const _ServerSettingsDialog({required this.srv});
-
-  @override
-  State<_ServerSettingsDialog> createState() => _ServerSettingsDialogState();
-}
-
-class _ServerSettingsDialogState extends State<_ServerSettingsDialog> {
-  List<RevoltInvite>? _invites;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadInvites();
-  }
-
-  Future<void> _loadInvites() async {
-    final server = context.read<ServerState>();
-    try {
-      final invites = await server.fetchInvites(widget.srv.id);
-      if (!mounted) return;
-      setState(() => _invites = invites);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: const Color(0xFF1E1E26),
-      title: Text(widget.srv.name),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SettingsButton(
-            icon: Icons.link,
-            label: 'Create invite',
-            onTap: () {
-              Navigator.of(context).pop();
-              _createInvite(context);
-            },
-          ),
-          const SizedBox(height: 12),
-          const Divider(color: Color(0xFF2A2A30), height: 1),
-          const SizedBox(height: 12),
-          const Text(
-            'Existing invites',
-            style: TextStyle(fontSize: 13, color: Colors.white54),
-          ),
-          const SizedBox(height: 8),
-          if (_error != null)
-            Text(
-              'Failed to load: $_error',
-              style: const TextStyle(fontSize: 12, color: Colors.redAccent),
-            ),
-          if (_invites == null)
-            const Center(child: CircularProgressIndicator(strokeWidth: 2))
-          else if (_invites!.isEmpty)
-            const Text(
-              'No invites yet',
-              style: TextStyle(fontSize: 12, color: Colors.white38),
-            )
-          else
-            ..._invites!.map(
-              (inv) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.link, size: 14, color: Colors.white38),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        inv.id,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontFamily: 'monospace',
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
-
-void _createInvite(BuildContext context) async {
-  final server = context.read<ServerState>();
-  final channel =
-      server.selectedChannel ??
-      server.selectedServerChannels.cast<RevoltChannel?>().firstWhere(
-        (c) => c?.type == ChannelType.textChannel && !c!.isVoice,
-        orElse: () => null,
-      );
-  if (channel == null) return;
-  try {
-    final code = await server.createInvite(channel.id);
-    if (!context.mounted) return;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E26),
-        title: const Text('Invite Link'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Share this code with others to invite them:'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF141418),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: SelectableText(
-                code,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  } catch (e) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Failed to create invite: $e')));
-  }
-}
-
-class _SettingsButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _SettingsButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: Colors.white70),
-            const SizedBox(width: 12),
-            Text(label, style: const TextStyle(fontSize: 14)),
-          ],
-        ),
       ),
     );
   }

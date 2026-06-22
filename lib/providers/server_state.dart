@@ -10,6 +10,10 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   final RevoltService _service;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
 
+  /// The current user's ID, set by the UI layer after login.
+  /// Used internally to fetch fresh role data on WS events.
+  String? currentUserId;
+
   /// Called when fetchMembers receives user data that should be cached.
   void Function(List<RevoltUser> users)? onUsersFetched;
 
@@ -39,6 +43,183 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
   final Map<String, List<String>> _channelMentions = {};
   final Map<String, String> _latestMessageIds = {};
 
+  // -- Roles ------------------------------------------------------------------
+  final Map<String, Map<String, RevoltRole>> _rolesByServer = {};
+  /// Returns roles for the selected server, or empty map.
+  Map<String, RevoltRole> get selectedServerRoles {
+    if (_selectedServer == null) return {};
+    return _rolesByServer[_selectedServer!.id] ?? {};
+  }
+
+  /// Ensures roles are cached for the selected server.
+  /// When [currentUserId] is provided, attempts to fetch fresh role data
+  /// from the member endpoint as a fallback.
+  Future<void> fetchRoles({
+    bool force = false,
+    String? currentUserId,
+  }) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    if (!force && _rolesByServer.containsKey(server.id)) return;
+    // Seed from the server object's embedded roles.
+    if (server.roles != null) {
+      _rolesByServer[server.id] = Map<String, RevoltRole>.from(server.roles!);
+      notifyListeners();
+    }
+    // If we have a userId, try to get fresh roles from the member endpoint.
+    if (currentUserId != null) {
+      try {
+        final (_, _, _, _, roleMap) =
+            await _service.fetchMemberWithRoles(server.id, currentUserId);
+        if (roleMap.isNotEmpty) {
+          _rolesByServer[server.id] = roleMap;
+        }
+      } catch (e) {
+        debugPrint('[fetchRoles] member endpoint failed: $e');
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Returns the highest-priority role colour for a user in the given server,
+  /// or null if no colour role applies.
+  int? roleColourFor(String serverId, List<String> userRoles) {
+    final roles = _rolesByServer[serverId];
+    if (roles == null || roles.isEmpty) return null;
+    // Sort by rank descending, pick first one with a colour
+    final sorted = userRoles
+        .map((rId) => roles[rId])
+        .where((r) => r != null && r.colour != null)
+        .toList()
+      ..sort((a, b) => b!.rank.compareTo(a!.rank));
+    return sorted.isNotEmpty ? sorted.first!.colour : null;
+  }
+
+  /// Computes the effective permission bitmask for a user in the given server.
+  ///
+  /// Algorithm matches the Stoat JS SDK reference:
+  ///   1. Start with server's [defaultPermissions].
+  ///   2. For each role (sorted ascending by rank), apply:
+  ///        perm = (perm | role.permissions.allow) & ~role.permissions.deny
+  ///
+  /// Returns 0 if the server has no roles or the user has no role assignments.
+  int userEffectivePermissions(String serverId, List<String> userRoleIds) {
+    final roles = _rolesByServer[serverId];
+    final server = servers.firstWhere(
+      (s) => s.id == serverId,
+      orElse: () => servers.first,
+    );
+
+    int perms = server.id == serverId ? server.defaultPermissions : 0;
+    if (roles == null) return perms;
+
+    // Sort roles ascending by rank so higher-rank roles override lower ones.
+    final sortedRoles = userRoleIds
+        .map((rId) => roles[rId])
+        .where((r) => r != null)
+        .toList()
+      ..sort((a, b) => a!.rank.compareTo(b!.rank));
+
+    for (final role in sortedRoles) {
+      if (role!.permissions != null) {
+        perms = role.permissions!.applyTo(perms);
+      }
+    }
+    return perms;
+  }
+
+  /// Creates a role via the service and updates local cache.
+  Future<void> createRole(String name) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    final role = await _service.createRole(server.id, name);
+    _rolesByServer.putIfAbsent(server.id, () => {});
+    _rolesByServer[server.id]![role.id] = role;
+    notifyListeners();
+  }
+
+  /// Updates a role via the service and updates local cache.
+  Future<void> updateRole(
+    String roleId, {
+    String? name,
+    int? colour,
+    int? rank,
+    bool? hoist,
+    dynamic permissions,
+  }) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    final updated = await _service.updateRole(
+      server.id,
+      roleId,
+      name: name,
+      colour: colour,
+      rank: rank,
+      hoist: hoist,
+      permissions: permissions,
+    );
+    _rolesByServer[server.id]?[roleId] = updated;
+    notifyListeners();
+  }
+
+  /// Deletes a role via the service and updates local cache.
+  Future<void> deleteRole(String roleId) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    await _service.deleteRole(server.id, roleId);
+    _rolesByServer[server.id]?.remove(roleId);
+    notifyListeners();
+  }
+
+  /// Assigns a role to a member.
+  Future<void> assignRoleToMember(String userId, String roleId) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    await _service.assignRole(server.id, userId, roleId);
+  }
+
+  /// Removes a role from a member.
+  Future<void> removeRoleFromMember(String userId, String roleId) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    await _service.removeRole(server.id, userId, roleId);
+  }
+
+  // -- Member actions --------------------------------------------------------
+
+  /// Kicks a member from the selected server.
+  Future<void> kickMember(String userId) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    await _service.kickMember(server.id, userId);
+    _memberIdsByServer[server.id]?.remove(userId);
+    notifyListeners();
+  }
+
+  /// Bans a member from the selected server.
+  Future<void> banMember(String userId, {String? reason}) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    await _service.banMember(server.id, userId, reason: reason);
+    _memberIdsByServer[server.id]?.remove(userId);
+    notifyListeners();
+  }
+
+  /// Unbans a user from the selected server.
+  Future<void> unbanMember(String userId) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    await _service.unbanMember(server.id, userId);
+    notifyListeners();
+  }
+
+  /// Fetches all bans for the selected server.
+  Future<List<RevoltBan>> fetchBans() async {
+    final server = _selectedServer;
+    if (server == null) return [];
+    return _service.fetchBans(server.id);
+  }
+
   // -- Members ----------------------------------------------------------------
   final Map<String, List<String>> _memberIdsByServer = {};
   bool _loadingMembers = false;
@@ -66,6 +247,138 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
       )
       .toList();
 
+  // -- Server CRUD helpers ---------------------------------------------------
+
+  /// Creates a new server and adds it to the list.
+  Future<RevoltServer> createServer(String name, {String? description}) async {
+    final server = await _service.createServer(name, description: description);
+    _servers.add(server);
+    notifyListeners();
+    if (!_showDMs) {
+      selectServer(server);
+    }
+    return server;
+  }
+
+  /// Updates the selected server.
+  Future<void> updateSelectedServer({
+    String? name,
+    String? description,
+    String? icon,
+    List<String>? remove,
+  }) async {
+    final server = _selectedServer;
+    if (server == null) return;
+    await _service.updateServer(
+      server.id,
+      name: name,
+      description: description,
+      icon: icon,
+      remove: remove,
+    );
+    // Refresh server data
+    final idx = _servers.indexWhere((s) => s.id == server.id);
+    if (idx >= 0) {
+      _servers[idx] = RevoltServer(
+        id: server.id,
+        name: name ?? server.name,
+        description: description != null ? description : server.description,
+        ownerId: server.ownerId,
+        defaultPermissions: server.defaultPermissions,
+        channelIds: server.channelIds,
+        icon: icon != null
+            ? RevoltFile(id: icon, tag: 'icons', filename: '')
+            : (remove?.contains('Icon') == true ? null : server.icon),
+      );
+    }
+    notifyListeners();
+  }
+
+  /// Deletes a server and removes it from the list.
+  Future<void> deleteSelectedServer() async {
+    final server = _selectedServer;
+    if (server == null) return;
+    await _service.deleteServer(server.id);
+    _servers.removeWhere((s) => s.id == server.id);
+    _rolesByServer.remove(server.id);
+    _memberIdsByServer.remove(server.id);
+    _allChannels.removeWhere((c) => c.serverId == server.id);
+    _selectedServer = _servers.isNotEmpty ? _servers.first : null;
+    _selectedChannel = null;
+    notifyListeners();
+  }
+
+  // -- Channel CRUD helpers --------------------------------------------------
+
+  /// Creates a new channel in the selected server.
+  Future<RevoltChannel> createChannel(
+    String name, {
+    String? description,
+    bool isVoice = false,
+  }) async {
+    final server = _selectedServer;
+    if (server == null) throw Exception('No server selected');
+    final channel = await _service.createChannel(
+      server.id,
+      name,
+      description: description,
+      isVoice: isVoice,
+    );
+    _allChannels.add(channel);
+    notifyListeners();
+    return channel;
+  }
+
+  /// Updates a channel's properties.
+  Future<void> updateChannel(String channelId, {
+    String? name,
+    String? description,
+    String? icon,
+    bool? isVoice,
+    String? defaultPermissions,
+    String? rolePermissions,
+    String? userPermissions,
+    List<String>? remove,
+  }) async {
+    await _service.updateChannel(
+      channelId,
+      name: name,
+      description: description,
+      icon: icon,
+      isVoice: isVoice,
+      defaultPermissions: defaultPermissions,
+      rolePermissions: rolePermissions,
+      userPermissions: userPermissions,
+      remove: remove,
+    );
+    // Refresh locally
+    final idx = _allChannels.indexWhere((c) => c.id == channelId);
+    if (idx >= 0) {
+      final old = _allChannels[idx];
+      _allChannels[idx] = RevoltChannel(
+        id: old.id,
+        type: old.type,
+        isVoice: isVoice ?? old.isVoice,
+        name: name ?? old.name,
+        serverId: old.serverId,
+        recipientIds: old.recipientIds,
+        description: description ?? old.description,
+        lastMessageId: old.lastMessageId,
+      );
+    }
+    notifyListeners();
+  }
+
+  /// Deletes a channel and removes it from the list.
+  Future<void> deleteChannel(String channelId) async {
+    await _service.deleteChannel(channelId);
+    _allChannels.removeWhere((c) => c.id == channelId);
+    if (_selectedChannel?.id == channelId) {
+      _selectedChannel = null;
+    }
+    notifyListeners();
+  }
+
   // -- WebSocket -------------------------------------------------------------
 
   void subscribeToEvents() {
@@ -88,9 +401,31 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
       case 'ServerMemberUpdate':
         _onServerMemberUpdate(event);
         break;
+      case 'ServerRoleUpdate':
+        _onServerRoleUpdate(event);
+        break;
+      case 'ChannelDelete':
+        _onChannelDelete(event);
+        break;
       default:
         break;
     }
+  }
+
+  void _onServerRoleUpdate(Map<String, dynamic> event) {
+    if (currentUserId != null && _selectedServer != null) {
+      fetchRoles(currentUserId: currentUserId, force: true);
+    }
+  }
+
+  void _onChannelDelete(Map<String, dynamic> event) {
+    final channelId = event['id'] as String?;
+    if (channelId == null) return;
+    _allChannels.removeWhere((c) => c.id == channelId);
+    if (_selectedChannel?.id == channelId) {
+      _selectedChannel = null;
+    }
+    notifyListeners();
   }
 
   void _onReady(Map<String, dynamic> event) {
@@ -98,6 +433,13 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _servers = servers
         .map((s) => RevoltServer.fromJson(s as Map<String, dynamic>))
         .toList();
+
+    // Cache roles from server objects.
+    for (final srv in _servers) {
+      if (srv.roles != null && srv.roles!.isNotEmpty) {
+        _rolesByServer[srv.id] = Map<String, RevoltRole>.from(srv.roles!);
+      }
+    }
 
     final channels = (event['channels'] as List<dynamic>?) ?? [];
     _allChannels = channels
@@ -147,12 +489,13 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
   }
 
-  void selectServer(RevoltServer server) {
+  void selectServer(RevoltServer server, {String? userId}) {
     _selectedServer = server;
     _selectedChannel = null;
     _showDMs = false;
     _fetchServerChannels(server);
     fetchMembers(force: true);
+    fetchRoles(currentUserId: userId ?? currentUserId);
     notifyListeners();
   }
 
@@ -319,6 +662,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _selectedServer = null;
     _selectedChannel = null;
     _showDMs = false;
+    currentUserId = null;
     _channelErrors.clear();
     _loadingChannels.clear();
     _channelUnreads.clear();
@@ -326,6 +670,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
     _latestMessageIds.clear();
     _memberIdsByServer.clear();
     _loadingMembers = false;
+    _rolesByServer.clear();
     notifyListeners();
   }
 

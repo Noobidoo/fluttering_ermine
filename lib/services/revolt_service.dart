@@ -553,6 +553,390 @@ class RevoltService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
+  // -- Roles ------------------------------------------------------------------
+
+  /// Fetches all roles for a server. Returns Map<roleId, RevoltRole>.
+  Future<Map<String, RevoltRole>> fetchRoles(String serverId) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/servers/$serverId/roles'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('fetchRoles ${response.statusCode}: ${response.body}');
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final roles = body['roles'] as Map<String, dynamic>? ?? {};
+    return roles.map(
+      (k, v) => MapEntry(k, RevoltRole.fromJson(k, v as Map<String, dynamic>)),
+    );
+  }
+
+  /// Creates a new role on a server.
+  Future<RevoltRole> createRole(String serverId, String name) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/servers/$serverId/roles'),
+      headers: _headers,
+      body: jsonEncode({'name': name}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('createRole ${response.statusCode}: ${response.body}');
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final roleId = body['id'] as String? ?? '';
+    final roleData = body['role'] as Map<String, dynamic>? ?? body;
+    return RevoltRole.fromJson(roleId, roleData);
+  }
+
+  /// Updates a role on a server. Returns the updated role.
+  Future<RevoltRole> updateRole(
+    String serverId,
+    String roleId, {
+    String? name,
+    int? colour,
+    int? rank,
+    bool? hoist,
+    dynamic permissions,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (colour != null) {
+      body['colour'] = '#${colour.toRadixString(16).padLeft(6, '0')}';
+    }
+    if (rank != null) body['rank'] = rank;
+    if (hoist != null) body['hoist'] = hoist;
+    if (permissions != null) {
+      // Accept plain int, string, or OverrideField map.
+      if (permissions is int) {
+        body['permissions'] = {'a': permissions, 'd': 0};
+      } else if (permissions is String && !permissions.startsWith('{')) {
+        body['permissions'] = {
+          'a': int.tryParse(permissions) ?? 0,
+          'd': 0,
+        };
+      } else {
+        body['permissions'] = permissions;
+      }
+    }
+    if (body.isEmpty) throw Exception('updateRole: no fields to update');
+    final response = await http.patch(
+      Uri.parse('$_apiBase/servers/$serverId/roles/$roleId'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('updateRole ${response.statusCode}: ${response.body}');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return RevoltRole.fromJson(roleId, data);
+  }
+
+  /// Deletes a role from a server.
+  Future<void> deleteRole(String serverId, String roleId) async {
+    final response = await http.delete(
+      Uri.parse('$_apiBase/servers/$serverId/roles/$roleId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('deleteRole ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  // -- Server CRUD -----------------------------------------------------------
+
+  /// Creates a new server.
+  Future<RevoltServer> createServer(String name, {String? description}) async {
+    final body = <String, dynamic>{'name': name};
+    if (description != null) body['description'] = description;
+    final response = await http.post(
+      Uri.parse('$_apiBase/servers/create'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('createServer ${response.statusCode}: ${response.body}');
+    }
+    return RevoltServer.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  /// Updates a server.
+  Future<void> updateServer(
+    String serverId, {
+    String? name,
+    String? description,
+    String? icon,
+    List<String>? remove,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (description != null) body['description'] = description;
+    if (icon != null) body['icon'] = icon;
+    if (remove != null) body['remove'] = remove;
+    if (body.isEmpty) return;
+    final response = await http.patch(
+      Uri.parse('$_apiBase/servers/$serverId'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('updateServer ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  /// Deletes a server.
+  Future<void> deleteServer(String serverId) async {
+    final response = await http.delete(
+      Uri.parse('$_apiBase/servers/$serverId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('deleteServer ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  // -- Channel CRUD ----------------------------------------------------------
+
+  /// Creates a new channel in a server.
+  Future<RevoltChannel> createChannel(
+    String serverId,
+    String name, {
+    String? description,
+    bool isVoice = false,
+  }) async {
+    final body = <String, dynamic>{
+      'server': serverId,
+      'channel_type': isVoice ? 'VoiceChannel' : 'TextChannel',
+      'name': name,
+    };
+    if (description != null) body['description'] = description;
+    final response = await http.post(
+      Uri.parse('$_apiBase/servers/$serverId/channels'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('createChannel ${response.statusCode}: ${response.body}');
+    }
+    return RevoltChannel.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  /// Updates a channel.
+  Future<void> updateChannel(
+    String channelId, {
+    String? name,
+    String? description,
+    String? icon,
+    bool? isVoice,
+    String? rolePermissions,
+    String? userPermissions,
+    String? defaultPermissions,
+    List<String>? remove,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (description != null) body['description'] = description;
+    if (icon != null) body['icon'] = icon;
+    if (isVoice != null) body['voice'] = isVoice ? {'type': 'voice'} : null;
+    if (rolePermissions != null) body['role_permissions'] = rolePermissions;
+    if (userPermissions != null) body['user_permissions'] = userPermissions;
+    if (defaultPermissions != null) {
+      body['default_permissions'] = defaultPermissions;
+    }
+    if (remove != null) body['remove'] = remove;
+    if (body.isEmpty) return;
+    final response = await http.patch(
+      Uri.parse('$_apiBase/channels/$channelId'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('updateChannel ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  /// Deletes a channel.
+  Future<void> deleteChannel(String channelId) async {
+    final response = await http.delete(
+      Uri.parse('$_apiBase/channels/$channelId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('deleteChannel ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  // -- Member actions --------------------------------------------------------
+
+  /// Kicks a member from a server.
+  Future<void> kickMember(String serverId, String userId) async {
+    final response = await http.delete(
+      Uri.parse('$_apiBase/servers/$serverId/members/$userId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('kickMember ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  /// Bans a user from a server.
+  Future<void> banMember(
+    String serverId,
+    String userId, {
+    String? reason,
+  }) async {
+    final body = <String, dynamic>{};
+    if (reason != null) body['reason'] = reason;
+    final response = await http.put(
+      Uri.parse('$_apiBase/servers/$serverId/bans/$userId'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('banMember ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  /// Removes a ban from a user on a server.
+  Future<void> unbanMember(String serverId, String userId) async {
+    final response = await http.delete(
+      Uri.parse('$_apiBase/servers/$serverId/bans/$userId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('unbanMember ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  /// Fetches all bans for a server.
+  Future<List<RevoltBan>> fetchBans(String serverId) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/servers/$serverId/bans'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('fetchBans ${response.statusCode}: ${response.body}');
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) => RevoltBan.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Assigns a role to a member.
+  Future<void> assignRole(
+    String serverId,
+    String userId,
+    String roleId,
+  ) async {
+    // Uses PATCH /servers/{serverId}/members/{userId} with roles
+    final member = await fetchServerMember(serverId, userId);
+    final currentRoles = member.$2;
+    if (currentRoles.contains(roleId)) return;
+    await http.patch(
+      Uri.parse('$_apiBase/servers/$serverId/members/$userId'),
+      headers: _headers,
+      body: jsonEncode({
+        'roles': [...currentRoles, roleId],
+      }),
+    );
+  }
+
+  /// Removes a role from a member.
+  Future<void> removeRole(
+    String serverId,
+    String userId,
+    String roleId,
+  ) async {
+    final member = await fetchServerMember(serverId, userId);
+    final currentRoles = member.$2;
+    if (!currentRoles.contains(roleId)) return;
+    await http.patch(
+      Uri.parse('$_apiBase/servers/$serverId/members/$userId'),
+      headers: _headers,
+      body: jsonEncode({
+        'roles': currentRoles.where((r) => r != roleId).toList(),
+      }),
+    );
+  }
+
+  /// Fetches a single server member, returning (userId, roles, nickname, avatar).
+  Future<(String, List<String>, String?, RevoltFile?)> fetchServerMember(
+    String serverId,
+    String userId,
+  ) async {
+    final response = await http.get(
+      Uri.parse('$_apiBase/servers/$serverId/members/$userId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        'fetchServerMember ${response.statusCode}: ${response.body}',
+      );
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final id = json['_id'] as Map<String, dynamic>?;
+    final uid = id?['user'] as String? ?? userId;
+    final roles = (json['roles'] as List<dynamic>?)?.cast<String>() ?? [];
+    return (
+      uid,
+      roles,
+      json['nickname'] as String?,
+      json['avatar'] != null
+          ? RevoltFile.fromJson(json['avatar'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  /// Fetches a member with full role objects via `?roles=true`.
+  /// Returns (userId, roles, nickname, avatar, rolesMap) where rolesMap
+  /// is `Map<roleId, RevoltRole>` when the endpoint returns role data.
+  Future<(String, List<String>, String?, RevoltFile?, Map<String, RevoltRole>)>
+  fetchMemberWithRoles(String serverId, String userId) async {
+    final response = await http.get(
+      Uri.parse(
+        '$_apiBase/servers/$serverId/members/$userId?roles=true',
+      ),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        'fetchMemberWithRoles ${response.statusCode}: ${response.body}',
+      );
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    // Response is either a bare Member or {member: Member, roles: {...}}
+    Map<String, dynamic> memberJson;
+    Map<String, RevoltRole> roleMap = {};
+    if (json.containsKey('member') && json.containsKey('roles')) {
+      memberJson = json['member'] as Map<String, dynamic>;
+      final rolesJson = json['roles'] as Map<String, dynamic>?;
+      if (rolesJson != null) {
+        roleMap = rolesJson.map(
+          (k, v) =>
+              MapEntry(k, RevoltRole.fromJson(k, v as Map<String, dynamic>)),
+        );
+      }
+    } else {
+      memberJson = json;
+    }
+    final id = memberJson['_id'] as Map<String, dynamic>?;
+    final uid = id?['user'] as String? ?? userId;
+    final roles =
+        (memberJson['roles'] as List<dynamic>?)?.cast<String>() ?? [];
+    return (
+      uid,
+      roles,
+      memberJson['nickname'] as String?,
+      memberJson['avatar'] != null
+          ? RevoltFile.fromJson(memberJson['avatar'] as Map<String, dynamic>)
+          : null,
+      roleMap,
+    );
+  }
+
   // -- WebSocket -------------------------------------------------------------
 
   void connectWebSocket() {

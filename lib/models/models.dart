@@ -1,9 +1,12 @@
+export 'permissions.dart';
+export 'revolt_ban.dart';
+export 'revolt_channel.dart';
 export 'revolt_file.dart';
 export 'revolt_invite.dart';
-export 'revolt_user.dart';
-export 'revolt_server.dart';
-export 'revolt_channel.dart';
 export 'revolt_message.dart';
+export 'revolt_role.dart';
+export 'revolt_server.dart';
+export 'revolt_user.dart';
 export 'server_profile.dart';
 export 'user_profile.dart';
 export 'voice_events.dart';

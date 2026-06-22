@@ -107,6 +107,18 @@ class _MemberTile extends StatelessWidget {
     final p = u?.presence ?? UserPresence.online;
     final isOnline = p == UserPresence.online || p == UserPresence.focus;
 
+    // Role colour
+    final serverState = context.watch<ServerState>();
+    final roleColour = u != null
+        ? serverState.roleColourFor(
+            serverId,
+            u.serverProfiles[serverId]?.roles ?? [],
+          )
+        : null;
+    final nameColour = roleColour != null
+        ? Color(roleColour)
+        : (isOnline ? Colors.white : Colors.white54);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       child: ListTile(
@@ -150,7 +162,7 @@ class _MemberTile extends StatelessWidget {
           name,
           style: TextStyle(
             fontSize: 14,
-            color: isOnline ? Colors.white : Colors.white54,
+            color: nameColour,
             fontWeight: isOnline ? FontWeight.w500 : FontWeight.normal,
           ),
           overflow: TextOverflow.ellipsis,
@@ -158,6 +170,7 @@ class _MemberTile extends StatelessWidget {
         subtitle: _statusText,
 
         onTap: () => _showProfileSheet(context),
+        onLongPress: () => _showMemberContextMenu(context),
       ),
     );
   }
@@ -165,5 +178,180 @@ class _MemberTile extends StatelessWidget {
   void _showProfileSheet(BuildContext context) {
     if (user == null) return;
     showUserProfileSheet(context, user!);
+  }
+
+  void _showMemberContextMenu(BuildContext context) {
+    final auth = context.read<AuthState>();
+    final isSelf = userId == auth.currentUser?.id;
+    if (isSelf || user == null) return;
+
+    final canKick = auth.hasPermission(serverId, Permission.kickMembers);
+    final canBan = auth.hasPermission(serverId, Permission.banMembers);
+    if (!canKick && !canBan) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E26),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                user!.resolveDisplayName(serverId),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            const Divider(color: Color(0xFF2A2A30), height: 1),
+            if (canKick)
+              ListTile(
+                leading: const Icon(Icons.remove_circle_outline,
+                    color: Colors.orangeAccent),
+                title: const Text('Kick Member'),
+                subtitle: const Text(
+                  'Remove from server',
+                  style: TextStyle(fontSize: 12, color: Colors.white38),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmKick(context);
+                },
+              ),
+            if (canBan)
+              ListTile(
+                leading: const Icon(Icons.block, color: Colors.redAccent),
+                title: const Text('Ban Member'),
+                subtitle: const Text(
+                  'Remove and prevent rejoin',
+                  style: TextStyle(fontSize: 12, color: Colors.white38),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmBan(context);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmKick(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text('Kick Member'),
+        content: Text(
+          'Remove ${user?.resolveDisplayName(serverId) ?? userId} from the server?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _doKick(context);
+            },
+            child: const Text('Kick',
+                style: TextStyle(color: Colors.orangeAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _doKick(BuildContext context) async {
+    try {
+      final server = context.read<ServerState>();
+      final srv = server.selectedServer;
+      if (srv == null) return;
+      await server.kickMember(userId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${user?.resolveDisplayName(serverId) ?? userId} was kicked')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to kick: $e')),
+      );
+    }
+  }
+
+  void _confirmBan(BuildContext context) {
+    final reasonCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text('Ban Member'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ban ${user?.resolveDisplayName(serverId) ?? userId}?',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Reason (optional)',
+                hintStyle: TextStyle(color: Colors.white38),
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _doBan(context, reasonCtrl.text.trim());
+            },
+            child: const Text('Ban',
+                style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _doBan(BuildContext context, String reason) async {
+    try {
+      final server = context.read<ServerState>();
+      final srv = server.selectedServer;
+      if (srv == null) return;
+      await server.banMember(userId, reason: reason.isNotEmpty ? reason : null);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${user?.resolveDisplayName(serverId) ?? userId} was banned')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to ban: $e')),
+      );
+    }
   }
 }
