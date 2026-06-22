@@ -190,11 +190,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v0.1.6"
-      resolved-ref: "135f1e88cbfa5b25d6db781513114fc05149bce5"
+      ref: "v0.1.8"
+      resolved-ref: c8a72b1291d934a5cd93d3565219d8e3454cbd6d
       url: "https://github.com/Noobidoo/deepfilter_livekit"
     source: git
-    version: "0.1.6"
+    version: "0.1.7"
   device_info_plus:
     dependency: transitive
     description:
