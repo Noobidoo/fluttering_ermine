@@ -107,10 +107,15 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   static bool get deepFilterIsRealLibrary => LiveKitDeepFilter.isRealLibrary;
   bool get deepFilterIsApmAttached => _liveKitDeepFilter.isProcessing;
   String? get selectedAudioInputId => _selectedAudioInputId;
-  Future<List<rtc.MediaDeviceInfo>> get audioInputDeviceIds async =>
-      (await rtc.navigator.mediaDevices.enumerateDevices())
-          .where((d) => d.kind == 'audioinput')
-          .toList();
+  Future<List<rtc.MediaDeviceInfo>> get audioInputDeviceIds async {
+    try {
+      final devices = await rtc.navigator.mediaDevices.enumerateDevices();
+      return devices.where((d) => d.kind == 'audioinput').toList();
+    } catch (e) {
+      debugPrint('[voice] enumerateDevices failed: $e');
+      return [];
+    }
+  }
   // Returns true if the given participant's screen share is currently subscribed.
   bool isScreenShareSubscribed(String identity) =>
       _subscribedScreenShares.contains(identity);
