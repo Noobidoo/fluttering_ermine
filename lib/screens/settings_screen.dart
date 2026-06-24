@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
+import 'package:livekit_client/livekit_client.dart' hide ConnectionState;
 
 import '../models/models.dart';
 import '../providers/auth_state.dart';
@@ -963,7 +963,7 @@ class _VoiceSection extends StatelessWidget {
           const SizedBox(height: 10),
           _SettingsCard(
             children: [
-              FutureBuilder<List<rtc.MediaDeviceInfo>>(
+              FutureBuilder<List<MediaDevice>>(
                 future: voice.audioInputDeviceIds,
                 builder: (context, snapshot) {
                   final devices = snapshot.data ?? [];

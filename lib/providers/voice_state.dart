@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -107,10 +106,10 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   static bool get deepFilterIsRealLibrary => LiveKitDeepFilter.isRealLibrary;
   bool get deepFilterIsApmAttached => _liveKitDeepFilter.isProcessing;
   String? get selectedAudioInputId => _selectedAudioInputId;
-  Future<List<rtc.MediaDeviceInfo>> get audioInputDeviceIds async {
+  Future<List<MediaDevice>> get audioInputDeviceIds async {
     try {
-      final devices = await rtc.navigator.mediaDevices.enumerateDevices();
-      return devices.where((d) => d.kind == 'audioinput').toList();
+      List<MediaDevice> devices = await Hardware.instance.audioInputs();
+      return devices;
     } catch (e) {
       debugPrint('[voice] enumerateDevices failed: $e');
       return [];
@@ -714,13 +713,12 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   /// Returns the deviceId of the currently selected audio input, or first if not found or on error.
   Future<String?> _getSelectedAudioInputId() async {
     try {
-      final devices = await rtc.navigator.mediaDevices.enumerateDevices();
+      final devices = await Hardware.instance.audioInputs();
       return devices.firstWhere(
-        (d) => d.kind == 'audioinput' && _selectedAudioInputId != '' && d.deviceId == _selectedAudioInputId,
-        orElse: () => devices.firstWhere(
-          (d) => d.kind == 'audioinput',
-          orElse: () => throw Exception('No audio input devices found'),
-        ),
+        (d) => _selectedAudioInputId != '' && d.deviceId == _selectedAudioInputId,
+        orElse: () => devices.isNotEmpty
+            ? devices.first
+            : throw Exception('No audio input devices found'),
       ).deviceId;
     } catch (e) {
       debugPrint('[voice] Failed to enumerate devices: $e');
