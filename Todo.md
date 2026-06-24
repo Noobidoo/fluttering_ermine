@@ -58,22 +58,21 @@
 
 ## Phase 4 — Server Management Basics
 
-- [ ] **Role colour on usernames** — `GET /servers/{serverId}/roles`; apply highest-priority role colour to username in bubbles and member list
-- [ ] **Kick / ban members** — context menu on member tile; `DELETE /servers/{serverId}/members/{userId}` (kick) / `PUT /servers/{serverId}/bans/{userId}` (ban)
-- [ ] **Create / edit / delete channels** — long-press channel → context menu; `POST /servers/{serverId}/channels`, `PATCH /channels/{channelId}`, `DELETE /channels/{channelId}`
-- [ ] **Create / edit server** — `POST /servers/create`, `PATCH /servers/{serverId}`; server settings screen
-- [ ] **Permission management per server** — role-based permission editor; `GET /servers/{serverId}/roles`, `POST /servers/{serverId}/roles`, `PATCH /servers/{serverId}/roles/{roleId}`, `DELETE /servers/{serverId}/roles/{roleId}`; assign/remove roles to members via `PATCH /servers/{serverId}/members/{userId}`; channel permission overrides via `PATCH /channels/{channelId}` `role_permissions` / `user_permissions` fields; server settings screen with roles list, permission toggles per role, and member role assignment UI
+- [x] **Role colour on usernames** — `GET /servers/{serverId}/roles`; apply highest-priority role colour to username in bubbles and member list
+- [x] **Kick / ban members** — context menu on member tile; `DELETE /servers/{serverId}/members/{userId}` (kick) / `PUT /servers/{serverId}/bans/{userId}` (ban)
+- [x] **Create / edit / delete channels** — long-press channel → context menu; `POST /servers/{serverId}/channels`, `PATCH /channels/{channelId}`, `DELETE /channels/{channelId}`
+- [x] **Create / edit server** — `POST /servers/create`, `PATCH /servers/{serverId}`; server settings screen
+- [x] **Permission management per server** — role-based permission editor; `GET /servers/{serverId}/roles`, `POST /servers/{serverId}/roles`, `PATCH /servers/{serverId}/roles/{roleId}`, `DELETE /servers/{serverId}/roles/{roleId}`; assign/remove roles to members via `PATCH /servers/{serverId}/members/{userId}`; channel permission overrides via `PATCH /channels/{channelId}` `role_permissions` / `user_permissions` fields; server settings screen with roles list, permission toggles per role, and member role assignment UI
 
 ---
 
 ## Phase 5 — Voice Completeness
 
-- [ ] **Rework layout for calls** — `RenderFlex overflowed by 46 pixels on the bottom` when a call starts; audit `_VoiceChannelView` column/row constraints, wrap scrollable content in `Expanded`/`Flexible` or `SingleChildScrollView`, ensure the layout doesn't overflow on smaller screens
 - [x] **Participant list not updating on leave** — when a participant leaves the call the tile/list does not remove them; ensure `ParticipantDisconnected` LiveKit event (or equivalent `room.participants` stream) triggers a `setState`/`notifyListeners` in `VoiceState` so `_VoiceChannelView` rebuilds and drops the departed participant. Also affects the **local user** — after leaving/disconnecting, the local client's own entry remains in the sidebar list; clear local participant state and remove the local entry on `Room.disconnected` / `onDisconnected` callback
-- [ ] **Audio device selection** — enumerate `MediaDevices` (web) / platform channel (native); pass `deviceId` in `AudioCaptureOptions`; store in `VoiceState` / prefs
+- [x] **Audio device selection** — enumerate `MediaDevices` (web) / platform channel (native); pass `deviceId` in `AudioCaptureOptions`; store in `VoiceState` / prefs
 - [ ] **Camera / video toggle** — `room.localParticipant.setCameraEnabled(bool)`; local video preview tile in `_VoiceChannelView`
-- [ ] **Noise suppression** — verify `noiseSuppression: true` in `AudioCaptureOptions` is wired through `VoiceState` → `RoomOptions` (settings toggle exists but may be disconnected)
-- [ ] **Per-participant volume** — slider per remote participant; `RemoteParticipant.setVolume(0.0–1.0)`
+- [x] **Noise suppression** — `noiseSuppression: true` wired via `AudioCaptureOptions` on join and device-change; DeepFilterNet neural suppression also integrated and live-togglable
+- [x] **Per-participant volume** — context menu (right-click/long-press) on participant row and video tiles; per-source volume (mic vs screen-share-audio); 0–200% range; persisted to prefs; uses `flutter_webrtc` `NativeAudioManagement.setVolume()` instead of buggy web-only `volume_helper`
 - [ ] **Notify user on voice device fallback** — When the stored audio input preference is unavailable on join, the app falls back to the first available device and silently overwrites the preference. Show a notification so the user knows their saved device wasn't found.
 
 **Relevant files:** `lib/providers/voice_state.dart`, `lib/widgets/chat_panel.dart` (`_VoiceChannelView`), `lib/screens/settings_screen.dart`
@@ -82,6 +81,7 @@
 
 ## Phase 6 — Polish & Localization
 
+- [ ] **Rework layout for calls** — `RenderFlex overflowed by 46 pixels on the bottom` when a call starts; audit `_VoiceChannelView` column/row constraints, wrap scrollable content in `Expanded`/`Flexible` or `SingleChildScrollView`, ensure the layout doesn't overflow on smaller screens
 - [ ] **Theme system** — dark (current) / light / custom accent; persist via `shared_preferences`
 - [ ] **Keyboard shortcuts** — `Shortcuts`/`Actions`: Ctrl+K channel search, Escape cancel edit/reply
 - [ ] **Rich link embeds** — render `embeds` array from message JSON as OG cards below content

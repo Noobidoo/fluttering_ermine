@@ -495,52 +495,175 @@ class _RemoteVideoTile extends StatelessWidget {
   final RemoteVideoStream stream;
   const _RemoteVideoTile({required this.stream});
 
+  void _showVolumeMenu(BuildContext context) {
+    final voice = context.read<VoiceState>();
+    final identity = stream.participantIdentity;
+    final audioSource = stream.source == TrackSource.screenShareVideo
+        ? TrackSource.screenShareAudio
+        : TrackSource.microphone;
+    final currentVolume = voice.getParticipantVolume(identity, source: audioSource);
+    double tempVolume = currentVolume;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E26),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+          content: SizedBox(
+            width: 280,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      stream.source == TrackSource.screenShareVideo
+                          ? Icons.screen_share
+                          : Icons.videocam,
+                      size: 18,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        identity,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Volume Level',
+                  style: TextStyle(
+                    color: Colors.white60,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.volume_down_rounded,
+                        size: 18, color: Colors.white38),
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderTheme.of(ctx).copyWith(
+                          trackHeight: 4,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 8,
+                          ),
+                        ),
+                        child: Slider(
+                          value: tempVolume,
+                          min: 0.0,
+                          max: 2.0,
+                          divisions: 40,
+                          onChanged: (v) {
+                            setDialogState(() => tempVolume = v);
+                            voice.setParticipantVolume(identity, v, source: audioSource);
+                          },
+                          activeColor: const Color(0xFF7F5AF0),
+                          inactiveColor: Colors.white24,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.volume_up_rounded,
+                        size: 18, color: Colors.white38),
+                  ],
+                ),
+                Center(
+                  child: Text(
+                    '${(tempVolume * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: TextButton.icon(
+                      onPressed: () {
+                      setDialogState(() => tempVolume = 1.0);
+                      voice.setParticipantVolume(identity, 1.0, source: audioSource);
+                    },
+                    icon: const Icon(Icons.refresh, size: 14),
+                    label: const Text('Reset to 100%'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white60,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isScreen = stream.source == TrackSource.screenShareVideo;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          VideoTrackRenderer(stream.track),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Colors.black54, Colors.transparent],
+    return GestureDetector(
+      onSecondaryTapDown: (_) => _showVolumeMenu(context),
+      onLongPress: () => _showVolumeMenu(context),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            VideoTrackRenderer(stream.track),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black54, Colors.transparent],
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isScreen ? Icons.screen_share : Icons.videocam,
+                      size: 14,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        stream.participantIdentity,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    isScreen ? Icons.screen_share : Icons.videocam,
-                    size: 14,
-                    color: Colors.white70,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      stream.participantIdentity,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
