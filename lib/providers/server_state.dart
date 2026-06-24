@@ -282,7 +282,7 @@ class ServerState extends ChangeNotifier with DiagnosticableTreeMixin {
       _servers[idx] = RevoltServer(
         id: server.id,
         name: name ?? server.name,
-        description: description != null ? description : server.description,
+        description: description ?? server.description,
         ownerId: server.ownerId,
         defaultPermissions: server.defaultPermissions,
         channelIds: server.channelIds,

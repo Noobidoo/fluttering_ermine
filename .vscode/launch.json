@@ -4,7 +4,13 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
+        {
+            "name": "fluttering_ermine (Windows)",
+            "program": "lib/main.dart",
+            "deviceId": "windows",
+            "request": "launch",
+            "type": "dart"
+        },   
         {
             "name": "fluttering_ermine (Flutter Web Server)",
             "program": "lib/main.dart",

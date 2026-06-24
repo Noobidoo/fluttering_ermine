@@ -698,11 +698,15 @@ class _VoiceBar extends StatelessWidget {
   }
 
   String _deepFilterTooltip(VoiceState voice) {
-    if (!voice.deepFilterEnabled) return 'Neural noise suppression: off';
-    if (!VoiceState.deepFilterIsRealLibrary)
+    if (!voice.deepFilterEnabled) {
+      return 'Neural noise suppression: off';
+    }
+    if (!VoiceState.deepFilterIsRealLibrary) {
       return 'Neural noise suppression: stub (library not loaded)';
-    if (!voice.deepFilterIsApmAttached)
+    }
+    if (!voice.deepFilterIsApmAttached) {
       return 'Neural noise suppression: initializing…';
+    }
     return 'Neural noise suppression: active';
   }
 

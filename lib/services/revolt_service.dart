@@ -555,7 +555,7 @@ class RevoltService {
 
   // -- Roles ------------------------------------------------------------------
 
-  /// Fetches all roles for a server. Returns Map<roleId, RevoltRole>.
+  /// Fetches all roles for a server. Returns `Map<roleId, RevoltRole>`.
   Future<Map<String, RevoltRole>> fetchRoles(String serverId) async {
     final response = await http.get(
       Uri.parse('$_apiBase/servers/$serverId/roles'),
