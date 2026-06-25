@@ -326,6 +326,7 @@ class _VoiceChannelView extends StatelessWidget {
     final voice = context.watch<VoiceState>();
     final isActive = voice.activeVoiceChannel?.id == channel.id;
     final streams = isActive ? voice.remoteVideoStreams : <RemoteVideoStream>[];
+    final localCameraTrack = isActive ? voice.localCameraTrack : null;
 
     Widget controls;
     if (isActive) {
@@ -340,6 +341,16 @@ class _VoiceChannelView extends StatelessWidget {
             label: Text(voice.isMuted ? 'Unmute' : 'Mute'),
             style: FilledButton.styleFrom(
               backgroundColor: voice.isMuted
+                  ? Colors.redAccent
+                  : const Color(0xFF2CB67D),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: () => context.read<VoiceState>().toggleCamera(),
+            icon: Icon(voice.isCameraEnabled ? Icons.videocam_off : Icons.videocam),
+            label: Text(voice.isCameraEnabled ? 'Camera Off' : 'Camera On'),
+            style: FilledButton.styleFrom(
+              backgroundColor: voice.isCameraEnabled
                   ? Colors.redAccent
                   : const Color(0xFF2CB67D),
             ),
@@ -421,7 +432,21 @@ class _VoiceChannelView extends StatelessWidget {
             flex: 3,
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: _VideoGrid(streams: streams),
+              child: Stack(
+                children: [
+                  _VideoGrid(streams: streams),
+                  if (localCameraTrack != null)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: SizedBox(
+                        width: 160,
+                        height: 90,
+                        child: _LocalVideoTile(track: localCameraTrack),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         Expanded(
@@ -487,6 +512,56 @@ class _VideoGrid extends StatelessWidget {
       ),
       itemCount: streams.length,
       itemBuilder: (_, i) => _RemoteVideoTile(stream: streams[i]),
+    );
+  }
+}
+
+class _LocalVideoTile extends StatelessWidget {
+  final LocalVideoTrack track;
+  const _LocalVideoTile({required this.track});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          VideoTrackRenderer(track),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black54, Colors.transparent],
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.videocam, size: 14, color: Colors.white70),
+                  const SizedBox(width: 4),
+                  const Expanded(
+                    child: Text(
+                      'You (mirrored)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

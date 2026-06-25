@@ -88,6 +88,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   // -- Per-participant screen share subscriptions -----------------------------
   final Set<String> _subscribedScreenShares = {};
 
+  // -- Camera ----------------------------------------------------------------
+  bool _isCameraEnabled = false;
+
   // -- Development/debugging only: expose LiveKit internals for diagnostics and testing --
   int _leaveCalledAmount = 0;
 
@@ -98,6 +101,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   bool get isMuted => _isMuted;
   bool get isJoiningVoice => _isJoiningVoice;
   bool get isScreenSharing => _isScreenSharing;
+  bool get isCameraEnabled => _isCameraEnabled;
   String? get voiceError => _voiceError;
   double get outputVolume => _outputVolume;
   bool get noiseSuppression => _noiseSuppression;
@@ -122,6 +126,30 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       return [];
     }
   }
+
+  Future<List<MediaDevice>> get videoInputDeviceIds async {
+    try {
+      List<MediaDevice> devices = await Hardware.instance.videoInputs();
+      return devices;
+    } catch (e) {
+      debugPrint('[voice] enumerate video devices failed: $e');
+      return [];
+    }
+  }
+
+  // Returns the local camera track if camera is enabled.
+  LocalVideoTrack? get localCameraTrack {
+    if (_voiceRoom == null) return null;
+    final lp = _voiceRoom!.localParticipant;
+    if (lp == null) return null;
+    for (final pub in lp.videoTrackPublications) {
+      if (pub.source == TrackSource.camera) {
+        return pub.track;
+      }
+    }
+    return null;
+  }
+
   // Returns true if the given participant's screen share is currently subscribed.
   bool isScreenShareSubscribed(String identity) =>
       _subscribedScreenShares.contains(identity);
@@ -287,6 +315,12 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       final micStatus = await Permission.microphone.request();
       if (!micStatus.isGranted) {
         _voiceError = 'Microphone permission denied';
+        notifyListeners();
+        return;
+      }
+      final camStatus = await Permission.camera.request();
+      if (!camStatus.isGranted) {
+        _voiceError = 'Camera permission denied';
         notifyListeners();
         return;
       }
@@ -542,6 +576,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     _isJoiningVoice = false;
     _isMuted = false;
     _isScreenSharing = false;
+    _isCameraEnabled = false;
     _screenShareTrack = null;
     _voiceError = null;
     _leaveCalledAmount = 0;
@@ -600,6 +635,42 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (_voiceRoom == null) return;
     _isMuted = !_isMuted;
     await _voiceRoom!.localParticipant?.setMicrophoneEnabled(!_isMuted);
+    notifyListeners();
+  }
+
+  Future<void> toggleCamera() async {
+    if (_voiceRoom == null) return;
+    _isCameraEnabled = !_isCameraEnabled;
+    final lp = _voiceRoom!.localParticipant;
+    if (lp != null) {
+      try {
+        await lp.setCameraEnabled(_isCameraEnabled);
+      } catch (e) {
+        debugPrint('[voice] camera toggle failed: $e');
+        _isCameraEnabled = !_isCameraEnabled;
+        _voiceError = 'Failed to toggle camera';
+      }
+    }
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setBool('voice_camera_enabled', _isCameraEnabled);
+    notifyListeners();
+  }
+
+  Future<void> setCameraEnabled(bool enabled) async {
+    if (_voiceRoom == null || _isCameraEnabled == enabled) return;
+    _isCameraEnabled = enabled;
+    final lp = _voiceRoom!.localParticipant;
+    if (lp != null) {
+      try {
+        await lp.setCameraEnabled(enabled);
+      } catch (e) {
+        debugPrint('[voice] camera set failed: $e');
+        _isCameraEnabled = !enabled;
+        _voiceError = 'Failed to set camera';
+      }
+    }
+    final asyncPrefs = SharedPreferencesAsync();
+    await asyncPrefs.setBool('voice_camera_enabled', _isCameraEnabled);
     notifyListeners();
   }
 
@@ -717,6 +788,8 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
         await asyncPrefs.getBool('voice_deep_filter_enabled') ?? true;
     _selectedAudioInputId =
         await asyncPrefs.getString('voice_selected_audio_input_id');
+    _isCameraEnabled =
+        await asyncPrefs.getBool('voice_camera_enabled') ?? false;
     final volumesJson = await asyncPrefs.getString('voice_participant_volumes');
     if (volumesJson != null) {
       try {
