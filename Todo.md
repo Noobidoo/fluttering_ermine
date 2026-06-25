@@ -94,6 +94,23 @@
 
 ---
 
+## Phase 7 — Logging & Error Reporting
+
+- [ ] Add logging dependencies (logger, package_info_plus, device_info_plus, archive, path_provider, share_plus, flutter_markdown)
+- [ ] Create build-time version injection script (git commit SHA, version, timestamp)
+- [ ] Implement LoggingService with file rotation (JSON lines, 10×5MB)
+- [ ] Add global error handlers (FlutterError + PlatformDispatcher) with local queue
+- [ ] Build DiagnosticsService (app version, Stoat version, OS, device, logs, prefs, recent errors)
+- [ ] Create consent dialog (per-session, persist dismissal)
+- [ ] Implement ExportService → zip + system share sheet
+- [ ] Create GitHubService with GitHub App authentication
+- [ ] Build ErrorReportScreen (title, description, steps, attach logs checkbox)
+- [ ] Build SuggestionScreen (type, title, description, optional diagnostics)
+- [ ] Add "Help & Feedback" section to SettingsScreen
+- [ ] Write unit/widget tests for logging, diagnostics, export, GitHub integration
+
+---
+
 ## Architecture Notes
 
 ### Key files
