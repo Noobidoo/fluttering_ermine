@@ -84,8 +84,7 @@ class RevoltService {
               .get(Uri.parse(apiBase))
               .timeout(const Duration(seconds: 8));
           if (configResponse.statusCode == 200) {
-            final config =
-                jsonDecode(configResponse.body) as Map<String, dynamic>;
+            final config = jsonDecode(configResponse.body) as Map<String, dynamic>;
             if (config.containsKey('revolt')) {
               return (apiBase, config);
             }
@@ -95,9 +94,7 @@ class RevoltService {
     } catch (_) {}
 
     // 2. Fall back: treat the input as the API base directly
-    final configResponse = await http
-        .get(Uri.parse(base))
-        .timeout(const Duration(seconds: 8));
+    final configResponse = await http.get(Uri.parse(base)).timeout(const Duration(seconds: 8));
     if (configResponse.statusCode != 200) {
       throw Exception('Could not find a Revolt API at "$input"');
     }
@@ -124,38 +121,25 @@ class RevoltService {
   }
 
   Future<void> logout() async {
-    await http.post(
-      Uri.parse('$_apiBase/auth/session/logout'),
-      headers: _headers,
-    );
+    await http.post(Uri.parse('$_apiBase/auth/session/logout'), headers: _headers);
   }
 
   // -- Users -----------------------------------------------------------------
 
   Future<RevoltUser> fetchSelf() async {
-    final response = await http.get(
-      Uri.parse('$_apiBase/users/@me'),
-      headers: _headers,
-    );
+    final response = await http.get(Uri.parse('$_apiBase/users/@me'), headers: _headers);
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch current user');
     }
-    return RevoltUser.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return RevoltUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   Future<RevoltUser> fetchUser(String userId) async {
-    final response = await http.get(
-      Uri.parse('$_apiBase/users/$userId'),
-      headers: _headers,
-    );
+    final response = await http.get(Uri.parse('$_apiBase/users/$userId'), headers: _headers);
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch user $userId');
     }
-    return RevoltUser.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return RevoltUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   Future<UserProfile> fetchUserProfile(String userId) async {
@@ -166,9 +150,7 @@ class RevoltService {
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch user profile for $userId');
     }
-    return UserProfile.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return UserProfile.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   Future<RevoltUser> updateProfile({
@@ -201,28 +183,17 @@ class RevoltService {
       body: encoded,
     );
     if (response.statusCode != 200) {
-      debugPrint(
-        'updateProfile response (${response.statusCode}): ${response.body}',
-      );
-      throw Exception(
-        'updateProfile(${response.statusCode}): ${response.body}',
-      );
+      debugPrint('updateProfile response (${response.statusCode}): ${response.body}');
+      throw Exception('updateProfile(${response.statusCode}): ${response.body}');
     }
-    return RevoltUser.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return RevoltUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   // -- Messages --------------------------------------------------------------
 
-  Future<List<RevoltMessage>> fetchMessages(
-    String channelId, {
-    int limit = 50,
-  }) async {
+  Future<List<RevoltMessage>> fetchMessages(String channelId, {int limit = 50}) async {
     final response = await http.get(
-      Uri.parse(
-        '$_apiBase/channels/$channelId/messages?limit=$limit&sort=Latest',
-      ),
+      Uri.parse('$_apiBase/channels/$channelId/messages?limit=$limit&sort=Latest'),
       headers: _headers,
     );
     if (response.statusCode != 200) {
@@ -232,9 +203,7 @@ class RevoltService {
     final List<dynamic> list = body is List
         ? body
         : (body as Map<String, dynamic>)['messages'] as List;
-    return list
-        .map((m) => RevoltMessage.fromJson(m as Map<String, dynamic>))
-        .toList();
+    return list.map((m) => RevoltMessage.fromJson(m as Map<String, dynamic>)).toList();
   }
 
   Future<RevoltMessage> sendMessage(
@@ -260,16 +229,10 @@ class RevoltService {
     if (response.statusCode != 200) {
       throw Exception('Failed to send message');
     }
-    return RevoltMessage.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return RevoltMessage.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<void> editMessage(
-    String channelId,
-    String messageId,
-    String content,
-  ) async {
+  Future<void> editMessage(String channelId, String messageId, String content) async {
     final response = await http.patch(
       Uri.parse('$_apiBase/channels/$channelId/messages/$messageId'),
       headers: _headers,
@@ -295,11 +258,7 @@ class RevoltService {
     _ws?.sink.add(jsonEncode({'type': 'BeginTyping', 'channel': channelId}));
   }
 
-  Future<void> addReaction(
-    String channelId,
-    String messageId,
-    String emoji,
-  ) async {
+  Future<void> addReaction(String channelId, String messageId, String emoji) async {
     final response = await http.put(
       Uri.parse(
         '$_apiBase/channels/$channelId/messages/$messageId/reactions/${Uri.encodeComponent(emoji)}',
@@ -311,11 +270,7 @@ class RevoltService {
     }
   }
 
-  Future<void> removeReaction(
-    String channelId,
-    String messageId,
-    String emoji,
-  ) async {
+  Future<void> removeReaction(String channelId, String messageId, String emoji) async {
     final response = await http.delete(
       Uri.parse(
         '$_apiBase/channels/$channelId/messages/$messageId/reactions/${Uri.encodeComponent(emoji)}',
@@ -323,9 +278,7 @@ class RevoltService {
       headers: _headers,
     );
     if (response.statusCode != 200) {
-      throw Exception(
-        'removeReaction ${response.statusCode}: ${response.body}',
-      );
+      throw Exception('removeReaction ${response.statusCode}: ${response.body}');
     }
   }
 
@@ -334,9 +287,7 @@ class RevoltService {
     final uri = Uri.parse('$_autumnBase/attachments');
     final request = http.MultipartRequest('POST', uri)
       ..headers['x-session-token'] = _token ?? ''
-      ..files.add(
-        http.MultipartFile.fromBytes('file', bytes, filename: filename),
-      );
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
     final streamed = await request.send();
     if (streamed.statusCode != 200) {
       throw Exception('Upload failed (${streamed.statusCode})');
@@ -351,9 +302,7 @@ class RevoltService {
     final uri = Uri.parse('$_autumnBase/avatars');
     final request = http.MultipartRequest('POST', uri)
       ..headers['x-session-token'] = _token ?? ''
-      ..files.add(
-        http.MultipartFile.fromBytes('file', bytes, filename: filename),
-      );
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
     final streamed = await request.send();
     if (streamed.statusCode != 200) {
       throw Exception('Avatar upload failed (${streamed.statusCode})');
@@ -368,9 +317,7 @@ class RevoltService {
     final uri = Uri.parse('$_autumnBase/backgrounds');
     final request = http.MultipartRequest('POST', uri)
       ..headers['x-session-token'] = _token ?? ''
-      ..files.add(
-        http.MultipartFile.fromBytes('file', bytes, filename: filename),
-      );
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
     final streamed = await request.send();
     if (streamed.statusCode != 200) {
       throw Exception('Background upload failed (${streamed.statusCode})');
@@ -440,17 +387,12 @@ class RevoltService {
       throw Exception('fetchInvites ${response.statusCode}: ${response.body}');
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list
-        .map((e) => RevoltInvite.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return list.map((e) => RevoltInvite.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   /// Joins a server using an invite [code].
   Future<void> joinInvite(String code) async {
-    final response = await http.post(
-      Uri.parse('$_apiBase/invites/$code'),
-      headers: _headers,
-    );
+    final response = await http.post(Uri.parse('$_apiBase/invites/$code'), headers: _headers);
     if (response.statusCode != 200) {
       throw Exception('joinInvite ${response.statusCode}: ${response.body}');
     }
@@ -458,32 +400,22 @@ class RevoltService {
 
   // -- Channels --------------------------------------------------------------
   Future<RevoltChannel> fetchChannel(String channelId) async {
-    final response = await http.get(
-      Uri.parse('$_apiBase/channels/$channelId'),
-      headers: _headers,
-    );
+    final response = await http.get(Uri.parse('$_apiBase/channels/$channelId'), headers: _headers);
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch channel $channelId');
     }
-    return RevoltChannel.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return RevoltChannel.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async {
     final responses = await Future.wait(
-      channelIds.map(
-        (id) =>
-            http.get(Uri.parse('$_apiBase/channels/$id'), headers: _headers),
-      ),
+      channelIds.map((id) => http.get(Uri.parse('$_apiBase/channels/$id'), headers: _headers)),
     );
     return responses.map((response) {
       if (response.statusCode != 200) {
         throw Exception('Failed to fetch channel: ${response.body}');
       }
-      return RevoltChannel.fromJson(
-        jsonDecode(response.body) as Map<String, dynamic>,
-      );
+      return RevoltChannel.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     }).toList();
   }
 
@@ -492,14 +424,7 @@ class RevoltService {
   /// Fetches all members of a server, returning (memberProfiles, users).
   Future<
     (
-      List<
-        ({
-          String userId,
-          String? nickname,
-          List<String> roles,
-          RevoltFile? avatar,
-        })
-      >,
+      List<({String userId, String? nickname, List<String> roles, RevoltFile? avatar})>,
       List<RevoltUser>,
     )
   >
@@ -509,9 +434,7 @@ class RevoltService {
       headers: _headers,
     );
     if (response.statusCode != 200) {
-      throw Exception(
-        'fetchServerMembers ${response.statusCode}: ${response.body}',
-      );
+      throw Exception('fetchServerMembers ${response.statusCode}: ${response.body}');
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final members = (body['members'] as List<dynamic>).map((m) {
@@ -546,9 +469,7 @@ class RevoltService {
       body: jsonEncode({'node': _voiceNode, 'force_disconnect': true}),
     );
     if (response.statusCode != 200) {
-      throw Exception(
-        'joinVoiceChannel ${response.statusCode}: ${response.body}',
-      );
+      throw Exception('joinVoiceChannel ${response.statusCode}: ${response.body}');
     }
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
@@ -566,9 +487,7 @@ class RevoltService {
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final roles = body['roles'] as Map<String, dynamic>? ?? {};
-    return roles.map(
-      (k, v) => MapEntry(k, RevoltRole.fromJson(k, v as Map<String, dynamic>)),
-    );
+    return roles.map((k, v) => MapEntry(k, RevoltRole.fromJson(k, v as Map<String, dynamic>)));
   }
 
   /// Creates a new role on a server.
@@ -609,10 +528,7 @@ class RevoltService {
       if (permissions is int) {
         body['permissions'] = {'a': permissions, 'd': 0};
       } else if (permissions is String && !permissions.startsWith('{')) {
-        body['permissions'] = {
-          'a': int.tryParse(permissions) ?? 0,
-          'd': 0,
-        };
+        body['permissions'] = {'a': int.tryParse(permissions) ?? 0, 'd': 0};
       } else {
         body['permissions'] = permissions;
       }
@@ -655,9 +571,7 @@ class RevoltService {
     if (response.statusCode != 200) {
       throw Exception('createServer ${response.statusCode}: ${response.body}');
     }
-    return RevoltServer.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return RevoltServer.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   /// Updates a server.
@@ -686,10 +600,7 @@ class RevoltService {
 
   /// Deletes a server.
   Future<void> deleteServer(String serverId) async {
-    final response = await http.delete(
-      Uri.parse('$_apiBase/servers/$serverId'),
-      headers: _headers,
-    );
+    final response = await http.delete(Uri.parse('$_apiBase/servers/$serverId'), headers: _headers);
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('deleteServer ${response.statusCode}: ${response.body}');
     }
@@ -718,9 +629,7 @@ class RevoltService {
     if (response.statusCode != 200) {
       throw Exception('createChannel ${response.statusCode}: ${response.body}');
     }
-    return RevoltChannel.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    return RevoltChannel.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   /// Updates a channel.
@@ -782,11 +691,7 @@ class RevoltService {
   }
 
   /// Bans a user from a server.
-  Future<void> banMember(
-    String serverId,
-    String userId, {
-    String? reason,
-  }) async {
+  Future<void> banMember(String serverId, String userId, {String? reason}) async {
     final body = <String, dynamic>{};
     if (reason != null) body['reason'] = reason;
     final response = await http.put(
@@ -820,17 +725,11 @@ class RevoltService {
       throw Exception('fetchBans ${response.statusCode}: ${response.body}');
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list
-        .map((e) => RevoltBan.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return list.map((e) => RevoltBan.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   /// Assigns a role to a member.
-  Future<void> assignRole(
-    String serverId,
-    String userId,
-    String roleId,
-  ) async {
+  Future<void> assignRole(String serverId, String userId, String roleId) async {
     // Uses PATCH /servers/{serverId}/members/{userId} with roles
     final member = await fetchServerMember(serverId, userId);
     final currentRoles = member.$2;
@@ -845,20 +744,14 @@ class RevoltService {
   }
 
   /// Removes a role from a member.
-  Future<void> removeRole(
-    String serverId,
-    String userId,
-    String roleId,
-  ) async {
+  Future<void> removeRole(String serverId, String userId, String roleId) async {
     final member = await fetchServerMember(serverId, userId);
     final currentRoles = member.$2;
     if (!currentRoles.contains(roleId)) return;
     await http.patch(
       Uri.parse('$_apiBase/servers/$serverId/members/$userId'),
       headers: _headers,
-      body: jsonEncode({
-        'roles': currentRoles.where((r) => r != roleId).toList(),
-      }),
+      body: jsonEncode({'roles': currentRoles.where((r) => r != roleId).toList()}),
     );
   }
 
@@ -872,9 +765,7 @@ class RevoltService {
       headers: _headers,
     );
     if (response.statusCode != 200) {
-      throw Exception(
-        'fetchServerMember ${response.statusCode}: ${response.body}',
-      );
+      throw Exception('fetchServerMember ${response.statusCode}: ${response.body}');
     }
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     final id = json['_id'] as Map<String, dynamic>?;
@@ -884,9 +775,7 @@ class RevoltService {
       uid,
       roles,
       json['nickname'] as String?,
-      json['avatar'] != null
-          ? RevoltFile.fromJson(json['avatar'] as Map<String, dynamic>)
-          : null,
+      json['avatar'] != null ? RevoltFile.fromJson(json['avatar'] as Map<String, dynamic>) : null,
     );
   }
 
@@ -896,15 +785,11 @@ class RevoltService {
   Future<(String, List<String>, String?, RevoltFile?, Map<String, RevoltRole>)>
   fetchMemberWithRoles(String serverId, String userId) async {
     final response = await http.get(
-      Uri.parse(
-        '$_apiBase/servers/$serverId/members/$userId?roles=true',
-      ),
+      Uri.parse('$_apiBase/servers/$serverId/members/$userId?roles=true'),
       headers: _headers,
     );
     if (response.statusCode != 200) {
-      throw Exception(
-        'fetchMemberWithRoles ${response.statusCode}: ${response.body}',
-      );
+      throw Exception('fetchMemberWithRoles ${response.statusCode}: ${response.body}');
     }
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     // Response is either a bare Member or {member: Member, roles: {...}}
@@ -915,8 +800,7 @@ class RevoltService {
       final rolesJson = json['roles'] as Map<String, dynamic>?;
       if (rolesJson != null) {
         roleMap = rolesJson.map(
-          (k, v) =>
-              MapEntry(k, RevoltRole.fromJson(k, v as Map<String, dynamic>)),
+          (k, v) => MapEntry(k, RevoltRole.fromJson(k, v as Map<String, dynamic>)),
         );
       }
     } else {
@@ -924,8 +808,7 @@ class RevoltService {
     }
     final id = memberJson['_id'] as Map<String, dynamic>?;
     final uid = id?['user'] as String? ?? userId;
-    final roles =
-        (memberJson['roles'] as List<dynamic>?)?.cast<String>() ?? [];
+    final roles = (memberJson['roles'] as List<dynamic>?)?.cast<String>() ?? [];
     return (
       uid,
       roles,

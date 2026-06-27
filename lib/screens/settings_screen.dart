@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:livekit_client/livekit_client.dart' hide ConnectionState;
 
 import '../models/models.dart';
-import '../providers/auth_state.dart';
-import '../providers/messaging_state.dart';
-import '../providers/server_state.dart';
-import '../providers/voice_state.dart';
+import '../features/auth/providers/login_notifier.dart';
+import '../features/messaging/providers/messaging_notifier.dart';
+import '../features/servers/providers/server_notifier.dart';
+import '../features/voice/providers/voice_notifier.dart';
 import '../widgets/crop_dialog.dart';
 
 enum _Section { profile, voice }
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   static Future<void> show(BuildContext context) => showDialog<void>(
@@ -22,10 +22,10 @@ class SettingsScreen extends StatefulWidget {
   );
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   _Section _section = _Section.profile;
 
   @override
@@ -53,8 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             icon: Icons.person_outline,
                             label: 'Profile',
                             selected: _section == _Section.profile,
-                            onTap: () =>
-                                setState(() => _section = _Section.profile),
+                            onTap: () => setState(() => _section = _Section.profile),
                           ),
                         ),
                         Expanded(
@@ -62,8 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             icon: Icons.mic_none_rounded,
                             label: 'Voice',
                             selected: _section == _Section.voice,
-                            onTap: () =>
-                                setState(() => _section = _Section.voice),
+                            onTap: () => setState(() => _section = _Section.voice),
                           ),
                         ),
                       ],
@@ -82,10 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _Sidebar(
-                    selected: _section,
-                    onSelect: (s) => setState(() => _section = s),
-                  ),
+                  _Sidebar(selected: _section, onSelect: (s) => setState(() => _section = s)),
                   Expanded(
                     child: ColoredBox(
                       color: const Color(0xFF1E1E26),
@@ -139,10 +134,7 @@ class _Sidebar extends StatelessWidget {
             child: TextButton.icon(
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.close, size: 14, color: Colors.white38),
-              label: const Text(
-                'ESC',
-                style: TextStyle(color: Colors.white38, fontSize: 11),
-              ),
+              label: const Text('ESC', style: TextStyle(color: Colors.white38, fontSize: 11)),
             ),
           ),
         ],
@@ -180,9 +172,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? const Color(0xFF7F5AF0).withAlpha(38)
-          : Colors.transparent,
+      color: selected ? const Color(0xFF7F5AF0).withAlpha(38) : Colors.transparent,
       borderRadius: BorderRadius.circular(6),
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
@@ -191,11 +181,7 @@ class _NavItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 18,
-                color: selected ? const Color(0xFF7F5AF0) : Colors.white54,
-              ),
+              Icon(icon, size: 18, color: selected ? const Color(0xFF7F5AF0) : Colors.white54),
               const SizedBox(width: 10),
               Text(
                 label,
@@ -215,14 +201,14 @@ class _NavItem extends StatelessWidget {
 
 // -- Profile section -----------------------------------------------------------
 
-class _ProfileSection extends StatefulWidget {
+class _ProfileSection extends ConsumerStatefulWidget {
   const _ProfileSection();
 
   @override
-  State<_ProfileSection> createState() => _ProfileSectionState();
+  ConsumerState<_ProfileSection> createState() => _ProfileSectionState();
 }
 
-class _ProfileSectionState extends State<_ProfileSection> {
+class _ProfileSectionState extends ConsumerState<_ProfileSection> {
   late TextEditingController _displayNameCtrl;
   late TextEditingController _statusTextCtrl;
   late TextEditingController _bioCtrl;
@@ -234,10 +220,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
   @override
   void initState() {
     super.initState();
-    final user = context.read<AuthState>().currentUser;
-    _displayNameCtrl = TextEditingController(
-      text: user?.resolveDisplayName(null) ?? '',
-    );
+    final user = ref.read(loginStateProvider.notifier).currentUser;
+    _displayNameCtrl = TextEditingController(text: user?.resolveDisplayName(null) ?? '');
     _statusTextCtrl = TextEditingController(text: user?.statusText ?? '');
     _bioCtrl = TextEditingController(text: user?.profileContent ?? '');
     _serverNicknameCtrl = TextEditingController(text: '');
@@ -246,12 +230,12 @@ class _ProfileSectionState extends State<_ProfileSection> {
 
   void _initServerNickname() {
     if (!mounted) return;
-    final serverState = context.read<ServerState>();
-    final server = serverState.selectedServer;
+    final serverData = ref.read(serverStateProvider).value ?? ServerStateData();
+    final server = serverData.selectedServer;
     if (server == null) return;
-    final uid = context.read<AuthState>().currentUser?.id;
+    final uid = ref.read(loginStateProvider.notifier).currentUser?.id;
     if (uid == null) return;
-    final user = context.read<MessagingState>().getUser(uid);
+    final user = ref.read(messagingStateProvider).userCache[uid];
     final nickname = user?.serverNickname(server.id);
     _serverNicknameCtrl.text = nickname ?? '';
   }
@@ -266,15 +250,12 @@ class _ProfileSectionState extends State<_ProfileSection> {
   }
 
   Future<void> _saveServerProfile() async {
-    final serverState = context.read<ServerState>();
-    final server = serverState.selectedServer;
+    final serverData = ref.read(serverStateProvider).value ?? ServerStateData();
+    final server = serverData.selectedServer;
     if (server == null) return;
-    final auth = context.read<AuthState>();
+    final notifier = ref.read(loginStateProvider.notifier);
     final nickname = _serverNicknameCtrl.text.trim();
-    await auth.updateServerProfile(
-      server.id,
-      nickname: nickname.isEmpty ? '' : nickname,
-    );
+    await notifier.updateServerProfile(server.id, nickname: nickname.isEmpty ? '' : nickname);
   }
 
   Future<void> _save() async {
@@ -284,9 +265,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
       _success = null;
     });
     try {
-      final auth = context.read<AuthState>();
-      await auth.updateDisplayName(_displayNameCtrl.text.trim());
-      await auth.updateBio(_bioCtrl.text.trim());
+      final notifier = ref.read(loginStateProvider.notifier);
+      await notifier.updateDisplayName(_displayNameCtrl.text.trim());
+      await notifier.updateBio(_bioCtrl.text.trim());
       if (mounted) setState(() => _success = 'Profile saved!');
     } catch (e) {
       if (mounted) {
@@ -300,7 +281,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
   Future<void> _pickAvatar() async {
     if (_saving) return;
     if (!context.mounted) return;
-    final auth = context.read<AuthState>();
+    final notifier = ref.read(loginStateProvider.notifier);
     final result = await FilePicker.pickFiles(
       type: FileType.image,
       allowMultiple: false,
@@ -331,11 +312,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
       _success = 'Cropped: ${cropped.length} bytes, uploading...';
     });
     try {
-      await auth.updateAvatar(cropped, file.name);
+      await notifier.updateAvatar(cropped, file.name);
       if (mounted) {
-        setState(
-          () => _success = 'Avatar updated! (cropped ${cropped.length} bytes)',
-        );
+        setState(() => _success = 'Avatar updated! (cropped ${cropped.length} bytes)');
       }
     } catch (e) {
       if (mounted) {
@@ -349,7 +328,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
   Future<void> _pickBanner() async {
     if (_saving) return;
     if (!context.mounted) return;
-    final auth = context.read<AuthState>();
+    final notifier = ref.read(loginStateProvider.notifier);
     final result = await FilePicker.pickFiles(
       type: FileType.image,
       allowMultiple: false,
@@ -380,11 +359,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
       _success = 'Cropped: ${cropped.length} bytes, uploading...';
     });
     try {
-      await auth.updateBanner(cropped, file.name);
+      await notifier.updateBanner(cropped, file.name);
       if (mounted) {
-        setState(
-          () => _success = 'Banner updated! (cropped ${cropped.length} bytes)',
-        );
+        setState(() => _success = 'Banner updated! (cropped ${cropped.length} bytes)');
       }
     } catch (e) {
       if (mounted) {
@@ -396,21 +373,19 @@ class _ProfileSectionState extends State<_ProfileSection> {
   }
 
   void _saveStatus() {
-    final auth = context.read<AuthState>();
-    final user = auth.currentUser;
+    final notifier = ref.read(loginStateProvider.notifier);
+    final user = notifier.currentUser;
     final presence = user?.presence ?? UserPresence.online;
-    auth.updateStatus(
+    notifier.updateStatus(
       presence: presenceToString(presence),
-      statusText: _statusTextCtrl.text.trim().isEmpty
-          ? null
-          : _statusTextCtrl.text.trim(),
+      statusText: _statusTextCtrl.text.trim().isEmpty ? null : _statusTextCtrl.text.trim(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthState>();
-    final user = auth.currentUser;
+    final authData = ref.watch(loginStateProvider).value ?? LoginStateData();
+    final user = authData.currentUser;
     final currentPresence = user?.presence ?? UserPresence.online;
 
     return SingleChildScrollView(
@@ -420,11 +395,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
         children: [
           const Text(
             'Profile',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
           // Identity card
@@ -448,19 +419,15 @@ class _ProfileSectionState extends State<_ProfileSection> {
                             ? NetworkImage(
                                 user!.resolveAvatarUrl(
                                   null,
-                                  auth.autumnBase,
-                                  auth.apiBase,
+                                  ref.read(loginStateProvider.notifier).autumnBase,
+                                  ref.read(loginStateProvider.notifier).apiBase,
                                 ),
                               )
                             : null,
                         child: user?.avatar == null
                             ? Text(
-                                (user?.resolveDisplayName(null) ?? '?')[0]
-                                    .toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                ),
+                                (user?.resolveDisplayName(null) ?? '?')[0].toUpperCase(),
+                                style: const TextStyle(color: Colors.white, fontSize: 22),
                               )
                             : null,
                       ),
@@ -471,14 +438,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
                           width: 12,
                           height: 12,
                           decoration: BoxDecoration(
-                            color: user != null
-                                ? presenceColor(user.presence)
-                                : Colors.grey,
+                            color: user != null ? presenceColor(user.presence) : Colors.grey,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFF16161A),
-                              width: 2,
-                            ),
+                            border: Border.all(color: const Color(0xFF16161A), width: 2),
                           ),
                         ),
                       ),
@@ -500,20 +462,12 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       ),
                       Text(
                         '${user?.username ?? ''}#${user?.discriminator ?? ''}',
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 13,
-                        ),
+                        style: const TextStyle(color: Colors.white54, fontSize: 13),
                       ),
-                      if (user != null &&
-                          user.statusText != null &&
-                          user.statusText!.isNotEmpty)
+                      if (user != null && user.statusText != null && user.statusText!.isNotEmpty)
                         Text(
                           user.statusText!,
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 12,
-                          ),
+                          style: const TextStyle(color: Colors.white38, fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),
                     ],
@@ -526,11 +480,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
           // Banner area
           const Text(
             'Profile Banner',
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           GestureDetector(
@@ -544,7 +494,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 image: user?.banner != null
                     ? DecorationImage(
                         image: NetworkImage(
-                          user!.bannerUrlFor(auth.autumnBase)!,
+                          user!.bannerUrlFor(ref.read(loginStateProvider.notifier).autumnBase)!,
                         ),
                         fit: BoxFit.cover,
                         onError: (_, _) {},
@@ -556,21 +506,14 @@ class _ProfileSectionState extends State<_ProfileSection> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      user?.banner != null
-                          ? Icons.edit
-                          : Icons.add_photo_alternate_outlined,
+                      user?.banner != null ? Icons.edit : Icons.add_photo_alternate_outlined,
                       size: 20,
                       color: Colors.white38,
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      user?.banner != null
-                          ? 'Tap to change banner'
-                          : 'Tap to add banner',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 13,
-                      ),
+                      user?.banner != null ? 'Tap to change banner' : 'Tap to add banner',
+                      style: const TextStyle(color: Colors.white38, fontSize: 13),
                     ),
                   ],
                 ),
@@ -580,11 +523,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
           const SizedBox(height: 28),
           const Text(
             'Online Status',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           // Presence dropdown
@@ -613,22 +552,21 @@ class _ProfileSectionState extends State<_ProfileSection> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Text(
-                          _presenceLabel(p),
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                        Text(_presenceLabel(p), style: const TextStyle(color: Colors.white)),
                       ],
                     ),
                   );
                 }).toList(),
                 onChanged: (v) {
                   if (v == null) return;
-                  context.read<AuthState>().updateStatus(
-                    presence: presenceToString(v),
-                    statusText: _statusTextCtrl.text.trim().isEmpty
-                        ? null
-                        : _statusTextCtrl.text.trim(),
-                  );
+                  ref
+                      .read(loginStateProvider.notifier)
+                      .updateStatus(
+                        presence: presenceToString(v),
+                        statusText: _statusTextCtrl.text.trim().isEmpty
+                            ? null
+                            : _statusTextCtrl.text.trim(),
+                      );
                 },
               ),
             ),
@@ -637,11 +575,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
           // Custom status text
           const Text(
             'Custom Status',
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           Row(
@@ -658,10 +592,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
                     ),
-                    counterStyle: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 11,
-                    ),
+                    counterStyle: const TextStyle(color: Colors.white38, fontSize: 11),
                     hintText: 'What\'s on your mind?',
                     hintStyle: const TextStyle(color: Colors.white30),
                   ),
@@ -671,9 +602,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
               const SizedBox(width: 8),
               FilledButton(
                 onPressed: _saveStatus,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF7F5AF0),
-                ),
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7F5AF0)),
                 child: const Text('Set'),
               ),
             ],
@@ -681,20 +610,12 @@ class _ProfileSectionState extends State<_ProfileSection> {
           const SizedBox(height: 28),
           const Text(
             'Edit Global Profile',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
           const Text(
             'Display Name',
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           TextField(
@@ -708,10 +629,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
-              counterStyle: const TextStyle(
-                color: Colors.white38,
-                fontSize: 11,
-              ),
+              counterStyle: const TextStyle(color: Colors.white38, fontSize: 11),
               hintText: 'Display name',
               hintStyle: const TextStyle(color: Colors.white30),
             ),
@@ -719,11 +637,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
           const SizedBox(height: 16),
           const Text(
             'Bio',
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           TextField(
@@ -738,10 +652,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
-              counterStyle: const TextStyle(
-                color: Colors.white38,
-                fontSize: 11,
-              ),
+              counterStyle: const TextStyle(color: Colors.white38, fontSize: 11),
               hintText: 'Tell us about yourself...',
               hintStyle: const TextStyle(color: Colors.white30),
             ),
@@ -750,18 +661,12 @@ class _ProfileSectionState extends State<_ProfileSection> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                _error!,
-                style: const TextStyle(color: Colors.redAccent),
-              ),
+              child: Text(_error!, style: const TextStyle(color: Colors.redAccent)),
             ),
           if (_success != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                _success!,
-                style: const TextStyle(color: Colors.greenAccent),
-              ),
+              child: Text(_success!, style: const TextStyle(color: Colors.greenAccent)),
             ),
           Row(
             children: [
@@ -769,9 +674,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 onPressed: _saving
                     ? null
                     : () {
-                        final u = context.read<AuthState>().currentUser;
-                        _displayNameCtrl.text =
-                            u?.resolveDisplayName(null) ?? '';
+                        final u = ref.read(loginStateProvider.notifier).currentUser;
+                        _displayNameCtrl.text = u?.resolveDisplayName(null) ?? '';
                         _bioCtrl.text = u?.profileContent ?? '';
                         setState(() {
                           _error = null;
@@ -787,27 +691,22 @@ class _ProfileSectionState extends State<_ProfileSection> {
               const SizedBox(width: 12),
               FilledButton(
                 onPressed: _saving ? null : _save,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF7F5AF0),
-                ),
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7F5AF0)),
                 child: _saving
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : const Text('Save'),
               ),
             ],
           ),
           // -- Server Profile -------------------------------------------------
-          if (context.watch<ServerState>().selectedServer != null) ...[
+          if (ref.watch(serverStateProvider).value?.selectedServer != null) ...[
             const SizedBox(height: 32),
             Text(
-              'Server Profile - ${context.watch<ServerState>().selectedServer!.name}',
+              'Server Profile - ${ref.watch(serverStateProvider).value?.selectedServer!.name ?? ""}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -817,11 +716,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
             const SizedBox(height: 16),
             const Text(
               'Server Nickname',
-              style: TextStyle(
-                color: Colors.white60,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 6),
             Row(
@@ -838,10 +733,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide.none,
                       ),
-                      counterStyle: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 11,
-                      ),
+                      counterStyle: const TextStyle(color: Colors.white38, fontSize: 11),
                       hintText: 'Leave empty to use global name',
                       hintStyle: const TextStyle(color: Colors.white30),
                     ),
@@ -850,9 +742,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _saveServerProfile,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF7F5AF0),
-                  ),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7F5AF0)),
                   child: const Text('Set'),
                 ),
               ],
@@ -873,12 +763,12 @@ class _ProfileSectionState extends State<_ProfileSection> {
 
 // -- Voice section -------------------------------------------------------------
 
-class _VoiceSection extends StatelessWidget {
+class _VoiceSection extends ConsumerWidget {
   const _VoiceSection();
 
   @override
-  Widget build(BuildContext context) {
-    final voice = context.watch<VoiceState>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final voice = ref.watch(voiceStateProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(36),
@@ -887,11 +777,7 @@ class _VoiceSection extends StatelessWidget {
         children: [
           const Text(
             'Voice',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
           // Output Volume
@@ -899,51 +785,33 @@ class _VoiceSection extends StatelessWidget {
             children: [
               const Text(
                 'Output Volume',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(
-                    Icons.volume_down_rounded,
-                    color: Colors.white38,
-                    size: 20,
-                  ),
+                  const Icon(Icons.volume_down_rounded, color: Colors.white38, size: 20),
                   Expanded(
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         trackHeight: 3,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 7,
-                        ),
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
                       ),
                       child: Slider(
                         value: voice.outputVolume,
-                        onChanged: (v) =>
-                            context.read<VoiceState>().setOutputVolume(v),
+                        onChanged: (v) => ref.read(voiceStateProvider.notifier).setOutputVolume(v),
                         activeColor: const Color(0xFF7F5AF0),
                         inactiveColor: Colors.white24,
                       ),
                     ),
                   ),
-                  const Icon(
-                    Icons.volume_up_rounded,
-                    color: Colors.white38,
-                    size: 20,
-                  ),
+                  const Icon(Icons.volume_up_rounded, color: Colors.white38, size: 20),
                   const SizedBox(width: 8),
                   SizedBox(
                     width: 40,
                     child: Text(
                       '${(voice.outputVolume * 100).round()}%',
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 13,
-                      ),
+                      style: const TextStyle(color: Colors.white54, fontSize: 13),
                       textAlign: TextAlign.right,
                     ),
                   ),
@@ -954,17 +822,13 @@ class _VoiceSection extends StatelessWidget {
           const SizedBox(height: 20),
           const Text(
             'Audio Input Device',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           _SettingsCard(
             children: [
               FutureBuilder<List<MediaDevice>>(
-                future: voice.audioInputDeviceIds,
+                future: ref.read(voiceStateProvider.notifier).audioInputDeviceIds,
                 builder: (context, snapshot) {
                   final devices = snapshot.data ?? [];
                   if (snapshot.connectionState != ConnectionState.done) {
@@ -974,10 +838,7 @@ class _VoiceSection extends StatelessWidget {
                         child: SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white38,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white38),
                         ),
                       ),
                     );
@@ -993,9 +854,7 @@ class _VoiceSection extends StatelessWidget {
                   }
                   return DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: devices.any(
-                            (d) => d.deviceId == voice.selectedAudioInputId,
-                          )
+                      value: devices.any((d) => d.deviceId == voice.selectedAudioInputId)
                           ? voice.selectedAudioInputId
                           : null,
                       dropdownColor: const Color(0xFF16161A),
@@ -1009,19 +868,14 @@ class _VoiceSection extends StatelessWidget {
                           value: d.deviceId,
                           child: Text(
                             d.label.isNotEmpty ? d.label : d.deviceId,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
                             overflow: TextOverflow.ellipsis,
                           ),
                         );
                       }).toList(),
                       onChanged: (v) {
                         if (v == null) return;
-                        context
-                            .read<VoiceState>()
-                            .selectAudioInput(v);
+                        ref.read(voiceStateProvider.notifier).selectAudioInput(v);
                       },
                     ),
                   );
@@ -1032,11 +886,7 @@ class _VoiceSection extends StatelessWidget {
           const SizedBox(height: 20),
           const Text(
             'Voice Processing',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           _SettingsCard(
@@ -1045,53 +895,43 @@ class _VoiceSection extends StatelessWidget {
                 label: 'Noise Suppression',
                 subtitle: 'Filter background noise from your microphone',
                 value: voice.noiseSuppression,
-                onChanged: (v) =>
-                    context.read<VoiceState>().setNoiseSuppression(v),
+                onChanged: (v) => ref.read(voiceStateProvider.notifier).setNoiseSuppression(v),
               ),
               const Divider(color: Colors.white12, height: 1),
               _ToggleRow(
                 label: 'Echo Cancellation',
                 subtitle: 'Prevent your speakers from bleeding into the mic',
                 value: voice.echoCancellation,
-                onChanged: (v) =>
-                    context.read<VoiceState>().setEchoCancellation(v),
+                onChanged: (v) => ref.read(voiceStateProvider.notifier).setEchoCancellation(v),
               ),
               const Divider(color: Colors.white12, height: 1),
               _ToggleRow(
                 label: 'Automatic Gain Control',
                 subtitle: 'Automatically adjust microphone volume',
                 value: voice.autoGainControl,
-                onChanged: (v) =>
-                    context.read<VoiceState>().setAutoGainControl(v),
+                onChanged: (v) => ref.read(voiceStateProvider.notifier).setAutoGainControl(v),
               ),
             ],
           ),
           const SizedBox(height: 20),
           const Text(
             'Neural Noise Suppression',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           _SettingsCard(
             children: [
               Opacity(
-                opacity: VoiceState.deepFilterSupported ? 1.0 : 0.5,
+                opacity: VoiceNotifier.deepFilterSupported ? 1.0 : 0.5,
                 child: IgnorePointer(
-                  ignoring: !VoiceState.deepFilterSupported,
+                  ignoring: !VoiceNotifier.deepFilterSupported,
                   child: _ToggleRow(
                     label: 'DeepFilterNet',
-                    subtitle: VoiceState.deepFilterSupported
+                    subtitle: VoiceNotifier.deepFilterSupported
                         ? 'AI-powered real-time noise cancellation (replaces WebRTC NS)'
                         : 'Not available — prebuilt binary not found for this platform',
-                    value: VoiceState.deepFilterSupported
-                        ? voice.deepFilterEnabled
-                        : false,
-                    onChanged: (v) =>
-                        context.read<VoiceState>().setDeepFilterEnabled(v),
+                    value: VoiceNotifier.deepFilterSupported ? voice.deepFilterEnabled : false,
+                    onChanged: (v) => ref.read(voiceStateProvider.notifier).setDeepFilterEnabled(v),
                   ),
                 ),
               ),
@@ -1123,10 +963,7 @@ class _SettingsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
   }
 }
@@ -1154,16 +991,10 @@ class _ToggleRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
+                Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
+                  Text(subtitle!, style: const TextStyle(color: Colors.white38, fontSize: 12)),
                 ],
               ],
             ),

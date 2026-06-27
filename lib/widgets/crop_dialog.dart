@@ -40,8 +40,7 @@ class CropDialog extends StatefulWidget {
 }
 
 class _CropDialogState extends State<CropDialog> {
-  final TransformationController _transformController =
-      TransformationController();
+  final TransformationController _transformController = TransformationController();
   final GlobalKey _cropKey = GlobalKey();
   ui.Image? _image;
   Size _imageSize = Size.zero;
@@ -57,10 +56,7 @@ class _CropDialogState extends State<CropDialog> {
     final codec = await ui.instantiateImageCodec(widget.imageBytes);
     final frame = await codec.getNextFrame();
     _image = frame.image;
-    _imageSize = Size(
-      frame.image.width.toDouble(),
-      frame.image.height.toDouble(),
-    );
+    _imageSize = Size(frame.image.width.toDouble(), frame.image.height.toDouble());
     if (mounted) setState(() {});
   }
 
@@ -122,10 +118,7 @@ class _CropDialogState extends State<CropDialog> {
     if (_imageSize == Size.zero || viewport == Size.zero) return Rect.zero;
 
     // BoxFit.contain: scale the image to fit within the viewport
-    final s = min(
-      viewport.width / _imageSize.width,
-      viewport.height / _imageSize.height,
-    );
+    final s = min(viewport.width / _imageSize.width, viewport.height / _imageSize.height);
     final ox = (viewport.width - _imageSize.width * s) / 2;
     final oy = (viewport.height - _imageSize.height * s) / 2;
 
@@ -249,10 +242,7 @@ class _CropDialogState extends State<CropDialog> {
         actions: [
           TextButton(
             onPressed: _image == null ? null : () => _onCrop(),
-            child: const Text(
-              'Crop',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
+            child: const Text('Crop', style: TextStyle(color: Colors.white, fontSize: 16)),
           ),
         ],
       ),
@@ -276,17 +266,12 @@ class _CropDialogState extends State<CropDialog> {
                         width: cropW,
                         height: cropH,
                         clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
                         child: InteractiveViewer(
                           transformationController: _transformController,
                           minScale: 1.0,
                           maxScale: 20.0,
-                          child: Image.memory(
-                            widget.imageBytes,
-                            fit: BoxFit.contain,
-                          ),
+                          child: Image.memory(widget.imageBytes, fit: BoxFit.contain),
                         ),
                       ),
                     ),
@@ -346,9 +331,9 @@ class _CropDialogState extends State<CropDialog> {
       final viewport = box?.size;
       if (viewport == null || viewport == Size.zero) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Crop area not ready, try again')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Crop area not ready, try again')));
         }
         return;
       }
@@ -358,9 +343,7 @@ class _CropDialogState extends State<CropDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Crop failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Crop failed: $e')));
       }
     }
   }
@@ -377,9 +360,7 @@ class _CropOverlayPainter extends CustomPainter {
       Path.combine(
         PathOperation.difference,
         Path()..addRect(Offset.zero & size),
-        Path()..addRRect(
-          RRect.fromRectAndRadius(cropRect, const Radius.circular(8)),
-        ),
+        Path()..addRRect(RRect.fromRectAndRadius(cropRect, const Radius.circular(8))),
       ),
       Paint()..color = Colors.black54,
     );
@@ -394,6 +375,5 @@ class _CropOverlayPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CropOverlayPainter oldDelegate) =>
-      cropRect != oldDelegate.cropRect;
+  bool shouldRepaint(covariant _CropOverlayPainter oldDelegate) => cropRect != oldDelegate.cropRect;
 }

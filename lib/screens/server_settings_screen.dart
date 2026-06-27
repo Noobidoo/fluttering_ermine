@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
 import '../models/models.dart';
-import '../providers/auth_state.dart';
-import '../providers/server_state.dart';
 import 'role_manager_screen.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../features/servers/providers/permissions_provider.dart';
+import '../features/servers/providers/server_notifier.dart';
 
 // =============================================================================
 // Server Settings Dialog
@@ -12,8 +12,9 @@ import 'role_manager_screen.dart';
 
 /// Opens the server settings dialog for the currently selected server.
 void showServerSettingsDialog(BuildContext context) {
-  final server = context.read<ServerState>();
-  final srv = server.selectedServer;
+  final container = ProviderScope.containerOf(context);
+  final serverData = container.read(serverStateProvider).value;
+  final srv = serverData?.selectedServer;
   if (srv == null) return;
 
   showDialog(
@@ -22,15 +23,15 @@ void showServerSettingsDialog(BuildContext context) {
   );
 }
 
-class ServerSettingsDialog extends StatefulWidget {
+class ServerSettingsDialog extends ConsumerStatefulWidget {
   final RevoltServer srv;
   const ServerSettingsDialog({super.key, required this.srv});
 
   @override
-  State<ServerSettingsDialog> createState() => ServerSettingsDialogState();
+  ConsumerState<ServerSettingsDialog> createState() => ServerSettingsDialogState();
 }
 
-class ServerSettingsDialogState extends State<ServerSettingsDialog> {
+class ServerSettingsDialogState extends ConsumerState<ServerSettingsDialog> {
   List<RevoltInvite>? _invites;
   String? _error;
 
@@ -41,9 +42,9 @@ class ServerSettingsDialogState extends State<ServerSettingsDialog> {
   }
 
   Future<void> _loadInvites() async {
-    final server = context.read<ServerState>();
+    final notifier = ref.read(serverStateProvider.notifier);
     try {
-      final invites = await server.fetchInvites(widget.srv.id);
+      final invites = await notifier.fetchInvites(widget.srv.id);
       if (!mounted) return;
       setState(() => _invites = invites);
     } catch (e) {
@@ -54,11 +55,11 @@ class ServerSettingsDialogState extends State<ServerSettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthState>();
     final srvId = widget.srv.id;
-    final canManageSrv = auth.hasPermission(srvId, Permission.manageServer);
-    final canManageCh = auth.hasPermission(srvId, Permission.manageChannel);
-    final canManageRoles = auth.hasPermission(srvId, Permission.manageRole);
+    final perms = ref.watch(effectivePermissionsProvider(srvId));
+    final canManageSrv = (perms & Permission.manageServer) != 0;
+    final canManageCh = (perms & Permission.manageChannel) != 0;
+    final canManageRoles = (perms & Permission.manageRole) != 0;
     return AlertDialog(
       backgroundColor: const Color(0xFF1E1E26),
       title: Text(widget.srv.name),
@@ -106,10 +107,7 @@ class ServerSettingsDialogState extends State<ServerSettingsDialog> {
             const SizedBox(height: 12),
             const Divider(color: Color(0xFF2A2A30), height: 1),
             const SizedBox(height: 12),
-            const Text(
-              'Existing invites',
-              style: TextStyle(fontSize: 13, color: Colors.white54),
-            ),
+            const Text('Existing invites', style: TextStyle(fontSize: 13, color: Colors.white54)),
             const SizedBox(height: 8),
             if (_error != null)
               Text(
@@ -119,10 +117,7 @@ class ServerSettingsDialogState extends State<ServerSettingsDialog> {
             if (_invites == null)
               const Center(child: CircularProgressIndicator(strokeWidth: 2))
             else if (_invites!.isEmpty)
-              const Text(
-                'No invites yet',
-                style: TextStyle(fontSize: 12, color: Colors.white38),
-              )
+              const Text('No invites yet', style: TextStyle(fontSize: 12, color: Colors.white38))
             else
               ..._invites!.map(
                 (inv) => Padding(
@@ -162,10 +157,7 @@ class ServerSettingsDialogState extends State<ServerSettingsDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
       ],
     );
   }
@@ -176,16 +168,19 @@ class ServerSettingsDialogState extends State<ServerSettingsDialog> {
 // =============================================================================
 
 void createInvite(BuildContext context) async {
-  final server = context.read<ServerState>();
-  final channel =
-      server.selectedChannel ??
-      server.selectedServerChannels.cast<RevoltChannel?>().firstWhere(
-        (c) => c?.type == ChannelType.textChannel && !c!.isVoice,
-        orElse: () => null,
-      );
+  final container = ProviderScope.containerOf(context);
+  final serverData = container.read(serverStateProvider).value;
+  final serverNotifier = container.read(serverStateProvider.notifier);
+  final channel = serverData == null
+      ? null
+      : serverData.selectedChannel ??
+            serverData.selectedServerChannels.cast<RevoltChannel?>().firstWhere(
+              (c) => c?.type == ChannelType.textChannel && !c!.isVoice,
+              orElse: () => null,
+            );
   if (channel == null) return;
   try {
-    final code = await server.createInvite(channel.id);
+    final code = await serverNotifier.createInvite(channel.id);
     if (!context.mounted) return;
     showDialog(
       context: context,
@@ -205,21 +200,12 @@ void createInvite(BuildContext context) async {
               ),
               child: SelectableText(
                 code,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
-          ),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
       ),
     );
   } catch (e) {
@@ -254,8 +240,7 @@ void showCreateChannelDialog(BuildContext context) {
                 labelText: 'Channel name',
                 labelStyle: TextStyle(color: Colors.white54),
                 border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               style: const TextStyle(fontSize: 14),
               autofocus: true,
@@ -267,8 +252,7 @@ void showCreateChannelDialog(BuildContext context) {
                 labelText: 'Description (optional)',
                 labelStyle: TextStyle(color: Colors.white54),
                 border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               style: const TextStyle(fontSize: 14),
               maxLines: 2,
@@ -276,8 +260,7 @@ void showCreateChannelDialog(BuildContext context) {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Text('Voice channel',
-                    style: TextStyle(fontSize: 14, color: Colors.white70)),
+                const Text('Voice channel', style: TextStyle(fontSize: 14, color: Colors.white70)),
                 const Spacer(),
                 Switch(
                   value: isVoice,
@@ -289,10 +272,7 @@ void showCreateChannelDialog(BuildContext context) {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
@@ -308,24 +288,21 @@ void showCreateChannelDialog(BuildContext context) {
   );
 }
 
-void doCreateChannel(BuildContext context, String name, String description,
-    bool isVoice) async {
+void doCreateChannel(BuildContext context, String name, String description, bool isVoice) async {
   try {
-    final server = context.read<ServerState>();
-    await server.createChannel(
+    final notifier = ProviderScope.containerOf(context).read(serverStateProvider.notifier);
+    await notifier.createChannel(
       name,
       description: description.isNotEmpty ? description : null,
       isVoice: isVoice,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Channel #$name created')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Channel #$name created')));
   } catch (e) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to create channel: $e')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Failed to create channel: $e')));
   }
 }
 
@@ -350,8 +327,7 @@ void showEditServerDialog(BuildContext context, RevoltServer srv) {
               labelText: 'Server name',
               labelStyle: TextStyle(color: Colors.white54),
               border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             style: const TextStyle(fontSize: 14),
           ),
@@ -362,8 +338,7 @@ void showEditServerDialog(BuildContext context, RevoltServer srv) {
               labelText: 'Description (optional)',
               labelStyle: TextStyle(color: Colors.white54),
               border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             style: const TextStyle(fontSize: 14),
             maxLines: 3,
@@ -371,15 +346,11 @@ void showEditServerDialog(BuildContext context, RevoltServer srv) {
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         TextButton(
           onPressed: () {
             Navigator.pop(ctx);
-            doEditServer(
-                context, srv.id, nameCtrl.text.trim(), descCtrl.text.trim());
+            doEditServer(context, srv.id, nameCtrl.text.trim(), descCtrl.text.trim());
           },
           child: const Text('Save'),
         ),
@@ -388,24 +359,21 @@ void showEditServerDialog(BuildContext context, RevoltServer srv) {
   );
 }
 
-void doEditServer(BuildContext context, String serverId, String name,
-    String description) async {
+void doEditServer(BuildContext context, String serverId, String name, String description) async {
   if (name.isEmpty) return;
   try {
-    final server = context.read<ServerState>();
-    await server.updateSelectedServer(
+    final notifier = ProviderScope.containerOf(context).read(serverStateProvider.notifier);
+    await notifier.updateSelectedServer(
       name: name,
       description: description.isNotEmpty ? description : null,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Server updated')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Server updated')));
   } catch (e) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to update server: $e')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Failed to update server: $e')));
   }
 }
 
@@ -420,17 +388,13 @@ void confirmDeleteServer(BuildContext context, RevoltServer srv) {
         style: const TextStyle(color: Colors.white70),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         TextButton(
           onPressed: () {
             Navigator.pop(ctx);
             doDeleteServer(context);
           },
-          child: const Text('Delete',
-              style: TextStyle(color: Colors.redAccent)),
+          child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
         ),
       ],
     ),
@@ -439,17 +403,15 @@ void confirmDeleteServer(BuildContext context, RevoltServer srv) {
 
 void doDeleteServer(BuildContext context) async {
   try {
-    final server = context.read<ServerState>();
-    await server.deleteSelectedServer();
+    final notifier = ProviderScope.containerOf(context).read(serverStateProvider.notifier);
+    await notifier.deleteSelectedServer();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Server deleted')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Server deleted')));
   } catch (e) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to delete server: $e')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Failed to delete server: $e')));
   }
 }
 
@@ -458,11 +420,7 @@ void doDeleteServer(BuildContext context) async {
 // =============================================================================
 
 void showRoleManager(BuildContext context, RevoltServer srv) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => RoleManagerScreen(server: srv),
-    ),
-  );
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => RoleManagerScreen(server: srv)));
 }
 
 // =============================================================================

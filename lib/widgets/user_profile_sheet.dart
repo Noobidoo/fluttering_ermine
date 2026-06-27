@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../providers/auth_state.dart';
-import '../providers/messaging_state.dart';
+import '../features/auth/providers/login_notifier.dart';
+import '../features/core/providers/service_providers.dart';
 
-void showUserProfileSheet(BuildContext context, RevoltUser user) {
-  final auth = context.read<AuthState>();
-  final messagingState = context.read<MessagingState>();
-  final autumnBase = auth.autumnBase;
-  final apiBase = auth.apiBase;
-  final isSelf = user.id == auth.currentUser?.id;
+void showUserProfileSheet(BuildContext context, WidgetRef ref, RevoltUser user) {
+  final loginNotifier = ref.read(loginStateProvider.notifier);
+  final autumnBase = loginNotifier.autumnBase;
+  final apiBase = loginNotifier.apiBase;
+  final isSelf = user.id == loginNotifier.currentUser?.id;
 
   final Future<UserProfile>? profileFuture = isSelf
       ? null
-      : messagingState.service.fetchUserProfile(user.id);
+      : ref.read(revoltServiceProvider).fetchUserProfile(user.id);
 
   showModalBottomSheet(
     context: context,
@@ -27,9 +26,7 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
       future: profileFuture,
       builder: (context, snapshot) {
         final p = user.presence;
-        final profileContent = isSelf
-            ? user.profileContent
-            : snapshot.data?.content;
+        final profileContent = isSelf ? user.profileContent : snapshot.data?.content;
         final banner = isSelf ? user.banner : snapshot.data?.background;
 
         final avatarFallback = SizedBox(
@@ -116,23 +113,14 @@ void showUserProfileSheet(BuildContext context, RevoltUser user) {
               const SizedBox(height: 12),
               Text(
                 user.resolveDisplayName(null),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              Text(
-                '@${user.username}',
-                style: const TextStyle(color: Colors.white54),
-              ),
+              Text('@${user.username}', style: const TextStyle(color: Colors.white54)),
               if (user.statusText != null && user.statusText!.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFF16161A),
                     borderRadius: BorderRadius.circular(12),

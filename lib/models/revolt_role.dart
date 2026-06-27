@@ -23,9 +23,7 @@ class RevoltRole {
     return RevoltRole(
       id: roleId,
       name: json['name'] as String? ?? 'Unknown',
-      colour: json['colour'] != null
-          ? _parseColour(json['colour'])
-          : null,
+      colour: json['colour'] != null ? _parseColour(json['colour']) : null,
       rank: json['rank'] as int? ?? 0,
       hoist: json['hoist'] as bool? ?? false,
       permissions: OverrideField.fromJson(json['permissions']),
@@ -34,11 +32,7 @@ class RevoltRole {
   }
 
   Map<String, dynamic> toJson() {
-    final data = <String, dynamic>{
-      'name': name,
-      'rank': rank,
-      'hoist': hoist,
-    };
+    final data = <String, dynamic>{'name': name, 'rank': rank, 'hoist': hoist};
     if (colour != null) {
       data['colour'] = '#${colour!.toRadixString(16).padLeft(6, '0')}';
     }

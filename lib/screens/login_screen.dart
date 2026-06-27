@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/auth_state.dart';
+import '../features/core/providers/service_providers.dart';
+import '../features/auth/providers/login_notifier.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _serverCtrl = TextEditingController(text: 'https://api.revolt.chat');
   bool _obscure = true;
   bool _showAdvanced = false;
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Sync field with any persisted server URL
-    final saved = context.read<AuthState>().serverUrl;
+    final saved = ref.read(revoltServiceProvider).apiBase;
     if (_serverCtrl.text != saved) _serverCtrl.text = saved;
   }
 
@@ -38,16 +40,27 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordCtrl.text;
     if (email.isEmpty || password.isEmpty) return;
 
-    final apiBase = _serverCtrl.text.trim().replaceAll(RegExp(r'/$'), '');
-    await context.read<AuthState>().setServerUrl(apiBase);
-    if (!mounted) return;
-    context.read<AuthState>().login(email, password);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final apiBase = _serverCtrl.text.trim().replaceAll(RegExp(r'/$'), '');
+      final notifier = ref.read(loginStateProvider.notifier);
+      await notifier.setServerUrl(apiBase);
+      if (!mounted) return;
+      await notifier.login(email, password);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AuthState>();
-
     return Scaffold(
       body: Center(
         child: ConstrainedBox(
@@ -58,21 +71,12 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo / title
-                const Icon(
-                  Icons.chat_bubble_rounded,
-                  size: 64,
-                  color: Color(0xFF7F5AF0),
-                ),
+                const Icon(Icons.chat_bubble_rounded, size: 64, color: Color(0xFF7F5AF0)),
                 const SizedBox(height: 16),
                 const Text(
                   'Fluttering Ermine',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                 ),
                 const Text(
                   'Revolt Chat',
@@ -81,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // Advanced: server URL
                 GestureDetector(
                   onTap: () => setState(() => _showAdvanced = !_showAdvanced),
                   child: Row(
@@ -89,10 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Text(
                         'Custom server',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withAlpha(120),
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(120)),
                       ),
                       const SizedBox(width: 4),
                       Icon(
@@ -119,7 +119,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
                 const SizedBox(height: 16),
 
-                // Email
                 TextField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
@@ -132,7 +131,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Password
                 TextField(
                   controller: _passwordCtrl,
                   obscureText: _obscure,
@@ -143,33 +141,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: const Icon(Icons.lock_outline),
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscure ? Icons.visibility_off : Icons.visibility,
-                      ),
+                      icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
                 ),
 
-                // Error
-                if (state.error != null) ...[
+                if (_error != null) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.red.withAlpha(30),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.redAccent.withAlpha(80)),
                     ),
                     child: Text(
-                      state.error!,
-                      style: const TextStyle(
-                        color: Colors.redAccent,
-                        fontSize: 13,
-                      ),
+                      _error!,
+                      style: const TextStyle(color: Colors.redAccent, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -177,39 +166,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 24),
 
-                // Sign in button
                 FilledButton(
-                  onPressed: state.isLoading ? null : _submit,
+                  onPressed: _isLoading ? null : _submit,
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF7F5AF0),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: state.isLoading
+                  child: _isLoading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text(
-                          'Sign In',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
+                      : const Text('Sign In', style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
 
                 const SizedBox(height: 12),
                 Text(
                   'Sign in with your Stoat account credentials.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(100),
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 12),
                 ),
               ],
             ),

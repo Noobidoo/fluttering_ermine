@@ -57,8 +57,7 @@ class RevoltChannel {
       defaultPermissions: json['default_permissions'] != null
           ? OverrideField.fromJson(json['default_permissions'])
           : null,
-      rolePermissions: parseRolePerms(
-          json['role_permissions'] as Map<String, dynamic>?),
+      rolePermissions: parseRolePerms(json['role_permissions'] as Map<String, dynamic>?),
     );
   }
 

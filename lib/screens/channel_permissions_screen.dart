@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../providers/server_state.dart';
+import '../features/servers/providers/server_notifier.dart';
 
 int permVal(String? s) => int.tryParse(s ?? '') ?? 0;
 
@@ -10,22 +10,17 @@ int permVal(String? s) => int.tryParse(s ?? '') ?? 0;
 // Channel Permissions Override Screen
 // =============================================================================
 
-class ChannelPermissionsScreen extends StatefulWidget {
+class ChannelPermissionsScreen extends ConsumerStatefulWidget {
   final RevoltChannel channel;
   final RevoltServer server;
 
-  const ChannelPermissionsScreen({
-    super.key,
-    required this.channel,
-    required this.server,
-  });
+  const ChannelPermissionsScreen({super.key, required this.channel, required this.server});
 
   @override
-  State<ChannelPermissionsScreen> createState() =>
-      _ChannelPermissionsScreenState();
+  ConsumerState<ChannelPermissionsScreen> createState() => _ChannelPermissionsScreenState();
 }
 
-class _ChannelPermissionsScreenState extends State<ChannelPermissionsScreen> {
+class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScreen> {
   final _rolePermCtrl = TextEditingController();
   final _userPermCtrl = TextEditingController();
   final _defaultPermCtrl = TextEditingController();
@@ -48,8 +43,8 @@ class _ChannelPermissionsScreenState extends State<ChannelPermissionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ss = context.watch<ServerState>();
-    final roles = ss.selectedServerRoles;
+    final ss = ref.watch(serverStateProvider).value;
+    final roles = ss?.selectedServerRoles ?? {};
 
     return Scaffold(
       backgroundColor: const Color(0xFF141418),
@@ -75,11 +70,10 @@ class _ChannelPermissionsScreenState extends State<ChannelPermissionsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // --- Default permissions ---
-            const Text('Default Permissions',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.white)),
+            const Text(
+              'Default Permissions',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+            ),
             const SizedBox(height: 4),
             const Text(
               'Permissions granted to all members by default in this channel.',
@@ -105,11 +99,10 @@ class _ChannelPermissionsScreenState extends State<ChannelPermissionsScreen> {
             const SizedBox(height: 24),
 
             // --- Role overrides ---
-            const Text('Role Permission Overrides',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.white)),
+            const Text(
+              'Role Permission Overrides',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+            ),
             const SizedBox(height: 4),
             const Text(
               'Override specific permissions for individual roles.',
@@ -117,57 +110,51 @@ class _ChannelPermissionsScreenState extends State<ChannelPermissionsScreen> {
             ),
             const SizedBox(height: 8),
             if (roles.isEmpty)
-              const Text('No roles defined yet.',
-                  style: TextStyle(color: Colors.white38))
+              const Text('No roles defined yet.', style: TextStyle(color: Colors.white38))
             else
               ...roles.entries.map((entry) {
                 final role = entry.value;
-                final roleColour =
-                    role.colour != null ? Color(role.colour!) : null;
+                final roleColour = role.colour != null ? Color(role.colour!) : null;
                 return ExpansionTile(
                   leading: CircleAvatar(
                     radius: 12,
-                    backgroundColor:
-                        roleColour ?? const Color(0xFF7F5AF0),
+                    backgroundColor: roleColour ?? const Color(0xFF7F5AF0),
                     child: Text(
                       role.name.isNotEmpty ? role.name[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                          fontSize: 10, color: Colors.white),
+                      style: const TextStyle(fontSize: 10, color: Colors.white),
                     ),
                   ),
                   title: Text(
                     role.name,
-                    style: TextStyle(
-                      color: roleColour ?? Colors.white,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: roleColour ?? Colors.white, fontSize: 14),
                   ),
-                  children: kChannelPermissions.map(
-                    (d) => _PermToggle(
-                      label: d.label,
-                      value: (permVal(_rolePermCtrl.text) & d.bit) != 0,
-                      onChanged: (v) {
-                        var val = permVal(_rolePermCtrl.text);
-                        if (v) {
-                          val |= d.bit;
-                        } else {
-                          val &= ~d.bit;
-                        }
-                        _rolePermCtrl.text = val.toString();
-                        setState(() {});
-                      },
-                    ),
-                  ).toList(),
+                  children: kChannelPermissions
+                      .map(
+                        (d) => _PermToggle(
+                          label: d.label,
+                          value: (permVal(_rolePermCtrl.text) & d.bit) != 0,
+                          onChanged: (v) {
+                            var val = permVal(_rolePermCtrl.text);
+                            if (v) {
+                              val |= d.bit;
+                            } else {
+                              val &= ~d.bit;
+                            }
+                            _rolePermCtrl.text = val.toString();
+                            setState(() {});
+                          },
+                        ),
+                      )
+                      .toList(),
                 );
               }),
             const SizedBox(height: 24),
 
             // --- Individual user overrides ---
-            const Text('Individual User Overrides',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.white)),
+            const Text(
+              'Individual User Overrides',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+            ),
             const SizedBox(height: 4),
             const Text(
               'Override permissions for specific users. '
@@ -181,8 +168,7 @@ class _ChannelPermissionsScreenState extends State<ChannelPermissionsScreen> {
                 labelText: 'User permissions value (optional)',
                 hintText: 'e.g. 32768',
                 border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
               keyboardType: TextInputType.number,
@@ -197,28 +183,20 @@ class _ChannelPermissionsScreenState extends State<ChannelPermissionsScreen> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final ss = context.read<ServerState>();
+      final ss = ref.read(serverStateProvider.notifier);
       await ss.updateChannel(
         widget.channel.id,
-        defaultPermissions: _defaultPermCtrl.text.isNotEmpty
-            ? _defaultPermCtrl.text
-            : null,
-        rolePermissions: _rolePermCtrl.text.isNotEmpty
-            ? _rolePermCtrl.text
-            : null,
-        userPermissions: _userPermCtrl.text.isNotEmpty
-            ? _userPermCtrl.text
-            : null,
+        defaultPermissions: _defaultPermCtrl.text.isNotEmpty ? _defaultPermCtrl.text : null,
+        rolePermissions: _rolePermCtrl.text.isNotEmpty ? _rolePermCtrl.text : null,
+        userPermissions: _userPermCtrl.text.isNotEmpty ? _userPermCtrl.text : null,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Channel permissions updated')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Channel permissions updated')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -234,11 +212,7 @@ class _PermToggle extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _PermToggle({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
+  const _PermToggle({required this.label, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +222,9 @@ class _PermToggle extends StatelessWidget {
       title: Text(label, style: const TextStyle(fontSize: 13)),
       value: value,
       activeColor: const Color(0xFF7F5AF0),
-      onChanged: (v) { if (v != null) onChanged(v); },
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
       controlAffinity: ListTileControlAffinity.trailing,
     );
   }

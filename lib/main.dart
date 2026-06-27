@@ -1,16 +1,15 @@
 import 'package:connectivity_plus_linux_portal/connectivity_plus_linux_portal.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Consumer;
 
-import 'providers/auth_state.dart';
-import 'providers/messaging_state.dart';
-import 'providers/server_state.dart';
-import 'providers/voice_state.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/revolt_service.dart';
 import 'services/voice_event_service.dart';
+import 'features/auth/providers/login_notifier.dart';
+import 'features/core/providers/service_providers.dart';
+import 'features/core/widgets/app_bootstrap.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,41 +19,23 @@ void main() {
 
   final service = RevoltService();
   final voiceEventService = VoiceEventService(service);
-  final serverState = ServerState(service);
-  final voiceState = VoiceState(service, voiceEventService);
-  final messagingState = MessagingState(service, serverState);
-  serverState.onUsersFetched = messagingState.cacheUsers;
-  serverState.onServerProfileUpdated = messagingState.updateServerProfile;
-  final authState = AuthState(
-    service,
-    serverState,
-    messagingState,
-    voiceState,
-    voiceEventService,
-  );
 
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: authState),
-        ChangeNotifierProvider.value(value: serverState),
-        ChangeNotifierProvider.value(value: messagingState),
-        ChangeNotifierProvider.value(value: voiceState),
+    ProviderScope(
+      overrides: [
+        revoltServiceProvider.overrideWithValue(service),
+        voiceEventServiceProvider.overrideWithValue(voiceEventService),
       ],
-      child: const FlutteringErmineApp(),
+      child: AppBootstrap(child: const FlutteringErmineApp()),
     ),
   );
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    authState.init();
-  });
 }
 
-class FlutteringErmineApp extends StatelessWidget {
+class FlutteringErmineApp extends ConsumerWidget {
   const FlutteringErmineApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'Fluttering Ermine',
       debugShowCheckedModeBanner: false,
@@ -82,16 +63,13 @@ class FlutteringErmineApp extends StatelessWidget {
           ),
         ),
       ),
-      home: Consumer<AuthState>(
-        builder: (context, auth, child) {
-          if (auth.isLoading) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          return auth.isLoggedIn ? const HomeScreen() : const LoginScreen();
-        },
-      ),
+      home: ref
+          .watch(loginStateProvider)
+          .when(
+            loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+            error: (e, st) => const LoginScreen(),
+            data: (auth) => auth.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+          ),
     );
   }
 }

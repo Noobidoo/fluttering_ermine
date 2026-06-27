@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../providers/auth_state.dart';
-import '../providers/messaging_state.dart';
-import '../providers/server_state.dart';
+import '../features/auth/providers/login_notifier.dart';
+import '../features/messaging/providers/messaging_notifier.dart';
+import '../features/servers/providers/permissions_provider.dart';
+import '../features/servers/providers/server_notifier.dart';
 import 'user_profile_sheet.dart';
 
-class MemberPanel extends StatelessWidget {
+class MemberPanel extends ConsumerWidget {
   const MemberPanel({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final server = context.watch<ServerState>();
-    final messaging = context.watch<MessagingState>();
-    final auth = context.watch<AuthState>();
-    final memberIds = server.currentServerMemberIds;
-    final serverId = server.selectedServer?.id;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final serverData = ref.watch(serverStateProvider).value;
+    final messagingData = ref.watch(messagingStateProvider);
+    final memberIds = serverData?.currentServerMemberIds;
+    final serverId = serverData?.selectedServer?.id;
 
     return Material(
       color: const Color(0xFF141418),
@@ -35,33 +35,26 @@ class MemberPanel extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
           ),
-          if (server.isLoadingMembers)
-            const Expanded(
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-            )
+          if (serverData?.loadingMembers ?? false)
+            const Expanded(child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
           else if (memberIds == null || memberIds.isEmpty)
             const Expanded(
               child: Center(
-                child: Text(
-                  'No members',
-                  style: TextStyle(color: Colors.white38),
-                ),
+                child: Text('No members', style: TextStyle(color: Colors.white38)),
               ),
             )
           else
             Expanded(
               child: Builder(
-                builder: (ctx) {
-                  ctx.read<MessagingState>().ensureUsersCached(memberIds);
+                builder: (_) {
+                  ref.read(messagingStateProvider.notifier).ensureUsersCached(memberIds);
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: memberIds.length,
                     itemBuilder: (_, i) => _MemberTile(
                       userId: memberIds[i],
                       serverId: serverId!,
-                      user: messaging.getUser(memberIds[i]),
-                      autumnBase: auth.autumnBase,
-                      apiBase: auth.apiBase,
+                      user: messagingData.userCache[memberIds[i]],
                     ),
                   );
                 },
@@ -73,20 +66,12 @@ class MemberPanel extends StatelessWidget {
   }
 }
 
-class _MemberTile extends StatelessWidget {
+class _MemberTile extends ConsumerWidget {
   final String userId;
   final String serverId;
   final RevoltUser? user;
-  final String autumnBase;
-  final String apiBase;
 
-  const _MemberTile({
-    required this.userId,
-    required this.serverId,
-    required this.user,
-    required this.autumnBase,
-    required this.apiBase,
-  });
+  const _MemberTile({required this.userId, required this.serverId, required this.user});
 
   Widget? get _statusText {
     final u = user;
@@ -101,19 +86,17 @@ class _MemberTile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final u = user;
     final name = u?.resolveDisplayName(serverId) ?? userId;
     final p = u?.presence ?? UserPresence.online;
     final isOnline = p == UserPresence.online || p == UserPresence.focus;
+    final loginNotifier = ref.read(loginStateProvider.notifier);
 
     // Role colour
-    final serverState = context.watch<ServerState>();
+    final serverStateWatched = ref.watch(serverStateProvider).value;
     final roleColour = u != null
-        ? serverState.roleColourFor(
-            serverId,
-            u.serverProfiles[serverId]?.roles ?? [],
-          )
+        ? serverStateWatched?.roleColourFor(serverId, u.serverProfiles[serverId]?.roles ?? [])
         : null;
     final nameColour = roleColour != null
         ? Color(roleColour)
@@ -131,7 +114,7 @@ class _MemberTile extends StatelessWidget {
               radius: 14,
               backgroundImage: u != null
                   ? NetworkImage(
-                      u.resolveAvatarUrl(serverId, autumnBase, apiBase),
+                      u.resolveAvatarUrl(serverId, loginNotifier.autumnBase, loginNotifier.apiBase),
                     )
                   : null,
               backgroundColor: const Color(0xFF7F5AF0),
@@ -169,24 +152,25 @@ class _MemberTile extends StatelessWidget {
         ),
         subtitle: _statusText,
 
-        onTap: () => _showProfileSheet(context),
-        onLongPress: () => _showMemberContextMenu(context),
+        onTap: () => _showProfileSheet(context, ref),
+        onLongPress: () => _showMemberContextMenu(context, ref),
       ),
     );
   }
 
-  void _showProfileSheet(BuildContext context) {
+  void _showProfileSheet(BuildContext context, WidgetRef ref) {
     if (user == null) return;
-    showUserProfileSheet(context, user!);
+    showUserProfileSheet(context, ref, user!);
   }
 
-  void _showMemberContextMenu(BuildContext context) {
-    final auth = context.read<AuthState>();
-    final isSelf = userId == auth.currentUser?.id;
+  void _showMemberContextMenu(BuildContext context, WidgetRef ref) {
+    final loginNotifier = ref.read(loginStateProvider.notifier);
+    final isSelf = userId == loginNotifier.currentUser?.id;
     if (isSelf || user == null) return;
 
-    final canKick = auth.hasPermission(serverId, Permission.kickMembers);
-    final canBan = auth.hasPermission(serverId, Permission.banMembers);
+    final perms = ref.read(effectivePermissionsProvider(serverId));
+    final canKick = (perms & Permission.kickMembers) != 0;
+    final canBan = (perms & Permission.banMembers) != 0;
     if (!canKick && !canBan) return;
 
     showModalBottomSheet(
@@ -203,17 +187,13 @@ class _MemberTile extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 user!.resolveDisplayName(serverId),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
             ),
             const Divider(color: Color(0xFF2A2A30), height: 1),
             if (canKick)
               ListTile(
-                leading: const Icon(Icons.remove_circle_outline,
-                    color: Colors.orangeAccent),
+                leading: const Icon(Icons.remove_circle_outline, color: Colors.orangeAccent),
                 title: const Text('Kick Member'),
                 subtitle: const Text(
                   'Remove from server',
@@ -221,7 +201,7 @@ class _MemberTile extends StatelessWidget {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _confirmKick(context);
+                  _confirmKick(context, ref);
                 },
               ),
             if (canBan)
@@ -234,7 +214,7 @@ class _MemberTile extends StatelessWidget {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _confirmBan(context);
+                  _confirmBan(context, ref);
                 },
               ),
             const SizedBox(height: 8),
@@ -244,7 +224,7 @@ class _MemberTile extends StatelessWidget {
     );
   }
 
-  void _confirmKick(BuildContext context) {
+  void _confirmKick(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -255,42 +235,34 @@ class _MemberTile extends StatelessWidget {
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _doKick(context);
+              _doKick(context, ref);
             },
-            child: const Text('Kick',
-                style: TextStyle(color: Colors.orangeAccent)),
+            child: const Text('Kick', style: TextStyle(color: Colors.orangeAccent)),
           ),
         ],
       ),
     );
   }
 
-  void _doKick(BuildContext context) async {
+  void _doKick(BuildContext context, WidgetRef ref) async {
     try {
-      final server = context.read<ServerState>();
-      final srv = server.selectedServer;
-      if (srv == null) return;
-      await server.kickMember(userId);
+      final serverNotifier = ref.read(serverStateProvider.notifier);
+      await serverNotifier.kickMember(userId);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${user?.resolveDisplayName(serverId) ?? userId} was kicked')),
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to kick: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to kick: $e')));
     }
   }
 
-  void _confirmBan(BuildContext context) {
+  void _confirmBan(BuildContext context, WidgetRef ref) {
     final reasonCtrl = TextEditingController();
     showDialog(
       context: context,
@@ -312,46 +284,37 @@ class _MemberTile extends StatelessWidget {
                 hintText: 'Reason (optional)',
                 hintStyle: TextStyle(color: Colors.white38),
                 border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               style: const TextStyle(fontSize: 14),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _doBan(context, reasonCtrl.text.trim());
+              _doBan(context, ref, reasonCtrl.text.trim());
             },
-            child: const Text('Ban',
-                style: TextStyle(color: Colors.redAccent)),
+            child: const Text('Ban', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
     );
   }
 
-  void _doBan(BuildContext context, String reason) async {
+  void _doBan(BuildContext context, WidgetRef ref, String reason) async {
     try {
-      final server = context.read<ServerState>();
-      final srv = server.selectedServer;
-      if (srv == null) return;
-      await server.banMember(userId, reason: reason.isNotEmpty ? reason : null);
+      final serverNotifier = ref.read(serverStateProvider.notifier);
+      await serverNotifier.banMember(userId, reason: reason.isNotEmpty ? reason : null);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${user?.resolveDisplayName(serverId) ?? userId} was banned')),
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to ban: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to ban: $e')));
     }
   }
 }

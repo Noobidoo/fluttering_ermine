@@ -1,19 +1,20 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../providers/messaging_state.dart';
-import '../providers/server_state.dart';
+import '../features/messaging/providers/messaging_notifier.dart';
+import '../features/servers/providers/server_notifier.dart';
+import '../features/core/providers/service_providers.dart';
 import 'mention_chip.dart';
 
 class _MentionRenderController extends TextEditingController {
-  final MessagingState Function() _getMessaging;
+  final MessagingStateData Function() _getMessaging;
 
   _MentionRenderController({
     required String text,
-    required MessagingState Function() getMessaging,
+    required MessagingStateData Function() getMessaging,
   }) : _getMessaging = getMessaging,
        super(text: text);
 
@@ -33,9 +34,7 @@ class _MentionRenderController extends TextEditingController {
     int lastEnd = 0;
     for (final m in regex.allMatches(raw)) {
       if (m.start > lastEnd) {
-        spans.add(
-          TextSpan(text: raw.substring(lastEnd, m.start), style: style),
-        );
+        spans.add(TextSpan(text: raw.substring(lastEnd, m.start), style: style));
       }
       final userId = m.group(1)!;
       spans.add(buildMentionChip(userId, messaging, baseStyle: style));
@@ -48,15 +47,15 @@ class _MentionRenderController extends TextEditingController {
   }
 }
 
-class MessageInput extends StatefulWidget {
+class MessageInput extends ConsumerStatefulWidget {
   final TextEditingController msgCtrl;
   const MessageInput({required this.msgCtrl, super.key});
 
   @override
-  State<MessageInput> createState() => _MessageInputState();
+  ConsumerState<MessageInput> createState() => _MessageInputState();
 }
 
-class _MessageInputState extends State<MessageInput> {
+class _MessageInputState extends ConsumerState<MessageInput> {
   // Pending attachments: list of (autumnId, displayName)
   final List<(String, String)> _pendingAttachments = [];
   bool _uploading = false;
@@ -73,7 +72,7 @@ class _MessageInputState extends State<MessageInput> {
     super.initState();
     _renderCtrl = _MentionRenderController(
       text: widget.msgCtrl.text,
-      getMessaging: () => context.read<MessagingState>(),
+      getMessaging: () => ref.read(messagingStateProvider),
     );
     _renderCtrl.addListener(_onTextChanged);
     _inputFocus.addListener(_onFocusChanged);
@@ -103,7 +102,7 @@ class _MessageInputState extends State<MessageInput> {
     // Sync back to external controller
     widget.msgCtrl.text = _renderCtrl.text;
     if (!context.mounted) return;
-    context.read<MessagingState>().sendTypingIndicator();
+    ref.read(messagingStateProvider.notifier).sendTypingIndicator();
     _updateMentionState();
   }
 
@@ -146,16 +145,16 @@ class _MessageInputState extends State<MessageInput> {
     }
     _mentionQuery = query;
 
-    final messaging = context.read<MessagingState>();
-    final server = context.read<ServerState>();
-    final serverId = server.selectedServer?.id;
-    final memberIds = server.currentServerMemberIds ?? [];
+    final messaging = ref.read(messagingStateProvider);
+    final server = ref.read(serverStateProvider).value;
+    final serverId = server?.selectedServer?.id;
+    final memberIds = server?.currentServerMemberIds ?? [];
     final results = <MapEntry<String, String>>[];
     final seen = <String>{};
     for (final userId in memberIds) {
       if (seen.contains(userId)) continue;
       seen.add(userId);
-      final user = messaging.getUser(userId);
+      final user = messaging.userCache[userId];
       final display = user?.resolveDisplayName(serverId) ?? '';
       if (query.isEmpty ||
           display.toLowerCase().contains(query) ||
@@ -164,8 +163,8 @@ class _MessageInputState extends State<MessageInput> {
       }
     }
     // Also include cached users not in this server (for DM mentions)
-    if (server.selectedServer == null) {
-      for (final u in messaging.cachedUsers) {
+    if (server?.selectedServer == null) {
+      for (final u in messaging.userCache.values) {
         if (seen.contains(u.id)) continue;
         if (query.isEmpty ||
             u.resolveDisplayName(null).toLowerCase().contains(query) ||
@@ -211,17 +210,12 @@ class _MessageInputState extends State<MessageInput> {
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       setState(() {
-        _mentionIndex =
-            (_mentionIndex - 1 + _mentionResults.length) %
-            _mentionResults.length;
+        _mentionIndex = (_mentionIndex - 1 + _mentionResults.length) % _mentionResults.length;
       });
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.tab) {
-      _insertMention(
-        _mentionResults[_mentionIndex].key,
-        _mentionResults[_mentionIndex].value,
-      );
+      _insertMention(_mentionResults[_mentionIndex].key, _mentionResults[_mentionIndex].value);
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -247,15 +241,13 @@ class _MessageInputState extends State<MessageInput> {
     final replacement = '<@$userId> ';
     _renderCtrl.value = TextEditingValue(
       text: '$before$replacement$after',
-      selection: TextSelection.collapsed(
-        offset: before.length + replacement.length,
-      ),
+      selection: TextSelection.collapsed(offset: before.length + replacement.length),
     );
     _hideMentions();
   }
 
   Future<void> _pickFile() async {
-    final service = context.read<MessagingState>().service;
+    final service = ref.read(revoltServiceProvider);
     final result = await FilePicker.pickFiles(withData: true);
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
@@ -268,9 +260,7 @@ class _MessageInputState extends State<MessageInput> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -284,16 +274,18 @@ class _MessageInputState extends State<MessageInput> {
     widget.msgCtrl.text = text;
     _renderCtrl.clear();
     setState(() => _pendingAttachments.clear());
-    context.read<MessagingState>().sendMessage(text, attachmentIds: ids);
+    ref.read(messagingStateProvider.notifier).sendMessage(text, attachmentIds: ids);
   }
 
   @override
   Widget build(BuildContext context) {
-    final messaging = context.watch<MessagingState>();
-    final channel = context.watch<ServerState>().selectedChannel;
-    final name = channel != null ? messaging.channelDisplayName(channel) : '';
+    final messaging = ref.watch(messagingStateProvider);
+    final channel = ref.watch(serverStateProvider).value?.selectedChannel;
+    final name = channel != null
+        ? ref.read(messagingStateProvider.notifier).channelDisplayName(channel)
+        : '';
     final typingIds = channel != null
-        ? messaging.typingUsersFor(channel.id).toList()
+        ? messaging.typingUsers[channel.id]?.toList() ?? <String>[]
         : <String>[];
     final replyTarget = messaging.replyTarget;
 
@@ -301,13 +293,12 @@ class _MessageInputState extends State<MessageInput> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (typingIds.isNotEmpty)
-          _TypingIndicator(userIds: typingIds, messaging: messaging),
+        if (typingIds.isNotEmpty) _TypingIndicator(userIds: typingIds, messaging: messaging),
         if (replyTarget != null)
           _ReplyBar(
             message: replyTarget,
-            author: messaging.getUser(replyTarget.authorId),
-            onDismiss: messaging.clearReplyTarget,
+            author: messaging.userCache[replyTarget.authorId],
+            onDismiss: () => ref.read(messagingStateProvider.notifier).clearReplyTarget(),
           ),
         // Pending attachment chips
         if (_pendingAttachments.isNotEmpty)
@@ -320,17 +311,9 @@ class _MessageInputState extends State<MessageInput> {
                 return Chip(
                   backgroundColor: const Color(0xFF242428),
                   side: const BorderSide(color: Color(0xFF3A3A42)),
-                  label: Text(
-                    a.$2,
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
-                  ),
-                  deleteIcon: const Icon(
-                    Icons.close,
-                    size: 14,
-                    color: Colors.white38,
-                  ),
-                  onDeleted: () =>
-                      setState(() => _pendingAttachments.remove(a)),
+                  label: Text(a.$2, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                  deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white38),
+                  onDeleted: () => setState(() => _pendingAttachments.remove(a)),
                 );
               }).toList(),
             ),
@@ -348,23 +331,15 @@ class _MessageInputState extends State<MessageInput> {
             shrinkWrap: true,
             itemCount: _mentionResults.length,
             itemBuilder: (_, i) => InkWell(
-              onTap: () => _insertMention(
-                _mentionResults[i].key,
-                _mentionResults[i].value,
-              ),
+              onTap: () => _insertMention(_mentionResults[i].key, _mentionResults[i].value),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 color: i == _mentionIndex ? const Color(0x207F5AF0) : null,
                 child: Text(
                   '@${_mentionResults[i].value}',
                   style: TextStyle(
                     color: i == _mentionIndex ? Colors.white : Colors.white70,
-                    fontWeight: i == _mentionIndex
-                        ? FontWeight.w600
-                        : FontWeight.normal,
+                    fontWeight: i == _mentionIndex ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ),
@@ -372,12 +347,7 @@ class _MessageInputState extends State<MessageInput> {
           ),
         ),
         Container(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            8,
-            16,
-            16 + MediaQuery.of(context).padding.bottom,
-          ),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + MediaQuery.of(context).padding.bottom),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -388,10 +358,7 @@ class _MessageInputState extends State<MessageInput> {
                       child: SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Color(0xFF7F5AF0),
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7F5AF0)),
                       ),
                     )
                   : IconButton(
@@ -418,10 +385,7 @@ class _MessageInputState extends State<MessageInput> {
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   onSubmitted: (_) => _send(context),
                 ),
@@ -451,19 +415,13 @@ class _ReplyBar extends StatelessWidget {
   final RevoltUser? author;
   final VoidCallback onDismiss;
 
-  const _ReplyBar({
-    required this.message,
-    this.author,
-    required this.onDismiss,
-  });
+  const _ReplyBar({required this.message, this.author, required this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
     final name = author?.resolveDisplayName(null) ?? message.authorId;
     final preview = message.content?.trim() ?? '';
-    final truncated = preview.length > 60
-        ? '${preview.substring(0, 60)}…'
-        : preview;
+    final truncated = preview.length > 60 ? '${preview.substring(0, 60)}…' : preview;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
@@ -514,7 +472,7 @@ class _ReplyBar extends StatelessWidget {
 
 class _TypingIndicator extends StatelessWidget {
   final List<String> userIds;
-  final MessagingState messaging;
+  final MessagingStateData messaging;
 
   const _TypingIndicator({required this.userIds, required this.messaging});
 
@@ -522,14 +480,11 @@ class _TypingIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     String text;
     if (userIds.length == 1) {
-      final name =
-          messaging.getUser(userIds[0])?.resolveDisplayName(null) ?? userIds[0];
+      final name = messaging.userCache[userIds[0]]?.resolveDisplayName(null) ?? userIds[0];
       text = '$name is typing…';
     } else if (userIds.length == 2) {
-      final a =
-          messaging.getUser(userIds[0])?.resolveDisplayName(null) ?? userIds[0];
-      final b =
-          messaging.getUser(userIds[1])?.resolveDisplayName(null) ?? userIds[1];
+      final a = messaging.userCache[userIds[0]]?.resolveDisplayName(null) ?? userIds[0];
+      final b = messaging.userCache[userIds[1]]?.resolveDisplayName(null) ?? userIds[1];
       text = '$a and $b are typing…';
     } else {
       text = 'Several people are typing…';
@@ -539,11 +494,7 @@ class _TypingIndicator extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 0, 16, 2),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 11,
-          color: Colors.white54,
-          fontStyle: FontStyle.italic,
-        ),
+        style: const TextStyle(fontSize: 11, color: Colors.white54, fontStyle: FontStyle.italic),
       ),
     );
   }

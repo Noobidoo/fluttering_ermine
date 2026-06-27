@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/auth/providers/login_notifier.dart';
+import '../features/channels/channel_panel_view.dart';
+import '../features/chat/chat_view.dart';
+import '../features/messaging/providers/messaging_notifier.dart';
+import '../features/servers/providers/server_notifier.dart';
 import '../models/models.dart';
-import '../providers/auth_state.dart';
-import '../providers/messaging_state.dart';
-import '../providers/server_state.dart';
-import '../widgets/server_rail.dart';
-import '../widgets/channel_panel.dart';
-import '../widgets/chat_panel.dart';
 import '../widgets/member_panel.dart';
+import '../widgets/server_rail.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
 
@@ -31,44 +31,43 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.sizeOf(context).width > 800;
+    final serverState = ref.watch(serverStateProvider).asData?.value;
+    final selectedServer = serverState?.selectedServer;
+    final selectedChannel = serverState?.selectedChannel;
 
     if (isWide) {
       return Scaffold(
         body: Row(
           children: [
             const ServerRail(),
-            SizedBox(width: 230, child: ChannelPanel()),
+            SizedBox(width: 230, child: ChannelPanelView()),
             Expanded(
-              child: ChatPanel(msgCtrl: _msgCtrl, scrollCtrl: _scrollCtrl),
+              child: ChatView(msgCtrl: _msgCtrl, scrollCtrl: _scrollCtrl),
             ),
-            if (context.watch<ServerState>().selectedServer != null)
-              const SizedBox(width: 280, child: MemberPanel()),
+            if (selectedServer != null) const SizedBox(width: 280, child: MemberPanel()),
           ],
         ),
       );
     }
 
-    // Narrow layout – channel panel in drawer
     return Scaffold(
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(context, selectedChannel),
       drawer: Drawer(
         width: 300,
         child: SafeArea(
           child: Row(
             children: [
               const ServerRail(),
-              Expanded(child: ChannelPanel()),
+              Expanded(child: ChannelPanelView()),
             ],
           ),
         ),
       ),
-      body: ChatPanel(msgCtrl: _msgCtrl, scrollCtrl: _scrollCtrl),
+      body: ChatView(msgCtrl: _msgCtrl, scrollCtrl: _scrollCtrl),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    final channel = context.watch<ServerState>().selectedChannel;
-    final messaging = context.watch<MessagingState>();
+  PreferredSizeWidget _buildAppBar(BuildContext context, RevoltChannel? channel) {
     return AppBar(
       backgroundColor: const Color(0xFF16161A),
       title: channel != null
@@ -77,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(_channelIcon(channel), size: 18, color: Colors.white54),
                 const SizedBox(width: 6),
                 Text(
-                  messaging.channelDisplayName(channel),
+                  ref.read(messagingStateProvider.notifier).channelDisplayName(channel),
                   style: const TextStyle(fontSize: 16),
                 ),
               ],
@@ -87,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
         IconButton(
           icon: const Icon(Icons.logout),
           tooltip: 'Logout',
-          onPressed: () => context.read<AuthState>().logout(),
+          onPressed: () => ref.read(loginStateProvider.notifier).logout(),
         ),
       ],
     );

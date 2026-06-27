@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../providers/auth_state.dart';
-import '../providers/server_state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../features/auth/providers/login_notifier.dart';
+import '../features/servers/providers/server_notifier.dart';
 import '../screens/settings_screen.dart';
 
-class ServerRail extends StatelessWidget {
+class ServerRail extends ConsumerWidget {
   const ServerRail({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final server = context.watch<ServerState>();
-    final auth = context.watch<AuthState>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final server = ref.watch(serverStateProvider).value;
+    final loginNotifier = ref.read(loginStateProvider.notifier);
 
     return Container(
       width: 68,
@@ -21,33 +20,38 @@ class ServerRail extends StatelessWidget {
           const SizedBox(height: 8),
           _RailIcon(
             tooltip: 'Direct Messages',
-            selected: server.showDMs,
-            onTap: server.selectDMs,
+            selected: server?.showDMs ?? false,
+            onTap: () {
+              ref.read(serverStateProvider.notifier).selectDMs();
+            },
             child: const Icon(Icons.message_rounded, size: 22),
           ),
           const _Divider(),
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.zero,
-              itemCount: server.servers.length,
+              itemCount: server?.servers.length ?? 0,
               itemBuilder: (_, i) {
-                final srv = server.servers[i];
+                final srv = server!.servers[i];
                 return _RailIcon(
                   key: ValueKey('server_${srv.id}'),
                   tooltip: srv.name,
                   selected: server.selectedServer?.id == srv.id,
                   hasUnread: server.serverUnreadCount(srv.id) > 0,
-                  onTap: () => server.selectServer(srv, userId: auth.currentUser?.id),
-                  child: srv.iconUrlFor(auth.autumnBase) != null
+                  onTap: () {
+                    ref
+                        .read(serverStateProvider.notifier)
+                        .selectServer(srv, userId: loginNotifier.currentUser?.id);
+                  },
+                  child: srv.iconUrlFor(loginNotifier.autumnBase) != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            srv.iconUrlFor(auth.autumnBase)!,
+                            srv.iconUrlFor(loginNotifier.autumnBase)!,
                             width: 44,
                             height: 44,
                             fit: BoxFit.cover,
-                            errorBuilder: (ctx, err, stack) =>
-                                _Initials(srv.name),
+                            errorBuilder: (ctx, err, stack) => _Initials(srv.name),
                           ),
                         )
                       : _Initials(srv.name),
@@ -59,11 +63,7 @@ class ServerRail extends StatelessWidget {
             tooltip: 'Settings',
             selected: false,
             onTap: () => SettingsScreen.show(context),
-            child: const Icon(
-              Icons.settings_outlined,
-              size: 20,
-              color: Colors.white54,
-            ),
+            child: const Icon(Icons.settings_outlined, size: 20, color: Colors.white54),
           ),
           _RailIcon(
             tooltip: 'Create Server',
@@ -80,7 +80,7 @@ class ServerRail extends StatelessWidget {
           _RailIcon(
             tooltip: 'Logout',
             selected: false,
-            onTap: () => context.read<AuthState>().logout(),
+            onTap: () => ref.read(loginStateProvider.notifier).logout(),
             child: const Icon(Icons.logout, size: 20, color: Colors.redAccent),
           ),
           const SizedBox(height: 8),
@@ -106,8 +106,7 @@ void _showCreateServerDialog(BuildContext context) {
             decoration: const InputDecoration(
               labelText: 'Server name',
               border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             style: const TextStyle(fontSize: 14),
             autofocus: true,
@@ -118,8 +117,7 @@ void _showCreateServerDialog(BuildContext context) {
             decoration: const InputDecoration(
               labelText: 'Description (optional)',
               border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             style: const TextStyle(fontSize: 14),
             maxLines: 2,
@@ -127,32 +125,29 @@ void _showCreateServerDialog(BuildContext context) {
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         TextButton(
           onPressed: () async {
             final name = nameCtrl.text.trim();
             if (name.isEmpty) return;
             Navigator.pop(ctx);
             try {
-              final server = context.read<ServerState>();
-              await server.createServer(
-                name,
-                description: descCtrl.text.trim().isNotEmpty
-                    ? descCtrl.text.trim()
-                    : null,
-              );
+              final container = ProviderScope.containerOf(context);
+              await container
+                  .read(serverStateProvider.notifier)
+                  .createServer(
+                    name,
+                    description: descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : null,
+                  );
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Server "$name" created!')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Server "$name" created!')));
             } catch (e) {
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Failed to create server: $e')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Failed to create server: $e')));
             }
           },
           child: const Text('Create'),
@@ -163,6 +158,7 @@ void _showCreateServerDialog(BuildContext context) {
 }
 
 void _showJoinDialog(BuildContext context) {
+  final container = ProviderScope.containerOf(context);
   final controller = TextEditingController();
   showDialog(
     context: context,
@@ -183,7 +179,7 @@ void _showJoinDialog(BuildContext context) {
           if (code.isEmpty) return;
           Navigator.of(dialogCtx).pop();
           try {
-            await context.read<ServerState>().joinInvite(code);
+            await container.read(serverStateProvider.notifier).joinInvite(code);
             if (!context.mounted) return;
             ScaffoldMessenger.of(
               context,
@@ -197,17 +193,14 @@ void _showJoinDialog(BuildContext context) {
         },
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogCtx).pop(),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: const Text('Cancel')),
         TextButton(
           onPressed: () async {
             final code = controller.text.trim();
             if (code.isEmpty) return;
             Navigator.of(dialogCtx).pop();
             try {
-              await context.read<ServerState>().joinInvite(code);
+              await container.read(serverStateProvider.notifier).joinInvite(code);
               if (!context.mounted) return;
               ScaffoldMessenger.of(
                 context,
@@ -258,9 +251,7 @@ class _RailIcon extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFF7F5AF0)
-                    : const Color(0xFF1E1E26),
+                color: selected ? const Color(0xFF7F5AF0) : const Color(0xFF1E1E26),
                 borderRadius: BorderRadius.circular(selected ? 12 : 22),
               ),
               child: Center(child: child),
@@ -272,10 +263,7 @@ class _RailIcon extends StatelessWidget {
                 child: Container(
                   width: 12,
                   height: 12,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2CB67D),
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: const BoxDecoration(color: Color(0xFF2CB67D), shape: BoxShape.circle),
                 ),
               ),
           ],
@@ -291,15 +279,8 @@ class _Initials extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = name
-        .split(' ')
-        .map((w) => w.isNotEmpty ? w[0] : '')
-        .take(2)
-        .join();
-    return Text(
-      initials,
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-    );
+    final initials = name.split(' ').map((w) => w.isNotEmpty ? w[0] : '').take(2).join();
+    return Text(initials, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold));
   }
 }
 

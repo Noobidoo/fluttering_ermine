@@ -3,11 +3,7 @@ class RevoltBan {
   final String userId;
   final String? reason;
 
-  RevoltBan({
-    required this.id,
-    required this.userId,
-    this.reason,
-  });
+  RevoltBan({required this.id, required this.userId, this.reason});
 
   factory RevoltBan.fromJson(Map<String, dynamic> json) {
     final idObj = json['_id'] as Map<String, dynamic>?;
