@@ -356,6 +356,16 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           _isJoiningVoice = false;
           _voiceRoom = e.room;
           _activeVoiceChannel = channel;
+          // Sync already-connected remote participants into voiceChannelMembers
+          // so they appear in the channel panel immediately, without waiting
+          // for a WebSocket VoiceChannelJoinEvent.
+          _voiceChannelMembers.putIfAbsent(channel.id, () => []);
+          for (final p in e.room.remoteParticipants.values) {
+            if (!_voiceChannelMembers[channel.id]!
+                .contains(p.identity)) {
+              _voiceChannelMembers[channel.id]!.add(p.identity);
+            }
+          }
           notifyListeners();
           debugPrint('[voice:event] RoomConnectedEvent handler complete');
         })
@@ -479,6 +489,13 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           debugPrint(
             '[voice:event] ParticipantConnectedEvent id=${e.participant.identity}',
           );
+          // Add to channel panel data source so the participant shows up
+          // immediately, even if the WebSocket Join event is delayed.
+          _voiceChannelMembers.putIfAbsent(channel.id, () => []);
+          if (!_voiceChannelMembers[channel.id]!
+              .contains(e.participant.identity)) {
+            _voiceChannelMembers[channel.id]!.add(e.participant.identity);
+          }
           notifyListeners();
         })
         ..on<ParticipantDisconnectedEvent>((e) {
