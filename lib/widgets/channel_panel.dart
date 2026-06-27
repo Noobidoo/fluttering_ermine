@@ -263,6 +263,7 @@ class _ChannelTile extends StatelessWidget {
                   final lkParticipant = liveKitByIdentity[userId];
                   final isLocal = userId == auth.currentUser?.id;
                   return _VoiceParticipantRow(
+                    key: ValueKey(userId),
                     identity: userId,
                     displayName: user?.resolveDisplayName(null) ?? userId,
                     isLocal: isLocal,
@@ -491,6 +492,7 @@ class _VoiceParticipantRow extends StatefulWidget {
   final bool isScreenSharing;
   final String? avatarUrl;
   const _VoiceParticipantRow({
+    super.key,
     required this.identity,
     required this.displayName,
     required this.isLocal,
