@@ -78,9 +78,11 @@ class VoiceStateData {
   final Set<String> subscribedScreenShares;
   final List<VoiceParticipant> voiceParticipants;
   final List<RemoteVideoStream> remoteVideoStreams;
+  final LocalVideoTrack? localCameraTrack;
   final int leaveCalledAmount;
 
   const VoiceStateData({
+
     this.activeVoiceChannel,
     this.isInVoice = false,
     this.isMuted = false,
@@ -101,6 +103,7 @@ class VoiceStateData {
     this.subscribedScreenShares = const {},
     this.voiceParticipants = const [],
     this.remoteVideoStreams = const [],
+    this.localCameraTrack,
     this.leaveCalledAmount = 0,
   });
 
@@ -145,6 +148,7 @@ class VoiceStateData {
     Set<String>? subscribedScreenShares,
     List<VoiceParticipant>? voiceParticipants,
     List<RemoteVideoStream>? remoteVideoStreams,
+    Object? localCameraTrack = _omit,
     int? leaveCalledAmount,
   }) => VoiceStateData(
     activeVoiceChannel: activeVoiceChannel == _omit
@@ -171,6 +175,9 @@ class VoiceStateData {
     subscribedScreenShares: subscribedScreenShares ?? this.subscribedScreenShares,
     voiceParticipants: voiceParticipants ?? this.voiceParticipants,
     remoteVideoStreams: remoteVideoStreams ?? this.remoteVideoStreams,
+    localCameraTrack: localCameraTrack == _omit
+        ? this.localCameraTrack
+        : localCameraTrack as LocalVideoTrack?,
     leaveCalledAmount: leaveCalledAmount ?? this.leaveCalledAmount,
   );
 }
@@ -215,21 +222,9 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
     return VoiceStateData();
   }
 
-  // -- Getters that depend on _voiceRoom (side-effect object) ----------------
+  // -- Device queries (no state dependency) --------------------------------
 
-  LocalVideoTrack? get localCameraTrack {
-    if (_voiceRoom == null) return null;
-    final lp = _voiceRoom!.localParticipant;
-    if (lp == null) return null;
-    for (final pub in lp.videoTrackPublications) {
-      if (pub.source == TrackSource.camera) {
-        return pub.track;
-      }
-    }
-    return null;
-  }
-
-  Future<List<MediaDevice>> get audioInputDeviceIds async {
+  Future<List<MediaDevice>> getAudioInputDevices() async {
     try {
       return await Hardware.instance.audioInputs();
     } catch (e) {
@@ -238,7 +233,7 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
     }
   }
 
-  Future<List<MediaDevice>> get videoInputDeviceIds async {
+  Future<List<MediaDevice>> getVideoInputDevices() async {
     try {
       return await Hardware.instance.videoInputs();
     } catch (e) {
@@ -306,11 +301,24 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
     return streams;
   }
 
+  LocalVideoTrack? _computeLocalCameraTrack() {
+    if (_voiceRoom == null) return null;
+    final lp = _voiceRoom!.localParticipant;
+    if (lp == null) return null;
+    for (final pub in lp.videoTrackPublications) {
+      if (pub.source == TrackSource.camera) {
+        return pub.track;
+      }
+    }
+    return null;
+  }
+
   VoiceStateData _withRoomValues(VoiceStateData data) {
     if (_voiceRoom == null) return data;
     return data.copyWith(
       voiceParticipants: _computeVoiceParticipants(),
       remoteVideoStreams: _computeRemoteVideoStreams(),
+      localCameraTrack: _computeLocalCameraTrack(),
     );
   }
 
