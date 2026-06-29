@@ -5,10 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' hide Consumer;
 
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
-import 'services/revolt_service.dart';
-import 'services/voice_event_service.dart';
 import 'features/auth/providers/login_notifier.dart';
-import 'features/core/providers/service_providers.dart';
 import 'features/core/widgets/app_bootstrap.dart';
 
 void main() {
@@ -17,15 +14,8 @@ void main() {
     ConnectivityPlusLinuxPortalPlugin.registerWith();
   }
 
-  final service = RevoltService();
-  final voiceEventService = VoiceEventService(service);
-
   runApp(
     ProviderScope(
-      overrides: [
-        revoltServiceProvider.overrideWithValue(service),
-        voiceEventServiceProvider.overrideWithValue(voiceEventService),
-      ],
       child: AppBootstrap(child: const FlutteringErmineApp()),
     ),
   );
