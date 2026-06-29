@@ -24,6 +24,8 @@ class RevoltService {
 
   Stream<Map<String, dynamic>> get events => _eventController.stream;
 
+  Timer? _pingTimer;
+
   void setToken(String token) => _token = token;
 
   void setServerUrl(String apiBase, String wsUrl) {
@@ -826,16 +828,34 @@ class RevoltService {
     // Cancel any existing WS stream subscription before reconnecting
     _wsStreamSub?.cancel();
     _wsStreamSub = null;
+    _pingTimer?.cancel();
     // Recreate controller if it was previously closed
     if (_eventController.isClosed) {
       _eventController = StreamController<Map<String, dynamic>>.broadcast();
     }
     _ws = WebSocketChannel.connect(Uri.parse(_wsUrl));
     _ws!.sink.add(jsonEncode({'type': 'Authenticate', 'token': _token}));
+
+    // Start the keep-alive Ping loop (20 seconds is a safe standard)
+    _pingTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      try {
+        _ws?.sink.add(jsonEncode({
+          'type': 'Ping',
+          'data': DateTime.now().millisecondsSinceEpoch
+        }));
+      } catch (_) {
+        // Catch in case the socket is temporarily in a bad state
+      }
+    });
+
     _wsStreamSub = _ws!.stream.listen(
       (data) {
         try {
           final event = jsonDecode(data as String) as Map<String, dynamic>;
+
+          // Silently drop 'Pong' responses to avoid spamming your debug console
+          if (event['type'] == 'Pong') return;
+
           debugPrint('[WS] << ${event['type']}');
           if (!_eventController.isClosed) {
             // Unwrap Bulk packets so all consumers see individual events.
@@ -855,12 +875,14 @@ class RevoltService {
       onDone: () {
         debugPrint('[WS] connection closed, notifying listeners');
         if (!_eventController.isClosed) {
+          _pingTimer?.cancel();
           _eventController.add({'type': 'Disconnected'});
         }
       },
       onError: (Object err) {
         debugPrint('[WS] connection error: $err');
         if (!_eventController.isClosed) {
+          _pingTimer?.cancel();
           _eventController.add({'type': 'Disconnected'});
         }
       },
@@ -870,6 +892,7 @@ class RevoltService {
   void disconnect() {
     _wsStreamSub?.cancel();
     _wsStreamSub = null;
+    _pingTimer?.cancel();
     _ws?.sink.close();
     _ws = null;
   }
