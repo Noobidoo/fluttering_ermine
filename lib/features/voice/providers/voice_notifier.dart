@@ -193,6 +193,7 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
   StreamSubscription<dynamic>? _membershipSub;
   StreamSubscription<VoicePublishingStateChangeEvent>? _publishingSub;
 
+  bool _disposed = false;
   Room? _voiceRoom;
   EventsListener<RoomEvent>? _voiceRoomListener;
   // ignore: unused_field
@@ -895,6 +896,7 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
         participantVolumes = decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
       } catch (_) {}
     }
+    if (_disposed) return;
     state = state.copyWith(
       outputVolume: outputVolume,
       noiseSuppression: noiseSuppression,
@@ -1068,6 +1070,7 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
   // -- Lifecycle -------------------------------------------------------------
 
   void _dispose() {
+    _disposed = true;
     _membershipSub?.cancel();
     _publishingSub?.cancel();
     _voiceRoom?.disconnect();

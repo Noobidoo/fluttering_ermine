@@ -159,6 +159,7 @@ void main() {
       // Override voiceEventServiceProvider with a real service for WS events
       container.dispose();
       final voiceEventService = VoiceEventService(svc);
+      voiceEventService.subscribeToWebSocketEvents();
       container = ProviderContainer(overrides: [
         revoltServiceProvider.overrideWithValue(svc),
         voiceEventServiceProvider.overrideWithValue(voiceEventService),
@@ -194,6 +195,7 @@ void main() {
       // Override voiceEventServiceProvider with a real service for WS events
       container.dispose();
       final voiceEventService = VoiceEventService(svc);
+      voiceEventService.subscribeToWebSocketEvents();
       container = ProviderContainer(overrides: [
         revoltServiceProvider.overrideWithValue(svc),
         voiceEventServiceProvider.overrideWithValue(voiceEventService),
