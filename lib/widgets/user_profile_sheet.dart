@@ -6,10 +6,10 @@ import '../features/auth/providers/login_notifier.dart';
 import '../features/core/providers/service_providers.dart';
 
 void showUserProfileSheet(BuildContext context, WidgetRef ref, RevoltUser user) {
-  final loginNotifier = ref.read(loginStateProvider.notifier);
-  final autumnBase = loginNotifier.autumnBase;
-  final apiBase = loginNotifier.apiBase;
-  final isSelf = user.id == loginNotifier.currentUser?.id;
+  final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+  final autumnBase = authData.autumnBase;
+  final apiBase = authData.apiBase;
+  final isSelf = user.id == authData.currentUser?.id;
 
   final Future<UserProfile>? profileFuture = isSelf
       ? null

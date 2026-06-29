@@ -91,7 +91,7 @@ class _MemberTile extends ConsumerWidget {
     final name = u?.resolveDisplayName(serverId) ?? userId;
     final p = u?.presence ?? UserPresence.online;
     final isOnline = p == UserPresence.online || p == UserPresence.focus;
-    final loginNotifier = ref.read(loginStateProvider.notifier);
+    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
 
     // Role colour
     final serverStateWatched = ref.watch(serverStateProvider).value;
@@ -114,7 +114,7 @@ class _MemberTile extends ConsumerWidget {
               radius: 14,
               backgroundImage: u != null
                   ? NetworkImage(
-                      u.resolveAvatarUrl(serverId, loginNotifier.autumnBase, loginNotifier.apiBase),
+                      u.resolveAvatarUrl(serverId, authData.autumnBase, authData.apiBase),
                     )
                   : null,
               backgroundColor: const Color(0xFF7F5AF0),
@@ -164,8 +164,8 @@ class _MemberTile extends ConsumerWidget {
   }
 
   void _showMemberContextMenu(BuildContext context, WidgetRef ref) {
-    final loginNotifier = ref.read(loginStateProvider.notifier);
-    final isSelf = userId == loginNotifier.currentUser?.id;
+    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+    final isSelf = userId == authData.currentUser?.id;
     if (isSelf || user == null) return;
 
     final perms = ref.read(effectivePermissionsProvider(serverId));

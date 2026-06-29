@@ -286,8 +286,8 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
   }
 
   void _openContextMenu(BuildContext context, Offset globalPosition) {
-    final auth = ref.read(loginStateProvider.notifier);
-    final isOwn = widget.message.authorId == auth.currentUser?.id;
+    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+    final isOwn = widget.message.authorId == authData.currentUser?.id;
 
     showMenu<_MsgAction>(
       context: context,
@@ -342,14 +342,14 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final loginNotifier = ref.read(loginStateProvider.notifier);
-    final isOwn = widget.message.authorId == loginNotifier.currentUser?.id;
+    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+    final isOwn = widget.message.authorId == authData.currentUser?.id;
 
     Widget content;
     if (widget.grouped) {
-      content = _groupedBubble(loginNotifier.autumnBase, context);
+      content = _groupedBubble(authData.autumnBase, context);
     } else {
-      content = _fullBubble(loginNotifier.apiBase, loginNotifier.autumnBase, context);
+      content = _fullBubble(authData.apiBase, authData.autumnBase, context);
     }
 
     return MouseRegion(

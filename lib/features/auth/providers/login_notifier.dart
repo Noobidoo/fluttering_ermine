@@ -21,12 +21,26 @@ const _autumnBaseKey = 'revolt_autumn_base';
 class LoginStateData {
   final bool isLoggedIn;
   final RevoltUser? currentUser;
+  final String apiBase;
+  final String autumnBase;
 
-  const LoginStateData({this.isLoggedIn = false, this.currentUser});
+  const LoginStateData({
+    this.isLoggedIn = false,
+    this.currentUser,
+    this.apiBase = 'https://api.revolt.chat',
+    this.autumnBase = 'https://autumn.revolt.chat',
+  });
 
-  LoginStateData copyWith({bool? isLoggedIn, Object? currentUser = _omit}) => LoginStateData(
+  LoginStateData copyWith({
+    bool? isLoggedIn,
+    Object? currentUser = _omit,
+    String? apiBase,
+    String? autumnBase,
+  }) => LoginStateData(
     isLoggedIn: isLoggedIn ?? this.isLoggedIn,
     currentUser: currentUser == _omit ? this.currentUser : currentUser as RevoltUser?,
+    apiBase: apiBase ?? this.apiBase,
+    autumnBase: autumnBase ?? this.autumnBase,
   );
 
   static const _omit = Object();
@@ -63,7 +77,7 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
       }
       final token = await asyncPrefs.getString(_tokenKey);
       if (token == null) {
-        return const LoginStateData();
+        return LoginStateData(apiBase: _service.apiBase, autumnBase: _service.autumnBase);
       }
       _service.setToken(token);
       try {
@@ -78,11 +92,16 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
       } catch (_) {}
       final user = await _service.fetchSelf();
       _connectWebSocket();
-      return LoginStateData(isLoggedIn: true, currentUser: user);
+      return LoginStateData(
+        isLoggedIn: true,
+        currentUser: user,
+        apiBase: _service.apiBase,
+        autumnBase: _service.autumnBase,
+      );
     } catch (_) {
       final asyncPrefs = SharedPreferencesAsync();
       await asyncPrefs.remove(_tokenKey);
-      return const LoginStateData();
+      return LoginStateData(apiBase: _service.apiBase, autumnBase: _service.autumnBase);
     }
   }
 
@@ -178,6 +197,12 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
     _service.setServerUrl(apiBase, wsUrl);
     _service.setAutumnUrl(autumnBase);
     _service.setVoiceNode(voiceNode);
+    state = AsyncData(
+      (state.value ?? const LoginStateData()).copyWith(
+        apiBase: _service.apiBase,
+        autumnBase: _service.autumnBase,
+      ),
+    );
     final asyncPrefs = SharedPreferencesAsync();
     await asyncPrefs.setString(_apiBaseKey, apiBase);
     await asyncPrefs.setString(_wsUrlKey, wsUrl);
@@ -201,7 +226,14 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
     await asyncPrefs.setString(_tokenKey, token);
     final user = await _service.fetchSelf();
     _connectWebSocket();
-    state = AsyncData(LoginStateData(isLoggedIn: true, currentUser: user));
+    state = AsyncData(
+      (state.value ?? const LoginStateData()).copyWith(
+        isLoggedIn: true,
+        currentUser: user,
+        apiBase: _service.apiBase,
+        autumnBase: _service.autumnBase,
+      ),
+    );
   }
 
   Future<void> logout() async {
@@ -218,7 +250,12 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
     await asyncPrefs.remove(_autumnBaseKey);
     _service.setServerUrl('https://api.revolt.chat', _defaultWsUrl);
     _service.setAutumnUrl('https://autumn.revolt.chat');
-    state = AsyncData(const LoginStateData());
+    state = AsyncData(
+      const LoginStateData(
+        apiBase: 'https://api.revolt.chat',
+        autumnBase: 'https://autumn.revolt.chat',
+      ),
+    );
   }
 
   Future<void> updateDisplayName(String name) async {
@@ -294,10 +331,6 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
       remove: remove,
     );
   }
-
-  String get autumnBase => _service.autumnBase;
-  String get apiBase => _service.apiBase;
-  RevoltUser? get currentUser => state.requireValue.currentUser;
 }
 
 final loginStateProvider = AsyncNotifierProvider<LoginNotifier, LoginStateData>(LoginNotifier.new);

@@ -10,7 +10,7 @@ class ServerRail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final server = ref.watch(serverStateProvider).value;
-    final loginNotifier = ref.read(loginStateProvider.notifier);
+    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
 
     return Container(
       width: 68,
@@ -41,13 +41,13 @@ class ServerRail extends ConsumerWidget {
                   onTap: () {
                     ref
                         .read(serverStateProvider.notifier)
-                        .selectServer(srv, userId: loginNotifier.currentUser?.id);
+                        .selectServer(srv, userId: authData.currentUser?.id);
                   },
-                  child: srv.iconUrlFor(loginNotifier.autumnBase) != null
+                  child: srv.iconUrlFor(authData.autumnBase) != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            srv.iconUrlFor(loginNotifier.autumnBase)!,
+                            srv.iconUrlFor(authData.autumnBase)!,
                             width: 44,
                             height: 44,
                             fit: BoxFit.cover,

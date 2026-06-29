@@ -220,7 +220,8 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
   @override
   void initState() {
     super.initState();
-    final user = ref.read(loginStateProvider.notifier).currentUser;
+    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+    final user = authData.currentUser;
     _displayNameCtrl = TextEditingController(text: user?.resolveDisplayName(null) ?? '');
     _statusTextCtrl = TextEditingController(text: user?.statusText ?? '');
     _bioCtrl = TextEditingController(text: user?.profileContent ?? '');
@@ -233,7 +234,8 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
     final serverData = ref.read(serverStateProvider).value ?? ServerStateData();
     final server = serverData.selectedServer;
     if (server == null) return;
-    final uid = ref.read(loginStateProvider.notifier).currentUser?.id;
+    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+    final uid = authData.currentUser?.id;
     if (uid == null) return;
     final user = ref.read(messagingStateProvider).userCache[uid];
     final nickname = user?.serverNickname(server.id);
@@ -374,7 +376,7 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
 
   void _saveStatus() {
     final notifier = ref.read(loginStateProvider.notifier);
-    final user = notifier.currentUser;
+    final user = ref.read(loginStateProvider).value?.currentUser;
     final presence = user?.presence ?? UserPresence.online;
     notifier.updateStatus(
       presence: presenceToString(presence),
@@ -384,7 +386,7 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
 
   @override
   Widget build(BuildContext context) {
-    final authData = ref.watch(loginStateProvider).value ?? LoginStateData();
+    final authData = ref.watch(loginStateProvider).value ?? const LoginStateData();
     final user = authData.currentUser;
     final currentPresence = user?.presence ?? UserPresence.online;
 
@@ -419,8 +421,8 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
                             ? NetworkImage(
                                 user!.resolveAvatarUrl(
                                   null,
-                                  ref.read(loginStateProvider.notifier).autumnBase,
-                                  ref.read(loginStateProvider.notifier).apiBase,
+                                  authData.autumnBase,
+                                  authData.apiBase,
                                 ),
                               )
                             : null,
@@ -494,7 +496,7 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
                 image: user?.banner != null
                     ? DecorationImage(
                         image: NetworkImage(
-                          user!.bannerUrlFor(ref.read(loginStateProvider.notifier).autumnBase)!,
+                          user!.bannerUrlFor(authData.autumnBase)!,
                         ),
                         fit: BoxFit.cover,
                         onError: (_, _) {},
@@ -674,7 +676,7 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
                 onPressed: _saving
                     ? null
                     : () {
-                        final u = ref.read(loginStateProvider.notifier).currentUser;
+                        final u = ref.read(loginStateProvider).value?.currentUser;
                         _displayNameCtrl.text = u?.resolveDisplayName(null) ?? '';
                         _bioCtrl.text = u?.profileContent ?? '';
                         setState(() {
@@ -828,7 +830,7 @@ class _VoiceSection extends ConsumerWidget {
           _SettingsCard(
             children: [
               FutureBuilder<List<MediaDevice>>(
-                future: ref.read(voiceStateProvider.notifier).audioInputDeviceIds,
+                future: ref.read(voiceStateProvider.notifier).getAudioInputDevices(),
                 builder: (context, snapshot) {
                   final devices = snapshot.data ?? [];
                   if (snapshot.connectionState != ConnectionState.done) {
