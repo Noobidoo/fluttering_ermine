@@ -68,3 +68,6 @@ flutter_launcher_icons:
   windows:
     generate: true
     image_path: "assets/fluttering_ermine.png"
+  linux:
+    generate: true
+    image_path: "assets/fluttering_ermine.png"
