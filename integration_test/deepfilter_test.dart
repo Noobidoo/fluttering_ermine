@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -6,9 +8,8 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:fluttering_ermine/main.dart' as app;
-import 'package:fluttering_ermine/providers/server_state.dart';
+import 'package:fluttering_ermine/features/servers/providers/server_providers.dart';
 import 'package:fluttering_ermine/screens/home_screen.dart';
-import 'package:provider/provider.dart';
 import 'env_values.dart';
 
 const _channel = MethodChannel('io.deepfilter.livekit');
@@ -83,18 +84,20 @@ void main() {
       // Select the voice server via provider
       bool voiceJoined = false;
       final homeCtx = find.byType(HomeScreen).evaluate().first;
-      final serverState = homeCtx.read<ServerState>();
-      final server = serverState.servers.firstWhere(
+      final container = ProviderScope.containerOf(homeCtx);
+      final notifier = container.read(serverStateProvider.notifier);
+      final servers = container.read(serverStateProvider).requireValue.servers;
+      final server = servers.firstWhere(
         (s) => s.id == serverId,
         orElse: () {
           debugPrint(
             '[integration] Server $serverId not in serverState.servers',
           );
-          return serverState.servers.first;
+          return servers.first;
         },
       );
       debugPrint('[integration] Selecting server ${server.name} ($serverId)');
-      serverState.selectServer(server);
+      notifier.selectServer(server);
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       final channelTile = find.byKey(ValueKey('channel_$channelId'));

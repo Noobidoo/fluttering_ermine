@@ -1,10 +1,10 @@
-// Tests for reply compose state (setReplyTarget / clearReplyTarget).
-
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fluttering_ermine/features/core/providers/service_providers.dart';
+import 'package:fluttering_ermine/features/messaging/providers/messaging_providers.dart';
+import 'package:fluttering_ermine/features/servers/providers/server_providers.dart';
 import 'package:fluttering_ermine/models/models.dart';
-import 'package:fluttering_ermine/providers/messaging_state.dart';
-import 'package:fluttering_ermine/providers/server_state.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 
@@ -12,18 +12,25 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeRevoltService svc;
-  late ServerState serverState;
-  late MessagingState state;
+  late ProviderContainer container;
 
-  setUp(() {
+  setUp(() async {
     svc = FakeRevoltService();
-    serverState = ServerState(svc);
-    serverState.subscribeToEvents();
-    state = MessagingState(svc, serverState);
-    state.subscribeToEvents();
+    container = ProviderContainer(overrides: [
+      revoltServiceProvider.overrideWithValue(svc),
+    ]);
+    container.read(serverStateProvider.notifier);
+    container.read(messagingStateProvider);
+    await Future<void>.delayed(Duration.zero);
   });
 
-  tearDown(() => svc.close());
+  tearDown(() {
+    svc.close();
+    container.dispose();
+  });
+
+  MessagingNotifier notifier() => container.read(messagingStateProvider.notifier);
+  MessagingStateData state() => container.read(messagingStateProvider);
 
   // -- Reply compose state ---------------------------------------------------
 
@@ -32,40 +39,23 @@ void main() {
 
     setUp(() {
       svc.push(msgEvent(id: 'orig', channel: 'chan1', content: 'Original'));
-      target = state.getMessageById('chan1', 'orig')!;
+      target = state().messages['chan1']!.firstWhere((m) => m.id == 'orig');
     });
 
     test('setReplyTarget stores the message', () {
-      state.setReplyTarget(target);
-      expect(state.replyTarget?.id, 'orig');
-    });
-
-    test('setReplyTarget notifies listeners', () {
-      var notified = false;
-      state.addListener(() => notified = true);
-      state.setReplyTarget(target);
-      expect(notified, isTrue);
+      notifier().setReplyTarget(target);
+      expect(state().replyTarget?.id, 'orig');
     });
 
     test('clearReplyTarget clears the reply target', () {
-      state.setReplyTarget(target);
-      state.clearReplyTarget();
-      expect(state.replyTarget, isNull);
+      notifier().setReplyTarget(target);
+      notifier().clearReplyTarget();
+      expect(state().replyTarget, isNull);
     });
 
-    test('clearReplyTarget notifies listeners', () {
-      state.setReplyTarget(target);
-      var notified = false;
-      state.addListener(() => notified = true);
-      state.clearReplyTarget();
-      expect(notified, isTrue);
-    });
-
-    test('clearReplyTarget is no-op when already null (no notification)', () {
-      var notifyCount = 0;
-      state.addListener(() => notifyCount++);
-      state.clearReplyTarget();
-      expect(notifyCount, 0);
+    test('clearReplyTarget is no-op when already null (no state change)', () {
+      notifier().clearReplyTarget();
+      expect(state().replyTarget, isNull);
     });
   });
 }

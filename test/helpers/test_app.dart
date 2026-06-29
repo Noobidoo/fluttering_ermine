@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'package:fluttering_ermine/features/core/providers/service_providers.dart';
 import 'package:fluttering_ermine/models/models.dart';
-import 'package:fluttering_ermine/providers/auth_state.dart';
-import 'package:fluttering_ermine/providers/messaging_state.dart';
-import 'package:fluttering_ermine/providers/server_state.dart';
-import 'package:fluttering_ermine/providers/voice_state.dart';
 import 'mocks.dart';
 
 /// Builds a test app that wraps [child] with the same provider structure
@@ -32,34 +29,21 @@ class TestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final serverState = ServerState(mockService);
-    final voiceState = VoiceState(mockService, mockVoiceEvent);
-    final messagingState = MessagingState(mockService, serverState);
-    final authState = AuthState(
-      mockService,
-      serverState,
-      messagingState,
-      voiceState,
-      mockVoiceEvent,
-    );
-
-    return MaterialApp(
-      theme: ThemeData.dark().copyWith(
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF7F5AF0),
-          secondary: Color(0xFF2CB67D),
-          surface: Color(0xFF16161A),
+    return ProviderScope(
+      overrides: [
+        revoltServiceProvider.overrideWithValue(mockService),
+        voiceEventServiceProvider.overrideWithValue(mockVoiceEvent),
+      ],
+      child: MaterialApp(
+        theme: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xFF7F5AF0),
+            secondary: Color(0xFF2CB67D),
+            surface: Color(0xFF16161A),
+          ),
+          scaffoldBackgroundColor: const Color(0xFF0F0F13),
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F0F13),
-      ),
-      home: MultiProvider(
-        providers: [
-          ChangeNotifierProvider.value(value: authState),
-          ChangeNotifierProvider.value(value: serverState),
-          ChangeNotifierProvider.value(value: messagingState),
-          ChangeNotifierProvider.value(value: voiceState),
-        ],
-        child: child,
+        home: child,
       ),
     );
   }
@@ -104,8 +88,8 @@ class TestMessage {
         content: 'Hello everyone!',
         timestamp: '2026-06-01T12:00:00.000Z',
         reactions: {
-          '👍': ['u1', 'u2'],
-          '🔥': ['u2'],
+          '\u{1F44D}': ['u1', 'u2'],
+          '\u{1F525}': ['u2'],
         },
       );
 }

@@ -1,16 +1,10 @@
-// Tests for WebSocket event handling in MessagingState.
-//
-// Voice channel membership events (VoiceChannelJoin/Leave/Move) are tested in
-// voice_state_test.dart since VoiceState now owns that data.
-// Covers:
-//   - UserUpdate refreshing the user cache (avatar / display name)
-//   - UserUpdate for unknown users, ensureUsersCached
-
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fluttering_ermine/features/core/providers/service_providers.dart';
+import 'package:fluttering_ermine/features/messaging/providers/messaging_providers.dart';
+import 'package:fluttering_ermine/features/servers/providers/server_providers.dart';
 import 'package:fluttering_ermine/models/models.dart';
-import 'package:fluttering_ermine/providers/messaging_state.dart';
-import 'package:fluttering_ermine/providers/server_state.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 
@@ -47,22 +41,29 @@ void main() {
   // PaintingBinding is needed for imageCache.evict inside MessagingState.
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // -- MessagingState: UserUpdate ------------------------------------------
+  // -- MessagingNotifier: UserUpdate ------------------------------------------
 
-  group('MessagingState – UserUpdate event', () {
+  group('MessagingNotifier – UserUpdate event', () {
     late FakeRevoltService svc;
-    late ServerState serverState;
-    late MessagingState state;
+    late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       svc = FakeRevoltService();
-      serverState = ServerState(svc);
-      serverState.subscribeToEvents();
-      state = MessagingState(svc, serverState);
-      state.subscribeToEvents();
+      container = ProviderContainer(overrides: [
+        revoltServiceProvider.overrideWithValue(svc),
+      ]);
+      container.read(serverStateProvider.notifier);
+      container.read(messagingStateProvider);
+      await Future<void>.delayed(Duration.zero);
     });
 
-    tearDown(() => svc.close());
+    tearDown(() {
+      svc.close();
+      container.dispose();
+    });
+
+    MessagingNotifier notifier() => container.read(messagingStateProvider.notifier);
+    MessagingStateData state() => container.read(messagingStateProvider);
 
     test('UserUpdate with empty data preserves cached bio', () async {
       // Prime cache via Ready (user without bio, as API delivers)
@@ -70,21 +71,21 @@ void main() {
         {'_id': 'user1', 'username': 'user1', 'discriminator': '0001'},
       ]));
       await Future<void>.delayed(Duration.zero);
-      expect(state.getUser('user1')?.profileContent, isNull);
+      expect(state().userCache['user1']?.profileContent, isNull);
 
-      // Simulate AuthState.cacheUser after saving a bio
-      state.cacheUser(RevoltUser(
+      // Simulate LoginNotifier.cacheUser after saving a bio
+      notifier().cacheUser(RevoltUser(
         id: 'user1', username: 'user1', discriminator: '0001',
         profileContent: 'My bio',
       ));
-      expect(state.getUser('user1')?.profileContent, 'My bio');
+      expect(state().userCache['user1']?.profileContent, 'My bio');
 
       // Inject UserUpdate with empty data (as server sends for bio changes)
       svc.push({'type': 'UserUpdate', 'id': 'user1', 'data': {}, 'clear': []});
       await Future<void>.delayed(Duration.zero);
 
       // Bio should be preserved (not overwritten by fetchUser)
-      expect(state.getUser('user1')?.profileContent, 'My bio');
+      expect(state().userCache['user1']?.profileContent, 'My bio');
     });
 
     test('UserUpdate merges non-empty data into cached user', () async {
@@ -92,15 +93,15 @@ void main() {
       svc.push(readyEvent(users: [
         {'_id': 'user1', 'username': 'OldName', 'discriminator': '0001'},
       ]));
-      expect(state.getUser('user1')?.username, 'OldName');
+      expect(state().userCache['user1']?.username, 'OldName');
 
       // Inject UserUpdate with data
       svc.push({'type': 'UserUpdate', 'id': 'user1', 'data': {'display_name': 'NewDisplay'}, 'clear': []});
 
       await Future<void>.delayed(Duration.zero);
 
-      expect(state.getUser('user1')?.displayName, 'NewDisplay');
-      expect(state.getUser('user1')?.username, 'OldName'); // unchanged
+      expect(state().userCache['user1']?.displayName, 'NewDisplay');
+      expect(state().userCache['user1']?.username, 'OldName'); // unchanged
     });
 
     test('UserUpdate for unknown user still populates cache', () async {
@@ -109,18 +110,18 @@ void main() {
       svc.push({'type': 'UserUpdate', 'id': 'user99', 'data': {}, 'clear': []});
       await Future<void>.delayed(Duration.zero);
 
-      expect(state.getUser('user99')?.username, 'Stranger');
+      expect(state().userCache['user99']?.username, 'Stranger');
     });
 
     test('ensureUsersCached fetches uncached users', () async {
       svc.stubUser(fakeUser('u1', username: 'Alice'));
       svc.stubUser(fakeUser('u2', username: 'Bob'));
 
-      state.ensureUsersCached(['u1', 'u2']);
+      notifier().ensureUsersCached(['u1', 'u2']);
       await Future<void>.delayed(Duration.zero);
 
-      expect(state.getUser('u1')?.username, 'Alice');
-      expect(state.getUser('u2')?.username, 'Bob');
+      expect(state().userCache['u1']?.username, 'Alice');
+      expect(state().userCache['u2']?.username, 'Bob');
     });
 
     test('ensureUsersCached skips already-cached users (no duplicate fetch)', () async {
@@ -131,10 +132,10 @@ void main() {
       // Stub a different value – should NOT be loaded since u1 is already cached
       svc.stubUser(fakeUser('u1', username: 'ShouldNotAppear'));
 
-      state.ensureUsersCached(['u1']);
+      notifier().ensureUsersCached(['u1']);
       await Future<void>.delayed(Duration.zero);
 
-      expect(state.getUser('u1')?.username, 'Cached');
+      expect(state().userCache['u1']?.username, 'Cached');
     });
   });
 }

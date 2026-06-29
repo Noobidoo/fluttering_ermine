@@ -114,9 +114,13 @@ class FakeRevoltService extends RevoltService {
   void stubChannel(RevoltChannel channel) =>
       _channelStubs[channel.id] = channel;
 
+  final List<List<String>> fetchChannelsCalls = [];
+
   @override
-  Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async =>
-      channelIds.map((id) => _channelStubs[id]!).toList();
+  Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async {
+    fetchChannelsCalls.add([...channelIds]);
+    return channelIds.map((id) => _channelStubs[id]!).toList();
+  }
 
   // -- Ack / Unread ----------------------------------------------------------
 

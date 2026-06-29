@@ -1,9 +1,9 @@
-// Tests for Message / MessageUpdate / MessageDelete WS events.
-
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:fluttering_ermine/providers/messaging_state.dart';
-import 'package:fluttering_ermine/providers/server_state.dart';
+import 'package:fluttering_ermine/features/core/providers/service_providers.dart';
+import 'package:fluttering_ermine/features/messaging/providers/messaging_notifier.dart';
+import 'package:fluttering_ermine/features/servers/providers/server_providers.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 
@@ -11,23 +11,30 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeRevoltService svc;
-  late ServerState serverState;
-  late MessagingState state;
+  late ProviderContainer container;
 
-  setUp(() {
+  setUp(() async {
     svc = FakeRevoltService();
-    serverState = ServerState(svc);
-    serverState.subscribeToEvents();
-    state = MessagingState(svc, serverState);
-    state.subscribeToEvents();
+    container = ProviderContainer(overrides: [
+      revoltServiceProvider.overrideWithValue(svc),
+    ]);
+    // Trigger both notifiers' build() to subscribe to service events
+    container.read(serverStateProvider.notifier);
+    container.read(messagingStateProvider);
+    await Future<void>.delayed(Duration.zero);
   });
 
-  tearDown(() => svc.close());
+  tearDown(() {
+    svc.close();
+    container.dispose();
+  });
 
   // Push WS messages THEN select channel - _onServerStateChanged sees
   // _messages already has the key → skips _loadMessages → currentMessages works.
   void selectAfterPush(String channelId) =>
-      serverState.selectChannel(textChan(channelId));
+      container.read(serverStateProvider.notifier).selectChannel(textChan(channelId));
+
+  MessagingStateData state() => container.read(messagingStateProvider);
 
   // -- Message ---------------------------------------------------------------
 
@@ -36,15 +43,15 @@ void main() {
       svc.push(msgEvent(id: 'msg1', channel: 'chan1', content: 'Hi'));
       selectAfterPush('chan1');
 
-      expect(state.currentMessages, hasLength(1));
-      expect(state.currentMessages.first.id, 'msg1');
-      expect(state.currentMessages.first.content, 'Hi');
+      expect(state().messages['chan1']?.length, 1);
+      expect(state().messages['chan1']!.first.id, 'msg1');
+      expect(state().messages['chan1']!.first.content, 'Hi');
     });
 
     test('message with replies field is stored', () {
       svc.push(msgEvent(id: 'msg1', channel: 'chan1', replies: ['orig']));
-
-      expect(state.getMessageById('chan1', 'msg1')?.replies, contains('orig'));
+      // GetMessageById requires messages to be in the map for that channel
+      expect(state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').replies, contains('orig'));
     });
 
     test('message with reactions field is stored', () {
@@ -54,7 +61,7 @@ void main() {
           reactions: {'\u{1F44D}': ['u1']}));
 
       expect(
-          state.getMessageById('chan1', 'msg1')?.reactions['\u{1F44D}'],
+          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions['\u{1F44D}'],
           contains('u1'));
     });
 
@@ -63,18 +70,18 @@ void main() {
       svc.push(msgEvent(id: 'msg1', content: 'Duplicate'));
       selectAfterPush('chan1');
 
-      expect(state.currentMessages, hasLength(1));
-      expect(state.currentMessages.first.content, 'First');
+      expect(state().messages['chan1']?.length, 1);
+      expect(state().messages['chan1']!.first.content, 'First');
     });
 
     test('messages from different channels are stored separately', () {
       svc.push(msgEvent(id: 'a', channel: 'chan1'));
       svc.push(msgEvent(id: 'b', channel: 'chan2'));
 
-      expect(state.getMessageById('chan1', 'a'), isNotNull);
-      expect(state.getMessageById('chan2', 'b'), isNotNull);
-      expect(state.getMessageById('chan1', 'b'), isNull);
-      expect(state.getMessageById('chan2', 'a'), isNull);
+      expect(state().messages['chan1']?.any((m) => m.id == 'a'), isTrue);
+      expect(state().messages['chan2']?.any((m) => m.id == 'b'), isTrue);
+      expect(state().messages['chan1']?.any((m) => m.id == 'b'), isFalse);
+      expect(state().messages['chan2']?.any((m) => m.id == 'a'), isFalse);
     });
   });
 
@@ -94,7 +101,7 @@ void main() {
         },
       });
 
-      final msg = state.getMessageById('chan1', 'msg1');
+      final msg = state().messages['chan1']?.firstWhere((m) => m.id == 'msg1');
       expect(msg?.content, 'Edited');
       expect(msg?.edited, '2024-06-01T00:00:00.000Z');
     });
@@ -107,7 +114,7 @@ void main() {
         'data': {'content': 'Should not appear'},
       });
 
-      expect(state.getMessageById('chan1', 'msg1')?.content, 'Hello');
+      expect(state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').content, 'Hello');
     });
 
     test('no-op for unknown message ID in known channel', () {
@@ -118,7 +125,7 @@ void main() {
         'data': {'content': 'Should not appear'},
       });
 
-      expect(state.getMessageById('chan1', 'msg1')?.content, 'Hello');
+      expect(state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').content, 'Hello');
     });
   });
 
@@ -133,22 +140,22 @@ void main() {
     test('removes target message from list', () {
       svc.push({'type': 'MessageDelete', 'id': 'msg1', 'channel': 'chan1'});
 
-      expect(state.getMessageById('chan1', 'msg1'), isNull);
-      expect(state.getMessageById('chan1', 'msg2'), isNotNull);
+      expect(state().messages['chan1']?.any((m) => m.id == 'msg1'), isFalse);
+      expect(state().messages['chan1']?.any((m) => m.id == 'msg2'), isTrue);
     });
 
     test('no-op for unknown message ID', () {
       svc.push({'type': 'MessageDelete', 'id': 'ghost', 'channel': 'chan1'});
 
-      expect(state.getMessageById('chan1', 'msg1'), isNotNull);
-      expect(state.getMessageById('chan1', 'msg2'), isNotNull);
+      expect(state().messages['chan1']?.any((m) => m.id == 'msg1'), isTrue);
+      expect(state().messages['chan1']?.any((m) => m.id == 'msg2'), isTrue);
     });
 
     test('no-op for unknown channel', () {
       svc.push(
           {'type': 'MessageDelete', 'id': 'msg1', 'channel': 'ghost-chan'});
 
-      expect(state.getMessageById('chan1', 'msg1'), isNotNull);
+      expect(state().messages['chan1']?.any((m) => m.id == 'msg1'), isTrue);
     });
   });
 }

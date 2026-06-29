@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -26,12 +27,12 @@ void main() {
 
       await tester.pumpWidget(TestApp(
         mockService: mockService,
-        child: Builder(
-          builder: (ctx) => ElevatedButton(
-            onPressed: () => showUserProfileSheet(ctx, user),
+        child: Consumer(builder: (context, ref, _) {
+          return ElevatedButton(
+            onPressed: () => showUserProfileSheet(context, ref, user),
             child: const Text('Show'),
-          ),
-        ),
+          );
+        }),
       ));
 
       await tester.tap(find.text('Show'));
@@ -56,12 +57,12 @@ void main() {
 
       await tester.pumpWidget(TestApp(
         mockService: mockService,
-        child: Builder(
-          builder: (ctx) => ElevatedButton(
-            onPressed: () => showUserProfileSheet(ctx, user),
+        child: Consumer(builder: (context, ref, _) {
+          return ElevatedButton(
+            onPressed: () => showUserProfileSheet(context, ref, user),
             child: const Text('Show'),
-          ),
-        ),
+          );
+        }),
       ));
 
       await tester.tap(find.text('Show'));
@@ -85,12 +86,12 @@ void main() {
 
       await tester.pumpWidget(TestApp(
         mockService: mockService,
-        child: Builder(
-          builder: (ctx) => ElevatedButton(
-            onPressed: () => showUserProfileSheet(ctx, user),
+        child: Consumer(builder: (context, ref, _) {
+          return ElevatedButton(
+            onPressed: () => showUserProfileSheet(context, ref, user),
             child: const Text('Show'),
-          ),
-        ),
+          );
+        }),
       ));
 
       await tester.tap(find.text('Show'));
