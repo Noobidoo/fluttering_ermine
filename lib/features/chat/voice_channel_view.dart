@@ -102,9 +102,7 @@ class VoiceChannelView extends ConsumerWidget {
     final voice = ref.watch(voiceStateProvider);
     final isActive = voice.activeVoiceChannel?.id == channel.id;
     final streams = isActive ? voice.remoteVideoStreams : <RemoteVideoStream>[];
-    final localCameraTrack = isActive
-        ? ref.read(voiceStateProvider.notifier).localCameraTrack
-        : null;
+    final localCameraTrack = isActive ? voice.localCameraTrack : null;
 
     Widget controls;
     if (isActive) {
