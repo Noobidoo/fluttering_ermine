@@ -129,13 +129,15 @@ class ServerStateData {
     return perms;
   }
 
+  static const _omit = Object();
+
   // -- copyWith --------------------------------------------------------------
 
   ServerStateData copyWith({
     List<RevoltServer>? servers,
     List<RevoltChannel>? allChannels,
-    RevoltServer? selectedServer,
-    RevoltChannel? selectedChannel,
+    Object? selectedServer = _omit,
+    Object? selectedChannel = _omit,
     bool? showDMs,
     Map<String, String>? channelErrors,
     Set<String>? loadingChannels,
@@ -148,8 +150,8 @@ class ServerStateData {
   }) => ServerStateData(
     servers: servers ?? this.servers,
     allChannels: allChannels ?? this.allChannels,
-    selectedServer: selectedServer ?? this.selectedServer,
-    selectedChannel: selectedChannel ?? this.selectedChannel,
+    selectedServer: selectedServer == _omit ? this.selectedServer : selectedServer as RevoltServer?,
+    selectedChannel: selectedChannel == _omit ? this.selectedChannel : selectedChannel as RevoltChannel?,
     showDMs: showDMs ?? this.showDMs,
     channelErrors: channelErrors ?? this.channelErrors,
     loadingChannels: loadingChannels ?? this.loadingChannels,
@@ -170,12 +172,20 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
   late RevoltService _service;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
 
-  /// Called when fetchMembers receives user data that should be cached.
-  void Function(List<RevoltUser> users)? onUsersFetched;
+  late void Function(List<RevoltUser> users) _onUsersFetched;
+  late void Function(String userId, String serverId, Map<String, dynamic>? data, List<String> clear)
+      _onServerProfileUpdated;
 
-  /// Called when a member's server profile changes (ServerMemberUpdate).
-  void Function(String userId, String serverId, Map<String, dynamic>? data, List<String> clear)?
-  onServerProfileUpdated;
+  void setUsersFetchedCallback(void Function(List<RevoltUser> users) callback) {
+    _onUsersFetched = callback;
+  }
+
+  void setServerProfileUpdatedCallback(
+    void Function(String userId, String serverId, Map<String, dynamic>? data, List<String> clear)
+        callback,
+  ) {
+    _onServerProfileUpdated = callback;
+  }
 
   // -- build() ----------------------------------------------------------------
 
@@ -331,7 +341,7 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     if (!existing.memberIdsByServer.containsKey(serverId)) return;
     if (!existing.memberIdsByServer[serverId]!.contains(userId)) return;
 
-    onServerProfileUpdated?.call(userId, serverId, data, clear);
+    _onServerProfileUpdated(userId, serverId, data, clear);
   }
 
   void _onServerRoleUpdate(Map<String, dynamic> event, String? currentUserId) {
@@ -535,12 +545,11 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
   // -- Members ----------------------------------------------------------------
 
   Future<void> fetchMembers({bool force = false}) async {
-    final existing = state.value!;
-    final server = existing.selectedServer;
+    final server = state.value?.selectedServer;
     if (server == null) return;
-    if (!force && existing.memberIdsByServer.containsKey(server.id)) return;
+    if (!force && state.value!.memberIdsByServer.containsKey(server.id)) return;
 
-    state = AsyncData(existing.copyWith(loadingMembers: true));
+    state = AsyncData(state.value!.copyWith(loadingMembers: true));
 
     try {
       final (memberProfiles, users) = await _service.fetchServerMembers(server.id);
@@ -556,17 +565,21 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
         );
       }).toList();
 
-      onUsersFetched?.call(updatedUsers);
+      _onUsersFetched(updatedUsers);
 
+      final current = state.value!;
       state = AsyncData(
-        existing.copyWith(
-          memberIdsByServer: {...existing.memberIdsByServer, server.id: memberIds},
+        current.copyWith(
+          memberIdsByServer: {...current.memberIdsByServer, server.id: memberIds},
           loadingMembers: false,
         ),
       );
     } catch (e) {
       debugPrint('[fetchMembers] ${server.id} failed: $e');
-      state = AsyncData(existing.copyWith(loadingMembers: false));
+      final current = state.value;
+      if (current != null) {
+        state = AsyncData(current.copyWith(loadingMembers: false));
+      }
     }
   }
 
