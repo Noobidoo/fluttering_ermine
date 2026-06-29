@@ -7,8 +7,8 @@ import '../models/models.dart';
 import '../features/auth/providers/login_notifier.dart';
 import '../features/messaging/providers/messaging_notifier.dart';
 import '../features/servers/providers/server_notifier.dart';
-import 'mention_chip.dart';
-import 'user_profile_sheet.dart';
+import '../core/widgets/mention_chip.dart';
+import '../features/users/user_profile_sheet.dart';
 
 enum _MsgAction { reply, react, edit, delete, copy }
 

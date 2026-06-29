@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Consumer;
 
-import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
+import 'features/home/home_screen.dart';
+import 'features/auth/login_screen.dart';
 import 'features/auth/providers/login_notifier.dart';
 import 'features/core/widgets/app_bootstrap.dart';
 

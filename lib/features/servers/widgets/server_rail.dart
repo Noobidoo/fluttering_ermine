@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../features/auth/providers/login_notifier.dart';
-import '../features/servers/providers/server_notifier.dart';
-import '../screens/settings_screen.dart';
+import '../../auth/providers/login_notifier.dart';
+import '../providers/server_notifier.dart';
+import '../../settings/settings_screen.dart';
 
 class ServerRail extends ConsumerWidget {
   const ServerRail({super.key});

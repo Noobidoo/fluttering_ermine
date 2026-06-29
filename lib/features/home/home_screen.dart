@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../features/auth/providers/login_notifier.dart';
-import '../features/channels/channel_panel_view.dart';
-import '../features/chat/chat_view.dart';
-import '../features/messaging/providers/messaging_notifier.dart';
-import '../features/servers/providers/server_notifier.dart';
-import '../models/models.dart';
-import '../widgets/member_panel.dart';
-import '../widgets/server_rail.dart';
+import '../auth/providers/login_notifier.dart';
+import '../channels/channel_panel_view.dart';
+import '../chat/chat_view.dart';
+import '../messaging/providers/messaging_notifier.dart';
+import '../servers/providers/server_notifier.dart';
+import '../../models/models.dart';
+import '../users/member_panel.dart';
+import '../servers/widgets/server_rail.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});

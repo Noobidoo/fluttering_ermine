@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../messaging/providers/messaging_notifier.dart';
-import 'providers/chat_selectors.dart';
+import '../../messaging/providers/messaging_notifier.dart';
+import '../providers/chat_selectors.dart';
 
 class TypingIndicator extends ConsumerWidget {
   const TypingIndicator({super.key});

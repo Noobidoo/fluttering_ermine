@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/models.dart';
-import '../features/auth/providers/login_notifier.dart';
-import '../features/messaging/providers/messaging_notifier.dart';
-import '../features/servers/providers/permissions_provider.dart';
-import '../features/servers/providers/server_notifier.dart';
+import '../../models/models.dart';
+import '../auth/providers/login_notifier.dart';
+import '../messaging/providers/messaging_notifier.dart';
+import '../servers/providers/permissions_provider.dart';
+import '../servers/providers/server_notifier.dart';
 import 'user_profile_sheet.dart';
 
 class MemberPanel extends ConsumerWidget {

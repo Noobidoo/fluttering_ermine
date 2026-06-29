@@ -8,7 +8,7 @@ import '../../../features/servers/providers/permissions_provider.dart';
 import '../../../features/servers/providers/server_notifier.dart';
 import '../../../features/voice/providers/voice_notifier.dart';
 import '../../../models/models.dart';
-import '../../../screens/channel_permissions_screen.dart';
+import '../../servers/channel_permissions_screen.dart';
 import 'voice_participant_row.dart';
 
 class ChannelTile extends ConsumerWidget {

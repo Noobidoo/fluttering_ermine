@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../models/revolt_message.dart';
-import '../../models/revolt_user.dart';
+import '../../../models/revolt_message.dart';
+import '../../../models/revolt_user.dart';
 
 class ReplyBar extends StatelessWidget {
   final RevoltMessage message;

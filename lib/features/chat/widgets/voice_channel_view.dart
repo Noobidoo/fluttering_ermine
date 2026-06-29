@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 
-import '../../models/revolt_channel.dart';
-import '../voice/providers/voice_notifier.dart';
+import '../../../models/revolt_channel.dart';
+import '../../voice/providers/voice_notifier.dart';
 
 class VoiceTabBar extends StatelessWidget {
   final bool showVoice;

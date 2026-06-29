@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/revolt_channel.dart';
-import '../servers/providers/server_notifier.dart';
-import '../messaging/providers/messaging_notifier.dart';
-import 'providers/chat_selectors.dart';
+import '../../../models/revolt_channel.dart';
+import '../../servers/providers/server_notifier.dart';
+import '../../messaging/providers/messaging_notifier.dart';
+import '../providers/chat_selectors.dart';
 import 'message_bubble.dart';
 
 class MessageList extends ConsumerWidget {

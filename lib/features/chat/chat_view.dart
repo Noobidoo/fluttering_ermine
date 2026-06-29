@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../servers/providers/server_notifier.dart';
 import '../messaging/providers/messaging_notifier.dart';
-import 'chat_header.dart';
-import 'voice_channel_view.dart';
-import 'message_list.dart';
-import 'message_input.dart';
+import 'widgets/chat_header.dart';
+import 'widgets/voice_channel_view.dart';
+import 'widgets/message_list.dart';
+import 'widgets/message_input.dart';
 import 'providers/chat_selectors.dart';
 
 class ChatView extends ConsumerStatefulWidget {

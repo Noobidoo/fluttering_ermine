@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/models.dart';
-import '../features/auth/providers/login_notifier.dart';
-import '../features/core/providers/service_providers.dart';
+import '../../models/models.dart';
+import '../auth/providers/login_notifier.dart';
+import '../core/providers/service_providers.dart';
 
 void showUserProfileSheet(BuildContext context, WidgetRef ref, RevoltUser user) {
   final authData = ref.read(loginStateProvider).value ?? const LoginStateData();

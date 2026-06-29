@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../models/models.dart';
-import '../core/providers/service_providers.dart';
-import '../servers/providers/server_notifier.dart';
-import '../messaging/providers/messaging_notifier.dart';
-import '../auth/providers/login_notifier.dart';
-import '../../widgets/user_profile_sheet.dart';
+import '../../../models/models.dart';
+import '../../core/providers/service_providers.dart';
+import '../../servers/providers/server_notifier.dart';
+import '../../messaging/providers/messaging_notifier.dart';
+import '../../auth/providers/login_notifier.dart';
+import '../../users/user_profile_sheet.dart';
 
 enum MsgAction { reply, react, edit, delete, copy }
 

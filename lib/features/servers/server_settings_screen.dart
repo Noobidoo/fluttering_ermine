@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
+import '../../models/models.dart';
 import 'role_manager_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../features/servers/providers/permissions_provider.dart';
-import '../features/servers/providers/server_notifier.dart';
+import 'providers/permissions_provider.dart';
+import 'providers/server_notifier.dart';
 
 // =============================================================================
 // Server Settings Dialog

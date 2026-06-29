@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../features/messaging/providers/messaging_notifier.dart';
+import '../../features/messaging/providers/messaging_notifier.dart';
 
 InlineSpan buildMentionChip(String userId, MessagingStateData messaging, {TextStyle? baseStyle}) {
   final user = messaging.userCache[userId];

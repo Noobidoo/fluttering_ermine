@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/login_notifier.dart';
 import '../../../features/core/providers/service_providers.dart';
 import '../../../models/models.dart';
-import '../../../screens/settings_screen.dart';
+import '../../settings/settings_screen.dart';
 
 class UserBar extends ConsumerWidget {
   const UserBar({super.key});

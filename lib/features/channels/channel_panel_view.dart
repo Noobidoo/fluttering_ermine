@@ -6,7 +6,7 @@ import '../../features/servers/providers/permissions_provider.dart';
 import '../../features/servers/providers/server_notifier.dart';
 import '../../features/voice/providers/voice_notifier.dart';
 import '../../models/models.dart';
-import '../../screens/server_settings_screen.dart';
+import '../servers/server_settings_screen.dart';
 import 'widgets/channel_tile.dart';
 import 'widgets/user_bar.dart';
 import 'widgets/voice_bar.dart';

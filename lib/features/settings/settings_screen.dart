@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:livekit_client/livekit_client.dart' hide ConnectionState;
 
-import '../models/models.dart';
-import '../features/auth/providers/login_notifier.dart';
-import '../features/messaging/providers/messaging_notifier.dart';
-import '../features/servers/providers/server_notifier.dart';
-import '../features/voice/providers/voice_notifier.dart';
-import '../widgets/crop_dialog.dart';
+import '../../models/models.dart';
+import '../auth/providers/login_notifier.dart';
+import '../messaging/providers/messaging_notifier.dart';
+import '../servers/providers/server_notifier.dart';
+import '../voice/providers/voice_notifier.dart';
+import '../../core/widgets/crop_dialog.dart';
 
 enum _Section { profile, voice }
 

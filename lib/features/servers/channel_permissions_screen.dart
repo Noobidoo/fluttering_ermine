@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/models.dart';
-import '../features/servers/providers/server_notifier.dart';
+import '../../models/models.dart';
+import 'providers/server_notifier.dart';
 
 int permVal(String? s) => int.tryParse(s ?? '') ?? 0;
 

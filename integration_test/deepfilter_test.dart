@@ -9,7 +9,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 import 'package:fluttering_ermine/main.dart' as app;
 import 'package:fluttering_ermine/features/servers/providers/server_providers.dart';
-import 'package:fluttering_ermine/screens/home_screen.dart';
+import 'package:fluttering_ermine/features/home/home_screen.dart';
 import 'env_values.dart';
 
 const _channel = MethodChannel('io.deepfilter.livekit');

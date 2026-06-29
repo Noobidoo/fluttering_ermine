@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/revolt_channel.dart';
-import '../messaging/providers/messaging_notifier.dart';
+import '../../../models/revolt_channel.dart';
+import '../../messaging/providers/messaging_notifier.dart';
 
 class ChatHeader extends ConsumerWidget {
   final RevoltChannel channel;

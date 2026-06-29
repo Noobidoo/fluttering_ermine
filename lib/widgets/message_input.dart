@@ -7,7 +7,7 @@ import '../models/models.dart';
 import '../features/messaging/providers/messaging_notifier.dart';
 import '../features/servers/providers/server_notifier.dart';
 import '../features/core/providers/service_providers.dart';
-import 'mention_chip.dart';
+import '../core/widgets/mention_chip.dart';
 
 class _MentionRenderController extends TextEditingController {
   final MessagingStateData Function() _getMessaging;

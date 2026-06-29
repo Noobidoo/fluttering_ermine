@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:fluttering_ermine/models/models.dart';
-import 'package:fluttering_ermine/widgets/user_profile_sheet.dart';
+import 'package:fluttering_ermine/features/users/user_profile_sheet.dart';
 
 import '../helpers/mocks.dart';
 import '../helpers/test_app.dart';
