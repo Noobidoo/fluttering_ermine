@@ -4,6 +4,7 @@ import '../../auth/providers/login_notifier.dart';
 import '../../../models/permissions.dart';
 import 'current_user_id_provider.dart';
 import 'server_notifier.dart';
+import '../../messaging/providers/messaging_providers.dart';
 
 final effectivePermissionsProvider = Provider.family<int, String>((ref, serverId) {
   final userId = ref.watch(currentUserIdProvider);
@@ -26,6 +27,8 @@ final effectivePermissionsProvider = Provider.family<int, String>((ref, serverId
 
   if (server.ownerId == userId) return Permission.grantAllSafe;
 
-  final userRoleIds = user.serverProfiles[serverId]?.roles ?? [];
+  final messaging = ref.watch(messagingStateProvider);
+  final cachedUser = messaging.userCache[userId] ?? user;
+  final userRoleIds = cachedUser.serverProfiles[serverId]?.roles ?? [];
   return serverState.userEffectivePermissions(serverId, userRoleIds);
 });
