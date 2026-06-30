@@ -109,8 +109,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   String? get selectedAudioInputId => _selectedAudioInputId;
 
   double getParticipantVolume(String identity, {TrackSource? source}) {
-    if (source != null)
+    if (source != null) {
       return _participantVolumes['$identity:${source.name}'] ?? 1.0;
+    }
     return _participantVolumes[identity] ?? 1.0;
   }
 

@@ -322,12 +322,13 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
       _fetchServerChannels(selectedServer);
       fetchMembers(force: true);
       final uid = ref.read(currentUserIdProvider);
-      if (uid != null)
+      if (uid != null) {
         fetchRoles(
           serverId: selectedServer.id,
           currentUserId: uid,
           force: true,
         );
+      }
     }
   }
 
