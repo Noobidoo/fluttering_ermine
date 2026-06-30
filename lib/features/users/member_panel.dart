@@ -36,18 +36,25 @@ class MemberPanel extends ConsumerWidget {
             ),
           ),
           if (serverData?.loadingMembers ?? false)
-            const Expanded(child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
+            const Expanded(
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
           else if (memberIds == null || memberIds.isEmpty)
             const Expanded(
               child: Center(
-                child: Text('No members', style: TextStyle(color: Colors.white38)),
+                child: Text(
+                  'No members',
+                  style: TextStyle(color: Colors.white38),
+                ),
               ),
             )
           else
             Expanded(
               child: Builder(
                 builder: (_) {
-                  ref.read(messagingStateProvider.notifier).ensureUsersCached(memberIds);
+                  ref
+                      .read(messagingStateProvider.notifier)
+                      .ensureUsersCached(memberIds);
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: memberIds.length,
@@ -71,7 +78,11 @@ class _MemberTile extends ConsumerWidget {
   final String serverId;
   final RevoltUser? user;
 
-  const _MemberTile({required this.userId, required this.serverId, required this.user});
+  const _MemberTile({
+    required this.userId,
+    required this.serverId,
+    required this.user,
+  });
 
   Widget? get _statusText {
     final u = user;
@@ -91,12 +102,16 @@ class _MemberTile extends ConsumerWidget {
     final name = u?.resolveDisplayName(serverId) ?? userId;
     final p = u?.presence ?? UserPresence.online;
     final isOnline = p == UserPresence.online || p == UserPresence.focus;
-    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+    final authData =
+        ref.read(loginStateProvider).value ?? const LoginStateData();
 
     // Role colour
     final serverStateWatched = ref.watch(serverStateProvider).value;
     final roleColour = u != null
-        ? serverStateWatched?.roleColourFor(serverId, u.serverProfiles[serverId]?.roles ?? [])
+        ? serverStateWatched?.roleColourFor(
+            serverId,
+            u.serverProfiles[serverId]?.roles ?? [],
+          )
         : null;
     final nameColour = roleColour != null
         ? Color(roleColour)
@@ -114,7 +129,11 @@ class _MemberTile extends ConsumerWidget {
               radius: 14,
               backgroundImage: u != null
                   ? NetworkImage(
-                      u.resolveAvatarUrl(serverId, authData.autumnBase, authData.apiBase),
+                      u.resolveAvatarUrl(
+                        serverId,
+                        authData.autumnBase,
+                        authData.apiBase,
+                      ),
                     )
                   : null,
               backgroundColor: const Color(0xFF7F5AF0),
@@ -164,7 +183,8 @@ class _MemberTile extends ConsumerWidget {
   }
 
   void _showMemberContextMenu(BuildContext context, WidgetRef ref) {
-    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+    final authData =
+        ref.read(loginStateProvider).value ?? const LoginStateData();
     final isSelf = userId == authData.currentUser?.id;
     if (isSelf || user == null) return;
 
@@ -187,13 +207,19 @@ class _MemberTile extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 user!.resolveDisplayName(serverId),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
             ),
             const Divider(color: Color(0xFF2A2A30), height: 1),
             if (canKick)
               ListTile(
-                leading: const Icon(Icons.remove_circle_outline, color: Colors.orangeAccent),
+                leading: const Icon(
+                  Icons.remove_circle_outline,
+                  color: Colors.orangeAccent,
+                ),
                 title: const Text('Kick Member'),
                 subtitle: const Text(
                   'Remove from server',
@@ -235,13 +261,19 @@ class _MemberTile extends ConsumerWidget {
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _doKick(context, ref);
             },
-            child: const Text('Kick', style: TextStyle(color: Colors.orangeAccent)),
+            child: const Text(
+              'Kick',
+              style: TextStyle(color: Colors.orangeAccent),
+            ),
           ),
         ],
       ),
@@ -254,11 +286,17 @@ class _MemberTile extends ConsumerWidget {
       await serverNotifier.kickMember(userId);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${user?.resolveDisplayName(serverId) ?? userId} was kicked')),
+        SnackBar(
+          content: Text(
+            '${user?.resolveDisplayName(serverId) ?? userId} was kicked',
+          ),
+        ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to kick: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to kick: $e')));
     }
   }
 
@@ -284,14 +322,20 @@ class _MemberTile extends ConsumerWidget {
                 hintText: 'Reason (optional)',
                 hintStyle: TextStyle(color: Colors.white38),
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               style: const TextStyle(fontSize: 14),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -307,14 +351,23 @@ class _MemberTile extends ConsumerWidget {
   void _doBan(BuildContext context, WidgetRef ref, String reason) async {
     try {
       final serverNotifier = ref.read(serverStateProvider.notifier);
-      await serverNotifier.banMember(userId, reason: reason.isNotEmpty ? reason : null);
+      await serverNotifier.banMember(
+        userId,
+        reason: reason.isNotEmpty ? reason : null,
+      );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${user?.resolveDisplayName(serverId) ?? userId} was banned')),
+        SnackBar(
+          content: Text(
+            '${user?.resolveDisplayName(serverId) ?? userId} was banned',
+          ),
+        ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to ban: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to ban: $e')));
     }
   }
 }

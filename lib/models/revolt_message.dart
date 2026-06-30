@@ -27,18 +27,21 @@ class RevoltMessage {
     this.reactions = const {},
   });
 
-  RevoltMessage copyWith({String? content, String? edited, Map<String, List<String>>? reactions}) =>
-      RevoltMessage(
-        id: id,
-        channelId: channelId,
-        authorId: authorId,
-        content: content ?? this.content,
-        timestamp: timestamp,
-        edited: edited ?? this.edited,
-        attachments: attachments,
-        replies: replies,
-        reactions: reactions ?? this.reactions,
-      );
+  RevoltMessage copyWith({
+    String? content,
+    String? edited,
+    Map<String, List<String>>? reactions,
+  }) => RevoltMessage(
+    id: id,
+    channelId: channelId,
+    authorId: authorId,
+    content: content ?? this.content,
+    timestamp: timestamp,
+    edited: edited ?? this.edited,
+    attachments: attachments,
+    replies: replies,
+    reactions: reactions ?? this.reactions,
+  );
 
   factory RevoltMessage.fromJson(Map<String, dynamic> json) => RevoltMessage(
     id: json['_id'] as String,
@@ -52,10 +55,15 @@ class RevoltMessage {
             ?.map((a) => RevoltFile.fromJson(a as Map<String, dynamic>))
             .toList() ??
         [],
-    replies: (json['replies'] as List<dynamic>?)?.map((r) => r as String).toList() ?? [],
+    replies:
+        (json['replies'] as List<dynamic>?)?.map((r) => r as String).toList() ??
+        [],
     reactions:
         (json['reactions'] as Map<String, dynamic>?)?.map(
-          (k, v) => MapEntry(k, (v as List<dynamic>).map((u) => u as String).toList()),
+          (k, v) => MapEntry(
+            k,
+            (v as List<dynamic>).map((u) => u as String).toList(),
+          ),
         ) ??
         {},
   );

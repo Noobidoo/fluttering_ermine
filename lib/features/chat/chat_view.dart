@@ -55,7 +55,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
           children: [
             Icon(Icons.chat_bubble_outline, size: 72, color: Colors.white12),
             SizedBox(height: 16),
-            Text('Select a channel', style: TextStyle(color: Colors.white38, fontSize: 18)),
+            Text(
+              'Select a channel',
+              style: TextStyle(color: Colors.white38, fontSize: 18),
+            ),
             SizedBox(height: 4),
             Text(
               'Pick a channel from the left to start chatting.',
@@ -105,7 +108,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
                     ),
                   IconButton(
                     icon: Icon(
-                      _splitMode ? Icons.tab_rounded : Icons.view_agenda_rounded,
+                      _splitMode
+                          ? Icons.tab_rounded
+                          : Icons.view_agenda_rounded,
                       size: 18,
                     ),
                     tooltip: _splitMode ? 'Tab layout' : 'Split layout',
@@ -127,7 +132,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
             Expanded(child: MessageList(channel, widget.scrollCtrl)),
             MessageInput(msgCtrl: widget.msgCtrl),
           ] else ...[
-            VoiceTabBar(showVoice: _showVoice, onToggle: (v) => setState(() => _showVoice = v)),
+            VoiceTabBar(
+              showVoice: _showVoice,
+              onToggle: (v) => setState(() => _showVoice = v),
+            ),
             if (_showVoice)
               Expanded(child: VoiceChannelView(channel))
             else ...[

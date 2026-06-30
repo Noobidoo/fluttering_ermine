@@ -5,7 +5,11 @@ import '../../models/models.dart';
 import '../auth/providers/login_notifier.dart';
 import '../core/providers/service_providers.dart';
 
-void showUserProfileSheet(BuildContext context, WidgetRef ref, RevoltUser user) {
+void showUserProfileSheet(
+  BuildContext context,
+  WidgetRef ref,
+  RevoltUser user,
+) {
   final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
   final autumnBase = authData.autumnBase;
   final apiBase = authData.apiBase;
@@ -26,7 +30,9 @@ void showUserProfileSheet(BuildContext context, WidgetRef ref, RevoltUser user) 
       future: profileFuture,
       builder: (context, snapshot) {
         final p = user.presence;
-        final profileContent = isSelf ? user.profileContent : snapshot.data?.content;
+        final profileContent = isSelf
+            ? user.profileContent
+            : snapshot.data?.content;
         final banner = isSelf ? user.banner : snapshot.data?.background;
 
         final avatarFallback = SizedBox(
@@ -113,14 +119,23 @@ void showUserProfileSheet(BuildContext context, WidgetRef ref, RevoltUser user) 
               const SizedBox(height: 12),
               Text(
                 user.resolveDisplayName(null),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
-              Text('@${user.username}', style: const TextStyle(color: Colors.white54)),
+              Text(
+                '@${user.username}',
+                style: const TextStyle(color: Colors.white54),
+              ),
               if (user.statusText != null && user.statusText!.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF16161A),
                     borderRadius: BorderRadius.circular(12),

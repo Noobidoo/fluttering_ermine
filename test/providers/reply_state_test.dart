@@ -16,9 +16,9 @@ void main() {
 
   setUp(() async {
     svc = FakeRevoltService();
-    container = ProviderContainer(overrides: [
-      revoltServiceProvider.overrideWithValue(svc),
-    ]);
+    container = ProviderContainer(
+      overrides: [revoltServiceProvider.overrideWithValue(svc)],
+    );
     container.read(serverStateProvider.notifier);
     container.read(messagingStateProvider);
     await Future<void>.delayed(Duration.zero);
@@ -29,7 +29,8 @@ void main() {
     container.dispose();
   });
 
-  MessagingNotifier notifier() => container.read(messagingStateProvider.notifier);
+  MessagingNotifier notifier() =>
+      container.read(messagingStateProvider.notifier);
   MessagingStateData state() => container.read(messagingStateProvider);
 
   // -- Reply compose state ---------------------------------------------------

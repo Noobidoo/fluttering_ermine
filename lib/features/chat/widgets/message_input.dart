@@ -34,7 +34,9 @@ class MentionRenderController extends TextEditingController {
     int lastEnd = 0;
     for (final m in regex.allMatches(raw)) {
       if (m.start > lastEnd) {
-        spans.add(TextSpan(text: raw.substring(lastEnd, m.start), style: style));
+        spans.add(
+          TextSpan(text: raw.substring(lastEnd, m.start), style: style),
+        );
       }
       final userId = m.group(1)!;
       final user = messaging.userCache[userId];
@@ -224,12 +226,17 @@ class _MessageInputState extends ConsumerState<MessageInput> {
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       setState(() {
-        _mentionIndex = (_mentionIndex - 1 + _mentionResults.length) % _mentionResults.length;
+        _mentionIndex =
+            (_mentionIndex - 1 + _mentionResults.length) %
+            _mentionResults.length;
       });
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.tab) {
-      _insertMention(_mentionResults[_mentionIndex].key, _mentionResults[_mentionIndex].value);
+      _insertMention(
+        _mentionResults[_mentionIndex].key,
+        _mentionResults[_mentionIndex].value,
+      );
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -255,7 +262,9 @@ class _MessageInputState extends ConsumerState<MessageInput> {
     final replacement = '<@$userId> ';
     _renderCtrl.value = TextEditingValue(
       text: '$before$replacement$after',
-      selection: TextSelection.collapsed(offset: before.length + replacement.length),
+      selection: TextSelection.collapsed(
+        offset: before.length + replacement.length,
+      ),
     );
     _hideMentions();
   }
@@ -274,7 +283,9 @@ class _MessageInputState extends ConsumerState<MessageInput> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -288,7 +299,9 @@ class _MessageInputState extends ConsumerState<MessageInput> {
     widget.msgCtrl.text = text;
     _renderCtrl.clear();
     setState(() => _pendingAttachments.clear());
-    ref.read(messagingStateProvider.notifier).sendMessage(text, attachmentIds: ids);
+    ref
+        .read(messagingStateProvider.notifier)
+        .sendMessage(text, attachmentIds: ids);
   }
 
   @override
@@ -310,7 +323,8 @@ class _MessageInputState extends ConsumerState<MessageInput> {
           ReplyBar(
             message: replyTarget,
             author: messaging.userCache[replyTarget.authorId],
-            onDismiss: () => ref.read(messagingStateProvider.notifier).clearReplyTarget(),
+            onDismiss: () =>
+                ref.read(messagingStateProvider.notifier).clearReplyTarget(),
           ),
         if (_pendingAttachments.isNotEmpty)
           Container(
@@ -322,9 +336,17 @@ class _MessageInputState extends ConsumerState<MessageInput> {
                 return Chip(
                   backgroundColor: const Color(0xFF242428),
                   side: const BorderSide(color: Color(0xFF3A3A42)),
-                  label: Text(a.$2, style: const TextStyle(fontSize: 12, color: Colors.white70)),
-                  deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white38),
-                  onDeleted: () => setState(() => _pendingAttachments.remove(a)),
+                  label: Text(
+                    a.$2,
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                  deleteIcon: const Icon(
+                    Icons.close,
+                    size: 14,
+                    color: Colors.white38,
+                  ),
+                  onDeleted: () =>
+                      setState(() => _pendingAttachments.remove(a)),
                 );
               }).toList(),
             ),
@@ -342,15 +364,23 @@ class _MessageInputState extends ConsumerState<MessageInput> {
             shrinkWrap: true,
             itemCount: _mentionResults.length,
             itemBuilder: (_, i) => InkWell(
-              onTap: () => _insertMention(_mentionResults[i].key, _mentionResults[i].value),
+              onTap: () => _insertMention(
+                _mentionResults[i].key,
+                _mentionResults[i].value,
+              ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 color: i == _mentionIndex ? const Color(0x207F5AF0) : null,
                 child: Text(
                   '@${_mentionResults[i].value}',
                   style: TextStyle(
                     color: i == _mentionIndex ? Colors.white : Colors.white70,
-                    fontWeight: i == _mentionIndex ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: i == _mentionIndex
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ),
@@ -358,7 +388,12 @@ class _MessageInputState extends ConsumerState<MessageInput> {
           ),
         ),
         Container(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + MediaQuery.of(context).padding.bottom),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            16 + MediaQuery.of(context).padding.bottom,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -368,7 +403,10 @@ class _MessageInputState extends ConsumerState<MessageInput> {
                       child: SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7F5AF0)),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF7F5AF0),
+                        ),
                       ),
                     )
                   : IconButton(
@@ -395,7 +433,10 @@ class _MessageInputState extends ConsumerState<MessageInput> {
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                   onSubmitted: (_) => _send(),
                 ),

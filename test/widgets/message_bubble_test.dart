@@ -2,62 +2,64 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fluttering_ermine/models/models.dart';
-import 'package:fluttering_ermine/widgets/message_bubble.dart';
+import 'package:fluttering_ermine/features/chat/widgets/message_bubble.dart';
 
 import '../helpers/test_app.dart';
 
 void main() {
   group('MessageBubble', () {
     testWidgets('renders text content', (tester) async {
-      await tester.pumpWidget(TestApp(
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: MessageBubble(
-              message: RevoltMessage(
-                id: 'm1',
-                channelId: 'chan1',
-                authorId: 'u1',
-                content: 'Hello world',
-                timestamp: '2026-06-01T12:00:00.000Z',
+      await tester.pumpWidget(
+        TestApp(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: MessageBubble(
+                message: RevoltMessage(
+                  id: 'm1',
+                  channelId: 'chan1',
+                  authorId: 'u1',
+                  content: 'Hello world',
+                  timestamp: '2026-06-01T12:00:00.000Z',
+                ),
               ),
             ),
           ),
         ),
-      ));
+      );
 
       expect(find.text('Hello world'), findsOneWidget);
       expect(find.text('u1'), findsOneWidget);
     });
 
     testWidgets('renders image attachment area', (tester) async {
-      await tester.pumpWidget(TestApp(
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: MessageBubble(
-              message: TestMessage.withImageAttachment(),
+      await tester.pumpWidget(
+        TestApp(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: MessageBubble(message: TestMessage.withImageAttachment()),
             ),
           ),
         ),
-      ));
+      );
 
       expect(
         find.byWidgetPredicate(
-            (w) => w is ConstrainedBox && w.constraints.maxWidth == 400),
+          (w) => w is ConstrainedBox && w.constraints.maxWidth == 400,
+        ),
         findsOneWidget,
       );
     });
 
-    testWidgets('tapping image area opens full-screen viewer',
-        (tester) async {
-      await tester.pumpWidget(TestApp(
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: MessageBubble(
-              message: TestMessage.withImageAttachment(),
+    testWidgets('tapping image area opens full-screen viewer', (tester) async {
+      await tester.pumpWidget(
+        TestApp(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: MessageBubble(message: TestMessage.withImageAttachment()),
             ),
           ),
         ),
-      ));
+      );
 
       final constrained = find.byWidgetPredicate(
         (w) => w is ConstrainedBox && w.constraints.minWidth == 120,
@@ -72,30 +74,30 @@ void main() {
     });
 
     testWidgets('renders file attachment with filename', (tester) async {
-      await tester.pumpWidget(TestApp(
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: MessageBubble(
-              message: TestMessage.withFileAttachment(),
+      await tester.pumpWidget(
+        TestApp(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: MessageBubble(message: TestMessage.withFileAttachment()),
             ),
           ),
         ),
-      ));
+      );
 
       expect(find.text('report.pdf'), findsOneWidget);
       expect(find.byIcon(Icons.attach_file), findsOneWidget);
     });
 
     testWidgets('renders reaction chips', (tester) async {
-      await tester.pumpWidget(TestApp(
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: MessageBubble(
-              message: TestMessage.withReactions(),
+      await tester.pumpWidget(
+        TestApp(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: MessageBubble(message: TestMessage.withReactions()),
             ),
           ),
         ),
-      ));
+      );
 
       expect(find.text('👍'), findsOneWidget);
       expect(find.text('🔥'), findsOneWidget);
@@ -104,21 +106,23 @@ void main() {
     });
 
     testWidgets('context menu via long press', (tester) async {
-      await tester.pumpWidget(TestApp(
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: MessageBubble(
-              message: RevoltMessage(
-                id: 'm1',
-                channelId: 'chan1',
-                authorId: 'u1',
-                content: 'Test message',
-                timestamp: '2026-06-01T12:00:00.000Z',
+      await tester.pumpWidget(
+        TestApp(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: MessageBubble(
+                message: RevoltMessage(
+                  id: 'm1',
+                  channelId: 'chan1',
+                  authorId: 'u1',
+                  content: 'Test message',
+                  timestamp: '2026-06-01T12:00:00.000Z',
+                ),
               ),
             ),
           ),
         ),
-      ));
+      );
 
       await tester.ensureVisible(find.text('Test message'));
       await tester.pump();

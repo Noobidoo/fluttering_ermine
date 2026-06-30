@@ -40,7 +40,9 @@ class MessagingStateData {
     messages: messages ?? this.messages,
     channelErrors: channelErrors ?? this.channelErrors,
     loadingChannels: loadingChannels ?? this.loadingChannels,
-    replyTarget: replyTarget == _omit ? this.replyTarget : replyTarget as RevoltMessage?,
+    replyTarget: replyTarget == _omit
+        ? this.replyTarget
+        : replyTarget as RevoltMessage?,
     typingUsers: typingUsers ?? this.typingUsers,
   );
 
@@ -137,7 +139,9 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     _ensureUserCached(msg.authorId);
     final channel = ref.read(serverStateProvider).asData?.value.selectedChannel;
     if (channel?.id == msg.channelId) {
-      ref.read(serverStateProvider.notifier).markChannelRead(msg.channelId, msg.id);
+      ref
+          .read(serverStateProvider.notifier)
+          .markChannelRead(msg.channelId, msg.id);
       _service.ackMessage(msg.channelId, msg.id).catchError((Object e) {
         debugPrint('[ack] channel=${msg.channelId} failed: $e');
       });
@@ -185,7 +189,10 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     final messageId = event['id'] as String?;
     final userId = event['user_id'] as String?;
     final emojiId = event['emoji_id'] as String?;
-    if (channelId == null || messageId == null || userId == null || emojiId == null) {
+    if (channelId == null ||
+        messageId == null ||
+        userId == null ||
+        emojiId == null) {
       return;
     }
     final list = state.messages[channelId];
@@ -193,12 +200,15 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     final idx = list.indexWhere((m) => m.id == messageId);
     if (idx < 0) return;
     final msg = list[idx];
-    final newReactions = msg.reactions.map((k, v) => MapEntry(k, List<String>.from(v)));
+    final newReactions = msg.reactions.map(
+      (k, v) => MapEntry(k, List<String>.from(v)),
+    );
     newReactions.putIfAbsent(emojiId, () => []);
     if (!newReactions[emojiId]!.contains(userId)) {
       newReactions[emojiId]!.add(userId);
     }
-    final updated = list.toList()..[idx] = msg.copyWith(reactions: newReactions);
+    final updated = list.toList()
+      ..[idx] = msg.copyWith(reactions: newReactions);
     final messages = Map<String, List<RevoltMessage>>.from(state.messages);
     messages[channelId] = updated;
     state = state.copyWith(messages: messages);
@@ -209,7 +219,10 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     final messageId = event['id'] as String?;
     final userId = event['user_id'] as String?;
     final emojiId = event['emoji_id'] as String?;
-    if (channelId == null || messageId == null || userId == null || emojiId == null) {
+    if (channelId == null ||
+        messageId == null ||
+        userId == null ||
+        emojiId == null) {
       return;
     }
     final list = state.messages[channelId];
@@ -217,12 +230,15 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     final idx = list.indexWhere((m) => m.id == messageId);
     if (idx < 0) return;
     final msg = list[idx];
-    final newReactions = msg.reactions.map((k, v) => MapEntry(k, List<String>.from(v)));
+    final newReactions = msg.reactions.map(
+      (k, v) => MapEntry(k, List<String>.from(v)),
+    );
     newReactions[emojiId]?.remove(userId);
     if (newReactions[emojiId]?.isEmpty == true) {
       newReactions.remove(emojiId);
     }
-    final updated = list.toList()..[idx] = msg.copyWith(reactions: newReactions);
+    final updated = list.toList()
+      ..[idx] = msg.copyWith(reactions: newReactions);
     final messages = Map<String, List<RevoltMessage>>.from(state.messages);
     messages[channelId] = updated;
     state = state.copyWith(messages: messages);
@@ -238,8 +254,10 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     final idx = list.indexWhere((m) => m.id == messageId);
     if (idx < 0) return;
     final msg = list[idx];
-    final newReactions = Map<String, List<String>>.from(msg.reactions)..remove(emojiId);
-    final updated = list.toList()..[idx] = msg.copyWith(reactions: newReactions);
+    final newReactions = Map<String, List<String>>.from(msg.reactions)
+      ..remove(emojiId);
+    final updated = list.toList()
+      ..[idx] = msg.copyWith(reactions: newReactions);
     final messages = Map<String, List<RevoltMessage>>.from(state.messages);
     messages[channelId] = updated;
     state = state.copyWith(messages: messages);
@@ -294,7 +312,11 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
 
     if (cached != null && (data != null || clear.isNotEmpty)) {
       if (data?.containsKey('avatar') == true || clear.contains('avatar')) {
-        final oldUrl = cached.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
+        final oldUrl = cached.resolveAvatarUrl(
+          null,
+          _service.autumnBase,
+          _service.apiBase,
+        );
         PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
       }
 
@@ -303,7 +325,8 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
         cache[userId] = RevoltUser(
           id: cached.id,
           username: data?['username'] as String? ?? cached.username,
-          discriminator: (data?['discriminator'] as String? ?? cached.discriminator),
+          discriminator:
+              (data?['discriminator'] as String? ?? cached.discriminator),
           displayName: data?['display_name'] as String? ?? cached.displayName,
           avatar: clear.contains('avatar')
               ? null
@@ -317,7 +340,8 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
               : cached.banner,
           presence: clear.contains('status')
               ? UserPresence.invisible
-              : data?['status'] is Map && (data!['status'] as Map).containsKey('presence')
+              : data?['status'] is Map &&
+                    (data!['status'] as Map).containsKey('presence')
               ? parsePresence((data['status'] as Map)['presence'] as String?)
               : cached.presence,
           statusText: clear.contains('status')
@@ -328,7 +352,8 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
           profileContent: clear.contains('profile')
               ? null
               : data?['profile'] is Map
-              ? (data!['profile'] as Map)['content'] as String? ?? cached.profileContent
+              ? (data!['profile'] as Map)['content'] as String? ??
+                    cached.profileContent
               : cached.profileContent,
           serverProfiles: cached.serverProfiles,
         );
@@ -359,7 +384,9 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     if (cached == null) return;
     final existing = cached.serverProfiles[serverId] ?? ServerProfile();
     final profile = existing.copyWith(
-      nickname: clear.contains('Nickname') ? null : (data?['nickname'] as String?),
+      nickname: clear.contains('Nickname')
+          ? null
+          : (data?['nickname'] as String?),
       roles: clear.contains('Roles')
           ? []
           : data?['roles'] != null
@@ -392,7 +419,8 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
 
   void _ackChannel(RevoltChannel channel) {
     final serverState = ref.read(serverStateProvider).asData?.value;
-    final lastId = serverState?.latestMessageId(channel.id) ?? channel.lastMessageId;
+    final lastId =
+        serverState?.latestMessageId(channel.id) ?? channel.lastMessageId;
     if (lastId == null) return;
     _service.ackMessage(channel.id, lastId).catchError((Object e) {
       debugPrint('[ack] channel=${channel.id} failed: $e');
@@ -422,7 +450,8 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
         orElse: () => '',
       );
       if (otherId != null && otherId.isNotEmpty) {
-        return state.userCache[otherId]?.resolveDisplayName(null) ?? 'Direct Message';
+        return state.userCache[otherId]?.resolveDisplayName(null) ??
+            'Direct Message';
       }
     }
     return 'Unknown Channel';
@@ -467,7 +496,10 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     _service.sendTyping(channel.id);
   }
 
-  Future<void> sendMessage(String content, {List<String> attachmentIds = const []}) async {
+  Future<void> sendMessage(
+    String content, {
+    List<String> attachmentIds = const [],
+  }) async {
     final channel = ref.read(serverStateProvider).asData?.value.selectedChannel;
     if (channel == null || (content.trim().isEmpty && attachmentIds.isEmpty)) {
       return;
@@ -490,15 +522,27 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
     }
   }
 
-  Future<void> addReaction(String channelId, String messageId, String emoji) async {
+  Future<void> addReaction(
+    String channelId,
+    String messageId,
+    String emoji,
+  ) async {
     await _service.addReaction(channelId, messageId, emoji);
   }
 
-  Future<void> removeReaction(String channelId, String messageId, String emoji) async {
+  Future<void> removeReaction(
+    String channelId,
+    String messageId,
+    String emoji,
+  ) async {
     await _service.removeReaction(channelId, messageId, emoji);
   }
 
-  Future<void> editMessage(String channelId, String messageId, String content) async {
+  Future<void> editMessage(
+    String channelId,
+    String messageId,
+    String content,
+  ) async {
     await _service.editMessage(channelId, messageId, content);
   }
 
@@ -509,16 +553,23 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
   Future<void> retryLoadMessages() async {
     final channel = ref.read(serverStateProvider).asData?.value.selectedChannel;
     if (channel == null) return;
-    final messages = Map<String, List<RevoltMessage>>.from(state.messages)..remove(channel.id);
-    final channelErrors = Map<String, String>.from(state.channelErrors)..remove(channel.id);
+    final messages = Map<String, List<RevoltMessage>>.from(state.messages)
+      ..remove(channel.id);
+    final channelErrors = Map<String, String>.from(state.channelErrors)
+      ..remove(channel.id);
     state = state.copyWith(messages: messages, channelErrors: channelErrors);
     await _loadMessages(channel.id);
   }
 
   Future<void> _loadMessages(String channelId) async {
-    final loadingChannels = Set<String>.from(state.loadingChannels)..add(channelId);
-    final channelErrors = Map<String, String>.from(state.channelErrors)..remove(channelId);
-    state = state.copyWith(loadingChannels: loadingChannels, channelErrors: channelErrors);
+    final loadingChannels = Set<String>.from(state.loadingChannels)
+      ..add(channelId);
+    final channelErrors = Map<String, String>.from(state.channelErrors)
+      ..remove(channelId);
+    state = state.copyWith(
+      loadingChannels: loadingChannels,
+      channelErrors: channelErrors,
+    );
     try {
       final msgs = await _service.fetchMessages(channelId);
       final messages = Map<String, List<RevoltMessage>>.from(state.messages);
@@ -550,6 +601,7 @@ class MessagingNotifier extends Notifier<MessagingStateData> {
   }
 }
 
-final messagingStateProvider = NotifierProvider<MessagingNotifier, MessagingStateData>(
-  MessagingNotifier.new,
-);
+final messagingStateProvider =
+    NotifierProvider<MessagingNotifier, MessagingStateData>(
+      MessagingNotifier.new,
+    );

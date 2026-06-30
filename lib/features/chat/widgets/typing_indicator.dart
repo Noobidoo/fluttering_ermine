@@ -22,9 +22,13 @@ class TypingIndicator extends ConsumerWidget {
     } else if (userIds.length == 2) {
       final it = userIds.iterator;
       it.moveNext();
-      final a = messaging.userCache[it.current]?.resolveDisplayName(null) ?? it.current;
+      final a =
+          messaging.userCache[it.current]?.resolveDisplayName(null) ??
+          it.current;
       it.moveNext();
-      final b = messaging.userCache[it.current]?.resolveDisplayName(null) ?? it.current;
+      final b =
+          messaging.userCache[it.current]?.resolveDisplayName(null) ??
+          it.current;
       text = '$a and $b are typing…';
     } else {
       text = 'Several people are typing…';
@@ -34,7 +38,11 @@ class TypingIndicator extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(18, 0, 16, 2),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11, color: Colors.white54, fontStyle: FontStyle.italic),
+        style: const TextStyle(
+          fontSize: 11,
+          color: Colors.white54,
+          fontStyle: FontStyle.italic,
+        ),
       ),
     );
   }

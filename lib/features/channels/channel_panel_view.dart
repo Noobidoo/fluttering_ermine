@@ -32,7 +32,9 @@ class ChannelPanelView extends ConsumerWidget {
         server?.selectedServer?.name ??
         (server?.showDMs == true ? 'Direct Messages' : 'Fluttering Ermine');
     final srvId = server?.selectedServer?.id;
-    final perms = srvId != null ? ref.watch(effectivePermissionsProvider(srvId)) : 0;
+    final perms = srvId != null
+        ? ref.watch(effectivePermissionsProvider(srvId))
+        : 0;
 
     return Material(
       color: const Color(0xFF141418),
@@ -50,7 +52,10 @@ class ChannelPanelView extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -58,7 +63,11 @@ class ChannelPanelView extends ConsumerWidget {
                   if (authData != null &&
                       (perms & Permission.manageChannel) != 0)
                     IconButton(
-                      icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white54),
+                      icon: const Icon(
+                        Icons.add_rounded,
+                        size: 18,
+                        color: Colors.white54,
+                      ),
                       tooltip: 'Create channel',
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -69,7 +78,11 @@ class ChannelPanelView extends ConsumerWidget {
                           (perms & Permission.manageChannel) != 0 ||
                           (perms & Permission.manageRole) != 0))
                     IconButton(
-                      icon: const Icon(Icons.settings_rounded, size: 18, color: Colors.white38),
+                      icon: const Icon(
+                        Icons.settings_rounded,
+                        size: 18,
+                        color: Colors.white38,
+                      ),
                       tooltip: 'Server settings',
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -82,13 +95,18 @@ class ChannelPanelView extends ConsumerWidget {
           Expanded(
             child: channels.isEmpty
                 ? const Center(
-                    child: Text('No channels', style: TextStyle(color: Colors.white38)),
+                    child: Text(
+                      'No channels',
+                      style: TextStyle(color: Colors.white38),
+                    ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: channels.length,
-                    itemBuilder: (_, i) =>
-                        ChannelTile(channels[i], key: ValueKey('channel_${channels[i].id}')),
+                    itemBuilder: (_, i) => ChannelTile(
+                      channels[i],
+                      key: ValueKey('channel_${channels[i].id}'),
+                    ),
                   ),
           ),
           if (authData?.currentUser != null) const UserBar(),

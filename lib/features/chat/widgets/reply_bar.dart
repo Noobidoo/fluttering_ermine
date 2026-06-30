@@ -8,13 +8,20 @@ class ReplyBar extends StatelessWidget {
   final RevoltUser? author;
   final VoidCallback onDismiss;
 
-  const ReplyBar({super.key, required this.message, this.author, required this.onDismiss});
+  const ReplyBar({
+    super.key,
+    required this.message,
+    this.author,
+    required this.onDismiss,
+  });
 
   @override
   Widget build(BuildContext context) {
     final name = author?.resolveDisplayName(null) ?? message.authorId;
     final preview = message.content?.trim() ?? '';
-    final truncated = preview.length > 60 ? '${preview.substring(0, 60)}…' : preview;
+    final truncated = preview.length > 60
+        ? '${preview.substring(0, 60)}…'
+        : preview;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),

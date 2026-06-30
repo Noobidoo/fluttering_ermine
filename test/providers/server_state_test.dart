@@ -7,30 +7,30 @@ import 'package:fluttering_ermine/models/models.dart';
 
 import '../helpers/messaging_test_helpers.dart';
 
-RevoltChannel _channel(String id,
-        {ChannelType type = ChannelType.textChannel,
-        String? serverId,
-        bool isVoice = false}) =>
-    RevoltChannel(
-      id: id,
-      type: type,
-      name: 'chan $id',
-      serverId: serverId,
-      isVoice: isVoice,
-    );
+RevoltChannel _channel(
+  String id, {
+  ChannelType type = ChannelType.textChannel,
+  String? serverId,
+  bool isVoice = false,
+}) => RevoltChannel(
+  id: id,
+  type: type,
+  name: 'chan $id',
+  serverId: serverId,
+  isVoice: isVoice,
+);
 
 Map<String, dynamic> _readyEvent({
   List<Map<String, dynamic>> servers = const [],
   List<Map<String, dynamic>> channels = const [],
   List<Map<String, dynamic>> channelUnreads = const [],
-}) =>
-    {
-      'type': 'Ready',
-      'servers': servers,
-      'channels': channels,
-      'users': [],
-      'channel_unreads': channelUnreads,
-    };
+}) => {
+  'type': 'Ready',
+  'servers': servers,
+  'channels': channels,
+  'users': [],
+  'channel_unreads': channelUnreads,
+};
 
 void main() {
   group('ServerNotifier', () {
@@ -39,9 +39,9 @@ void main() {
 
     setUp(() async {
       svc = FakeRevoltService();
-      container = ProviderContainer(overrides: [
-        revoltServiceProvider.overrideWithValue(svc),
-      ]);
+      container = ProviderContainer(
+        overrides: [revoltServiceProvider.overrideWithValue(svc)],
+      );
       // Wait for async build to complete and WS subscription to start
       await container.read(serverStateProvider.future);
     });
@@ -67,35 +67,42 @@ void main() {
     });
 
     test('Ready event populates servers and channels', () {
-      svc.push(_readyEvent(
-        servers: [
-          {'_id': 's1', 'name': 'Alpha', 'channels': ['c1']},
-          {'_id': 's2', 'name': 'Beta', 'channels': ['c2']},
-        ],
-        channels: [
-          {
-            '_id': 'c1',
-            'channel_type': 'TextChannel',
-            'name': 'general',
-            'server': 's1',
-          },
-          {
-            '_id': 'c2',
-            'channel_type': 'TextChannel',
-            'name': 'random',
-            'server': 's2',
-          },
-          {
-            '_id': 'dm1',
-            'channel_type': 'DirectMessage',
-            'recipients': ['u1', 'u2'],
-          },
-          {
-            '_id': 'saved',
-            'channel_type': 'SavedMessages',
-          },
-        ],
-      ));
+      svc.push(
+        _readyEvent(
+          servers: [
+            {
+              '_id': 's1',
+              'name': 'Alpha',
+              'channels': ['c1'],
+            },
+            {
+              '_id': 's2',
+              'name': 'Beta',
+              'channels': ['c2'],
+            },
+          ],
+          channels: [
+            {
+              '_id': 'c1',
+              'channel_type': 'TextChannel',
+              'name': 'general',
+              'server': 's1',
+            },
+            {
+              '_id': 'c2',
+              'channel_type': 'TextChannel',
+              'name': 'random',
+              'server': 's2',
+            },
+            {
+              '_id': 'dm1',
+              'channel_type': 'DirectMessage',
+              'recipients': ['u1', 'u2'],
+            },
+            {'_id': 'saved', 'channel_type': 'SavedMessages'},
+          ],
+        ),
+      );
 
       expect(state().servers.length, 2);
       expect(state().servers[0].name, 'Alpha');
@@ -108,12 +115,14 @@ void main() {
     });
 
     test('selectServer changes selected server', () async {
-      svc.push(_readyEvent(
-        servers: [
-          {'_id': 's1', 'name': 'Alpha', 'channels': []},
-          {'_id': 's2', 'name': 'Beta', 'channels': []},
-        ],
-      ));
+      svc.push(
+        _readyEvent(
+          servers: [
+            {'_id': 's1', 'name': 'Alpha', 'channels': []},
+            {'_id': 's2', 'name': 'Beta', 'channels': []},
+          ],
+        ),
+      );
       await Future<void>.delayed(Duration.zero);
 
       notifier().selectServer(state().servers[1]);
@@ -124,11 +133,13 @@ void main() {
     });
 
     test('selectDMs switches to DM view', () async {
-      svc.push(_readyEvent(
-        servers: [
-          {'_id': 's1', 'name': 'S', 'channels': []},
-        ],
-      ));
+      svc.push(
+        _readyEvent(
+          servers: [
+            {'_id': 's1', 'name': 'S', 'channels': []},
+          ],
+        ),
+      );
       await Future<void>.delayed(Duration.zero);
       notifier().selectDMs();
       expect(state().selectedServer, isNull);
@@ -149,11 +160,13 @@ void main() {
     });
 
     test('clear resets all state', () {
-      svc.push(_readyEvent(
-        servers: [
-          {'_id': 's1', 'name': 'S', 'channels': []},
-        ],
-      ));
+      svc.push(
+        _readyEvent(
+          servers: [
+            {'_id': 's1', 'name': 'S', 'channels': []},
+          ],
+        ),
+      );
 
       notifier().selectChannel(_channel('c1'));
       expect(state().selectedChannel, isNotNull);
@@ -165,20 +178,29 @@ void main() {
       expect(state().showDMs, false);
     });
 
-    test('_fetchServerChannels error is caught and does not propagate', () async {
-      svc.push(_readyEvent(
-        servers: [
-          {'_id': 's1', 'name': 'Alpha', 'channels': ['missing']},
-        ],
-      ));
+    test(
+      '_fetchServerChannels error is caught and does not propagate',
+      () async {
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'Alpha',
+                'channels': ['missing'],
+              },
+            ],
+          ),
+        );
 
-      notifier().selectServer(state().servers[0]);
-      await Future<void>.delayed(Duration.zero);
+        notifier().selectServer(state().servers[0]);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(state().selectedServer?.id, 's1');
-      expect(state().selectedChannel, isNull);
-      expect(state().showDMs, false);
-    });
+        expect(state().selectedServer?.id, 's1');
+        expect(state().selectedChannel, isNull);
+        expect(state().showDMs, false);
+      },
+    );
 
     test('dispose cancels subscription without throwing', () {
       expect(() => container.dispose(), returnsNormally);
@@ -196,15 +218,17 @@ void main() {
         svc.stubChannel(c);
       }
 
-      svc.push(_readyEvent(
-        channels: [
-          {'_id': 't', 'channel_type': 'TextChannel'},
-          {'_id': 'd', 'channel_type': 'DirectMessage'},
-          {'_id': 'g', 'channel_type': 'Group'},
-          {'_id': 's', 'channel_type': 'SavedMessages'},
-          {'_id': 'u', 'channel_type': 'FooBar'},
-        ],
-      ));
+      svc.push(
+        _readyEvent(
+          channels: [
+            {'_id': 't', 'channel_type': 'TextChannel'},
+            {'_id': 'd', 'channel_type': 'DirectMessage'},
+            {'_id': 'g', 'channel_type': 'Group'},
+            {'_id': 's', 'channel_type': 'SavedMessages'},
+            {'_id': 'u', 'channel_type': 'FooBar'},
+          ],
+        ),
+      );
 
       expect(state().dmChannels.length, 3);
       expect(state().dmChannels.any((c) => c.id == 'd'), true);
@@ -217,115 +241,149 @@ void main() {
 
     group('Unread tracking', () {
       test('Ready event with channel_unreads populates unread state', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1', 'c2']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-              'last_message_id': 'msg5',
-            },
-            {
-              '_id': 'c2',
-              'channel_type': 'TextChannel',
-              'name': 'random',
-              'server': 's1',
-              'last_message_id': 'msg3',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
-            {'_id': 'c2', 'last_id': 'msg2', 'mentions': ['u1']},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1', 'c2'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+                'last_message_id': 'msg5',
+              },
+              {
+                '_id': 'c2',
+                'channel_type': 'TextChannel',
+                'name': 'random',
+                'server': 's1',
+                'last_message_id': 'msg3',
+              },
+            ],
+            channelUnreads: [
+              {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
+              {
+                '_id': 'c2',
+                'last_id': 'msg2',
+                'mentions': ['u1'],
+              },
+            ],
+          ),
+        );
 
         expect(state().isChannelUnread('c1'), false);
         expect(state().isChannelUnread('c2'), true);
       });
 
       test('channel not in channel_unreads with messages is not unread', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-              'last_message_id': 'msg5',
-            },
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+                'last_message_id': 'msg5',
+              },
+            ],
+          ),
+        );
 
         expect(state().isChannelUnread('c1'), false);
       });
 
       test('channel in channel_unreads with null last_id is not unread', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-              'last_message_id': 'msg5',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': null, 'mentions': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+                'last_message_id': 'msg5',
+              },
+            ],
+            channelUnreads: [
+              {'_id': 'c1', 'last_id': null, 'mentions': []},
+            ],
+          ),
+        );
 
         expect(state().isChannelUnread('c1'), false);
       });
 
       test('channel with no messages is not unread', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'empty',
-              'server': 's1',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg1', 'mentions': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'empty',
+                'server': 's1',
+              },
+            ],
+            channelUnreads: [
+              {'_id': 'c1', 'last_id': 'msg1', 'mentions': []},
+            ],
+          ),
+        );
 
         expect(state().isChannelUnread('c1'), false);
       });
 
       test('Message event makes channel unread beyond lastId', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+              },
+            ],
+            channelUnreads: [
+              {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
+            ],
+          ),
+        );
 
         expect(state().isChannelUnread('c1'), false);
 
@@ -335,22 +393,28 @@ void main() {
       });
 
       test('isChannelUnread false after markChannelRead matches latest', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+              },
+            ],
+            channelUnreads: [
+              {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
+            ],
+          ),
+        );
 
         svc.push(msgEvent(id: 'msg6', channel: 'c1'));
         expect(state().isChannelUnread('c1'), true);
@@ -360,22 +424,32 @@ void main() {
       });
 
       test('markChannelRead removes mentions', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': ['u1', 'u2']},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+              },
+            ],
+            channelUnreads: [
+              {
+                '_id': 'c1',
+                'last_id': 'msg5',
+                'mentions': ['u1', 'u2'],
+              },
+            ],
+          ),
+        );
 
         expect(state().mentionCountFor('c1'), 2);
 
@@ -384,43 +458,59 @@ void main() {
       });
 
       test('mentionCountFor returns correct count from channel_unreads', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': ['u1', 'u2', 'u3']},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+              },
+            ],
+            channelUnreads: [
+              {
+                '_id': 'c1',
+                'last_id': 'msg5',
+                'mentions': ['u1', 'u2', 'u3'],
+              },
+            ],
+          ),
+        );
 
         expect(state().mentionCountFor('c1'), 3);
       });
 
       test('mentionCountFor returns 0 for channel without mentions', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+              },
+            ],
+            channelUnreads: [
+              {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
+            ],
+          ),
+        );
 
         expect(state().mentionCountFor('c1'), 0);
       });
@@ -430,90 +520,115 @@ void main() {
       });
 
       test('serverUnreadCount aggregates unread channels per server', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1', 'c2', 'c3']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-              'last_message_id': 'msg5',
-            },
-            {
-              '_id': 'c2',
-              'channel_type': 'TextChannel',
-              'name': 'random',
-              'server': 's1',
-              'last_message_id': 'msg3',
-            },
-            {
-              '_id': 'c3',
-              'channel_type': 'TextChannel',
-              'name': 'dev',
-              'server': 's1',
-              'last_message_id': 'msg1',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
-            {'_id': 'c2', 'last_id': 'msg2', 'mentions': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1', 'c2', 'c3'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+                'last_message_id': 'msg5',
+              },
+              {
+                '_id': 'c2',
+                'channel_type': 'TextChannel',
+                'name': 'random',
+                'server': 's1',
+                'last_message_id': 'msg3',
+              },
+              {
+                '_id': 'c3',
+                'channel_type': 'TextChannel',
+                'name': 'dev',
+                'server': 's1',
+                'last_message_id': 'msg1',
+              },
+            ],
+            channelUnreads: [
+              {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
+              {'_id': 'c2', 'last_id': 'msg2', 'mentions': []},
+            ],
+          ),
+        );
 
         expect(state().serverUnreadCount('s1'), 1);
       });
 
-      test('serverUnreadCount returns 0 for server with no unread channels', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-              'last_message_id': 'msg5',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
-          ],
-        ));
+      test(
+        'serverUnreadCount returns 0 for server with no unread channels',
+        () {
+          svc.push(
+            _readyEvent(
+              servers: [
+                {
+                  '_id': 's1',
+                  'name': 'S1',
+                  'channels': ['c1'],
+                },
+              ],
+              channels: [
+                {
+                  '_id': 'c1',
+                  'channel_type': 'TextChannel',
+                  'name': 'general',
+                  'server': 's1',
+                  'last_message_id': 'msg5',
+                },
+              ],
+              channelUnreads: [
+                {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
+              ],
+            ),
+          );
 
-        expect(state().serverUnreadCount('s1'), 0);
-      });
+          expect(state().serverUnreadCount('s1'), 0);
+        },
+      );
 
       test('serverUnreadCount ignores channels from other servers', () {
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': ['c1']},
-            {'_id': 's2', 'name': 'S2', 'channels': ['c2']},
-          ],
-          channels: [
-            {
-              '_id': 'c1',
-              'channel_type': 'TextChannel',
-              'name': 'general',
-              'server': 's1',
-              'last_message_id': 'msg5',
-            },
-            {
-              '_id': 'c2',
-              'channel_type': 'TextChannel',
-              'name': 'random',
-              'server': 's2',
-              'last_message_id': 'msg3',
-            },
-          ],
-          channelUnreads: [
-            {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {
+                '_id': 's1',
+                'name': 'S1',
+                'channels': ['c1'],
+              },
+              {
+                '_id': 's2',
+                'name': 'S2',
+                'channels': ['c2'],
+              },
+            ],
+            channels: [
+              {
+                '_id': 'c1',
+                'channel_type': 'TextChannel',
+                'name': 'general',
+                'server': 's1',
+                'last_message_id': 'msg5',
+              },
+              {
+                '_id': 'c2',
+                'channel_type': 'TextChannel',
+                'name': 'random',
+                'server': 's2',
+                'last_message_id': 'msg3',
+              },
+            ],
+            channelUnreads: [
+              {'_id': 'c1', 'last_id': 'msg5', 'mentions': []},
+            ],
+          ),
+        );
 
         expect(state().serverUnreadCount('s1'), 0);
         expect(state().serverUnreadCount('s2'), 0);
@@ -538,11 +653,13 @@ void main() {
           (userId: 'u2', nickname: null, roles: <String>[], avatar: null),
         ]);
 
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {'_id': 's1', 'name': 'S1', 'channels': []},
+            ],
+          ),
+        );
 
         expect(state().loadingMembers, true);
 
@@ -557,11 +674,13 @@ void main() {
           (userId: 'u1', nickname: null, roles: <String>[], avatar: null),
         ]);
 
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {'_id': 's1', 'name': 'S1', 'channels': []},
+            ],
+          ),
+        );
         await Future<void>.delayed(Duration.zero);
         expect(state().currentServerMemberIds, hasLength(1));
 
@@ -572,11 +691,13 @@ void main() {
       test('fetchMembers error does not propagate', () async {
         svc.fetchMembersThrows = true;
 
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {'_id': 's1', 'name': 'S1', 'channels': []},
+            ],
+          ),
+        );
 
         await Future<void>.delayed(Duration.zero);
         expect(state().loadingMembers, false);
@@ -589,11 +710,13 @@ void main() {
           (userId: 'u2', nickname: 'Bob', roles: <String>[], avatar: null),
         ]);
 
-        svc.push(_readyEvent(
-          servers: [
-            {'_id': 's1', 'name': 'S1', 'channels': []},
-          ],
-        ));
+        svc.push(
+          _readyEvent(
+            servers: [
+              {'_id': 's1', 'name': 'S1', 'channels': []},
+            ],
+          ),
+        );
         await Future<void>.delayed(Duration.zero);
 
         expect(state().isMember('s1', 'u2'), isTrue);

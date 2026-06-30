@@ -15,10 +15,12 @@ void main() {
 
   setUp(() async {
     svc = FakeRevoltService();
-    container = ProviderContainer(overrides: [
-      revoltServiceProvider.overrideWithValue(svc),
-      currentUserIdProvider.overrideWithValue('current-user'),
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        revoltServiceProvider.overrideWithValue(svc),
+        currentUserIdProvider.overrideWithValue('current-user'),
+      ],
+    );
     container.read(serverStateProvider.notifier);
     container.read(messagingStateProvider);
     await Future<void>.delayed(Duration.zero);
@@ -29,7 +31,8 @@ void main() {
     container.dispose();
   });
 
-  MessagingNotifier notifier() => container.read(messagingStateProvider.notifier);
+  MessagingNotifier notifier() =>
+      container.read(messagingStateProvider.notifier);
   MessagingStateData state() => container.read(messagingStateProvider);
 
   // -- ChannelStartTyping / ChannelStopTyping WS events ---------------------
@@ -62,7 +65,10 @@ void main() {
       svc.push({'type': 'ChannelStartTyping', 'id': chan, 'user': otherUser});
       svc.push({'type': 'ChannelStopTyping', 'id': chan, 'user': otherUser});
 
-      expect(state().typingUsers[chan] ?? <String>{}, isNot(contains(otherUser)));
+      expect(
+        state().typingUsers[chan] ?? <String>{},
+        isNot(contains(otherUser)),
+      );
     });
 
     test('ChannelStopTyping for last user empties the channel entry', () {
@@ -91,7 +97,11 @@ void main() {
   // -- sendTypingIndicator debounce ------------------------------------------
 
   group('sendTypingIndicator debounce', () {
-    setUp(() => container.read(serverStateProvider.notifier).selectChannel(textChan('chan1')));
+    setUp(
+      () => container
+          .read(serverStateProvider.notifier)
+          .selectChannel(textChan('chan1')),
+    );
 
     test('first call sends BeginTyping for selected channel', () {
       notifier().sendTypingIndicator();
@@ -109,12 +119,14 @@ void main() {
 
     test('no channel selected: nothing sent', () {
       // Create a fresh container without selecting a channel
-      final freshContainer = ProviderContainer(overrides: [
-        revoltServiceProvider.overrideWithValue(svc),
-      ]);
+      final freshContainer = ProviderContainer(
+        overrides: [revoltServiceProvider.overrideWithValue(svc)],
+      );
       freshContainer.read(serverStateProvider.notifier);
       freshContainer.read(messagingStateProvider);
-      final freshNotifier = freshContainer.read(messagingStateProvider.notifier);
+      final freshNotifier = freshContainer.read(
+        messagingStateProvider.notifier,
+      );
 
       freshNotifier.sendTypingIndicator();
 

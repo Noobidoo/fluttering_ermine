@@ -39,8 +39,11 @@ class ChannelTile extends ConsumerWidget {
     final unread = server?.isChannelUnread(channel.id) ?? false;
     final mentionCount = server?.mentionCountFor(channel.id) ?? 0;
     final srvId = server?.selectedServer?.id;
-    final permissions = srvId != null ? ref.watch(effectivePermissionsProvider(srvId)) : 0;
-    final canManageCh = authData != null && (permissions & Permission.manageChannel) != 0;
+    final permissions = srvId != null
+        ? ref.watch(effectivePermissionsProvider(srvId))
+        : 0;
+    final canManageCh =
+        authData != null && (permissions & Permission.manageChannel) != 0;
 
     final participantIds = channel.isVoice
         ? voice.voiceParticipantsFor(channel.id)
@@ -50,9 +53,11 @@ class ChannelTile extends ConsumerWidget {
       messagingNotifier.ensureUsersCached(List<String>.from(participantIds));
     }
 
-    final isActiveVoice = channel.isVoice && voice.activeVoiceChannel?.id == channel.id;
+    final isActiveVoice =
+        channel.isVoice && voice.activeVoiceChannel?.id == channel.id;
     final liveKitByIdentity = {
-      for (final p in (isActiveVoice ? voice.voiceParticipants : <VoiceParticipant>[]))
+      for (final p
+          in (isActiveVoice ? voice.voiceParticipants : <VoiceParticipant>[]))
         p.identity: p,
     };
 
@@ -63,14 +68,20 @@ class ChannelTile extends ConsumerWidget {
         children: [
           ListTile(
             dense: true,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
             selected: selected,
             selectedTileColor: const Color(0x207F5AF0),
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
             leading: Stack(
               clipBehavior: Clip.none,
               children: [
-                Icon(_icon(), size: 18, color: selected ? const Color(0xFF7F5AF0) : Colors.white38),
+                Icon(
+                  _icon(),
+                  size: 18,
+                  color: selected ? const Color(0xFF7F5AF0) : Colors.white38,
+                ),
                 if (unread)
                   Positioned(
                     right: -4,
@@ -93,8 +104,12 @@ class ChannelTile extends ConsumerWidget {
                     name,
                     style: TextStyle(
                       fontSize: 14,
-                      color: selected ? Colors.white : (unread ? Colors.white : Colors.white60),
-                      fontWeight: selected || unread ? FontWeight.w600 : FontWeight.normal,
+                      color: selected
+                          ? Colors.white
+                          : (unread ? Colors.white : Colors.white60),
+                      fontWeight: selected || unread
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -102,7 +117,10 @@ class ChannelTile extends ConsumerWidget {
                 if (mentionCount > 0)
                   Container(
                     margin: const EdgeInsets.only(left: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.redAccent,
                       borderRadius: BorderRadius.circular(8),
@@ -135,7 +153,11 @@ class ChannelTile extends ConsumerWidget {
                     width: 24,
                     height: 24,
                     child: IconButton(
-                      icon: const Icon(Icons.settings_rounded, size: 14, color: Colors.white38),
+                      icon: const Icon(
+                        Icons.settings_rounded,
+                        size: 14,
+                        color: Colors.white38,
+                      ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () => _showChannelPermissions(context, ref),
@@ -148,7 +170,9 @@ class ChannelTile extends ConsumerWidget {
               padding: const EdgeInsets.only(left: 32, bottom: 4),
               child: Column(
                 children: participantIds.map((userId) {
-                  final user = ref.read(messagingStateProvider).userCache[userId];
+                  final user = ref
+                      .read(messagingStateProvider)
+                      .userCache[userId];
                   final lkParticipant = liveKitByIdentity[userId];
                   final isLocal = userId == authData?.currentUser?.id;
                   return VoiceParticipantRow(
@@ -174,12 +198,19 @@ class ChannelTile extends ConsumerWidget {
   }
 
   void _showChannelContextMenu(BuildContext context, WidgetRef ref) {
-    final srvId = ref.read(serverStateProvider).asData?.value.selectedServer?.id;
+    final srvId = ref
+        .read(serverStateProvider)
+        .asData
+        ?.value
+        .selectedServer
+        ?.id;
     final authData = ref.read(loginStateProvider).asData?.value;
     final canManageCh =
         srvId != null &&
         authData != null &&
-        (ref.read(effectivePermissionsProvider(srvId)) & Permission.manageChannel) != 0;
+        (ref.read(effectivePermissionsProvider(srvId)) &
+                Permission.manageChannel) !=
+            0;
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E26),
@@ -194,7 +225,10 @@ class ChannelTile extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 channel.name ?? 'Channel',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
             ),
             const Divider(color: Color(0xFF2A2A30), height: 1),
@@ -209,7 +243,10 @@ class ChannelTile extends ConsumerWidget {
               ),
             if (canManageCh)
               ListTile(
-                leading: const Icon(Icons.security_rounded, color: Colors.white70),
+                leading: const Icon(
+                  Icons.security_rounded,
+                  color: Colors.white70,
+                ),
                 title: const Text('Channel Permissions'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -218,7 +255,10 @@ class ChannelTile extends ConsumerWidget {
               ),
             if (_isDeletable && canManageCh)
               ListTile(
-                leading: const Icon(Icons.delete_rounded, color: Colors.redAccent),
+                leading: const Icon(
+                  Icons.delete_rounded,
+                  color: Colors.redAccent,
+                ),
                 title: const Text('Delete Channel'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -249,7 +289,10 @@ class ChannelTile extends ConsumerWidget {
                 labelText: 'Channel name',
                 labelStyle: TextStyle(color: Colors.white54),
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               style: const TextStyle(fontSize: 14),
             ),
@@ -260,7 +303,10 @@ class ChannelTile extends ConsumerWidget {
                 labelText: 'Description (optional)',
                 labelStyle: TextStyle(color: Colors.white54),
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               style: const TextStyle(fontSize: 14),
               maxLines: 2,
@@ -268,11 +314,19 @@ class ChannelTile extends ConsumerWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _doEditChannel(context, nameCtrl.text.trim(), descCtrl.text.trim(), ref);
+              _doEditChannel(
+                context,
+                nameCtrl.text.trim(),
+                descCtrl.text.trim(),
+                ref,
+              );
             },
             child: const Text('Save'),
           ),
@@ -281,7 +335,12 @@ class ChannelTile extends ConsumerWidget {
     );
   }
 
-  void _doEditChannel(BuildContext context, String name, String description, WidgetRef ref) async {
+  void _doEditChannel(
+    BuildContext context,
+    String name,
+    String description,
+    WidgetRef ref,
+  ) async {
     if (name.isEmpty) return;
     try {
       await ref
@@ -292,7 +351,9 @@ class ChannelTile extends ConsumerWidget {
             description: description.isNotEmpty ? description : null,
           );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Channel updated')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Channel updated')));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -312,13 +373,19 @@ class ChannelTile extends ConsumerWidget {
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _doDeleteChannel(context, ref);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -329,7 +396,9 @@ class ChannelTile extends ConsumerWidget {
     try {
       await ref.read(serverStateProvider.notifier).deleteChannel(channel.id);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Channel deleted')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Channel deleted')));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(

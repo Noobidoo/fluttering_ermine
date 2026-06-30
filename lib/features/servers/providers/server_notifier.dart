@@ -85,7 +85,8 @@ class ServerStateData {
     return unread != channel.lastMessageId;
   }
 
-  int mentionCountFor(String channelId) => channelMentions[channelId]?.length ?? 0;
+  int mentionCountFor(String channelId) =>
+      channelMentions[channelId]?.length ?? 0;
 
   int serverUnreadCount(String serverId) {
     int count = 0;
@@ -106,20 +107,27 @@ class ServerStateData {
     final roles = rolesByServer[serverId];
     if (roles == null || roles.isEmpty) return null;
     final sorted =
-        userRoles.map((rId) => roles[rId]).where((r) => r != null && r.colour != null).toList()
+        userRoles
+            .map((rId) => roles[rId])
+            .where((r) => r != null && r.colour != null)
+            .toList()
           ..sort((a, b) => b!.rank.compareTo(a!.rank));
     return sorted.isNotEmpty ? sorted.first!.colour : null;
   }
 
   int userEffectivePermissions(String serverId, List<String> userRoleIds) {
     final roles = rolesByServer[serverId];
-    final server = servers.firstWhere((s) => s.id == serverId, orElse: () => servers.first);
+    final server = servers.firstWhere(
+      (s) => s.id == serverId,
+      orElse: () => servers.first,
+    );
 
     int perms = server.id == serverId ? server.defaultPermissions : 0;
     if (roles == null) return perms;
 
-    final sortedRoles = userRoleIds.map((rId) => roles[rId]).where((r) => r != null).toList()
-      ..sort((a, b) => a!.rank.compareTo(b!.rank));
+    final sortedRoles =
+        userRoleIds.map((rId) => roles[rId]).where((r) => r != null).toList()
+          ..sort((a, b) => a!.rank.compareTo(b!.rank));
 
     for (final role in sortedRoles) {
       if (role!.permissions != null) {
@@ -150,8 +158,12 @@ class ServerStateData {
   }) => ServerStateData(
     servers: servers ?? this.servers,
     allChannels: allChannels ?? this.allChannels,
-    selectedServer: selectedServer == _omit ? this.selectedServer : selectedServer as RevoltServer?,
-    selectedChannel: selectedChannel == _omit ? this.selectedChannel : selectedChannel as RevoltChannel?,
+    selectedServer: selectedServer == _omit
+        ? this.selectedServer
+        : selectedServer as RevoltServer?,
+    selectedChannel: selectedChannel == _omit
+        ? this.selectedChannel
+        : selectedChannel as RevoltChannel?,
     showDMs: showDMs ?? this.showDMs,
     channelErrors: channelErrors ?? this.channelErrors,
     loadingChannels: loadingChannels ?? this.loadingChannels,
@@ -173,16 +185,26 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
   StreamSubscription<Map<String, dynamic>>? _wsSub;
 
   late void Function(List<RevoltUser> users) _onUsersFetched;
-  late void Function(String userId, String serverId, Map<String, dynamic>? data, List<String> clear)
-      _onServerProfileUpdated;
+  late void Function(
+    String userId,
+    String serverId,
+    Map<String, dynamic>? data,
+    List<String> clear,
+  )
+  _onServerProfileUpdated;
 
   void setUsersFetchedCallback(void Function(List<RevoltUser> users) callback) {
     _onUsersFetched = callback;
   }
 
   void setServerProfileUpdatedCallback(
-    void Function(String userId, String serverId, Map<String, dynamic>? data, List<String> clear)
-        callback,
+    void Function(
+      String userId,
+      String serverId,
+      Map<String, dynamic>? data,
+      List<String> clear,
+    )
+    callback,
   ) {
     _onServerProfileUpdated = callback;
   }
@@ -268,13 +290,19 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
       final channelId = data['_id'] as String;
       final lastId = data['last_id'] as String?;
       if (lastId != null) channelUnreads[channelId] = lastId;
-      final mentions = (data['mentions'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [];
+      final mentions =
+          (data['mentions'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [];
       if (mentions.isNotEmpty) channelMentions[channelId] = mentions;
     }
 
     final existing = state.value!;
     RevoltServer? selectedServer = existing.selectedServer;
-    if (parsedServers.isNotEmpty && selectedServer == null && !existing.showDMs) {
+    if (parsedServers.isNotEmpty &&
+        selectedServer == null &&
+        !existing.showDMs) {
       selectedServer = parsedServers.first;
     }
 
@@ -294,7 +322,12 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
       _fetchServerChannels(selectedServer);
       fetchMembers(force: true);
       final uid = ref.read(currentUserIdProvider);
-      if (uid != null) fetchRoles(serverId: selectedServer.id, currentUserId: uid, force: true);
+      if (uid != null)
+        fetchRoles(
+          serverId: selectedServer.id,
+          currentUserId: uid,
+          force: true,
+        );
     }
   }
 
@@ -305,7 +338,12 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     final messageId = event['_id'] as String?;
     if (channelId != null && messageId != null) {
       state = AsyncData(
-        existing.copyWith(latestMessageIds: {...existing.latestMessageIds, channelId: messageId}),
+        existing.copyWith(
+          latestMessageIds: {
+            ...existing.latestMessageIds,
+            channelId: messageId,
+          },
+        ),
       );
     }
   }
@@ -316,8 +354,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     final channelId = event['id'] as String?;
     final messageId = event['message_id'] as String?;
     if (channelId != null && messageId != null) {
-      final newMentions = Map<String, List<String>>.from(existing.channelMentions)
-        ..remove(channelId);
+      final newMentions = Map<String, List<String>>.from(
+        existing.channelMentions,
+      )..remove(channelId);
       state = AsyncData(
         existing.copyWith(
           channelUnreads: {...existing.channelUnreads, channelId: messageId},
@@ -365,7 +404,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
 
     state = AsyncData(
       existing.copyWith(
-        allChannels: existing.allChannels.where((c) => c.id != channelId).toList(),
+        allChannels: existing.allChannels
+            .where((c) => c.id != channelId)
+            .toList(),
         selectedChannel: selectedChannel,
       ),
     );
@@ -376,7 +417,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
   Future<RevoltServer> createServer(String name, {String? description}) async {
     final existing = state.value!;
     final server = await _service.createServer(name, description: description);
-    state = AsyncData(existing.copyWith(servers: [...existing.servers, server]));
+    state = AsyncData(
+      existing.copyWith(servers: [...existing.servers, server]),
+    );
     if (!existing.showDMs) {
       selectServer(server);
     }
@@ -422,17 +465,23 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     final server = existing.selectedServer;
     if (server == null) return;
     await _service.deleteServer(server.id);
-    final newServers = existing.servers.where((s) => s.id != server.id).toList();
-    final newRolesByServer = Map<String, Map<String, RevoltRole>>.from(existing.rolesByServer)
-      ..remove(server.id);
-    final newMemberIds = Map<String, List<String>>.from(existing.memberIdsByServer)
-      ..remove(server.id);
+    final newServers = existing.servers
+        .where((s) => s.id != server.id)
+        .toList();
+    final newRolesByServer = Map<String, Map<String, RevoltRole>>.from(
+      existing.rolesByServer,
+    )..remove(server.id);
+    final newMemberIds = Map<String, List<String>>.from(
+      existing.memberIdsByServer,
+    )..remove(server.id);
     state = AsyncData(
       existing.copyWith(
         servers: newServers,
         selectedServer: newServers.isNotEmpty ? newServers.first : null,
         selectedChannel: null,
-        allChannels: existing.allChannels.where((c) => c.serverId != server.id).toList(),
+        allChannels: existing.allChannels
+            .where((c) => c.serverId != server.id)
+            .toList(),
         rolesByServer: newRolesByServer,
         memberIdsByServer: newMemberIds,
       ),
@@ -455,7 +504,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
       description: description,
       isVoice: isVoice,
     );
-    state = AsyncData(existing.copyWith(allChannels: [...existing.allChannels, channel]));
+    state = AsyncData(
+      existing.copyWith(allChannels: [...existing.allChannels, channel]),
+    );
     return channel;
   }
 
@@ -507,7 +558,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     if (selectedChannel?.id == channelId) selectedChannel = null;
     state = AsyncData(
       existing.copyWith(
-        allChannels: existing.allChannels.where((c) => c.id != channelId).toList(),
+        allChannels: existing.allChannels
+            .where((c) => c.id != channelId)
+            .toList(),
         selectedChannel: selectedChannel,
       ),
     );
@@ -518,17 +571,28 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
   void selectServer(RevoltServer server, {String? userId}) {
     final existing = state.value!;
     state = AsyncData(
-      existing.copyWith(selectedServer: server, selectedChannel: null, showDMs: false),
+      existing.copyWith(
+        selectedServer: server,
+        selectedChannel: null,
+        showDMs: false,
+      ),
     );
     _fetchServerChannels(server);
     fetchMembers(force: true);
-    fetchRoles(serverId: server.id, currentUserId: userId ?? ref.read(currentUserIdProvider));
+    fetchRoles(
+      serverId: server.id,
+      currentUserId: userId ?? ref.read(currentUserIdProvider),
+    );
   }
 
   void selectDMs() {
     final existing = state.value!;
     state = AsyncData(
-      existing.copyWith(selectedServer: null, selectedChannel: null, showDMs: true),
+      existing.copyWith(
+        selectedServer: null,
+        selectedChannel: null,
+        showDMs: true,
+      ),
     );
   }
 
@@ -552,7 +616,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     state = AsyncData(state.value!.copyWith(loadingMembers: true));
 
     try {
-      final (memberProfiles, users) = await _service.fetchServerMembers(server.id);
+      final (memberProfiles, users) = await _service.fetchServerMembers(
+        server.id,
+      );
       final memberIds = memberProfiles.map((m) => m.userId).toList();
 
       final profileByUserId = {for (final m in memberProfiles) m.userId: m};
@@ -570,7 +636,10 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
       final current = state.value!;
       state = AsyncData(
         current.copyWith(
-          memberIdsByServer: {...current.memberIdsByServer, server.id: memberIds},
+          memberIdsByServer: {
+            ...current.memberIdsByServer,
+            server.id: memberIds,
+          },
           loadingMembers: false,
         ),
       );
@@ -590,7 +659,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     final server = existing.selectedServer;
     if (server == null) return;
     await _service.kickMember(server.id, userId);
-    final newMemberIds = Map<String, List<String>>.from(existing.memberIdsByServer);
+    final newMemberIds = Map<String, List<String>>.from(
+      existing.memberIdsByServer,
+    );
     newMemberIds[server.id]?.remove(userId);
     state = AsyncData(existing.copyWith(memberIdsByServer: newMemberIds));
   }
@@ -600,7 +671,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     final server = existing.selectedServer;
     if (server == null) return;
     await _service.banMember(server.id, userId, reason: reason);
-    final newMemberIds = Map<String, List<String>>.from(existing.memberIdsByServer);
+    final newMemberIds = Map<String, List<String>>.from(
+      existing.memberIdsByServer,
+    );
     newMemberIds[server.id]?.remove(userId);
     state = AsyncData(existing.copyWith(memberIdsByServer: newMemberIds));
   }
@@ -638,7 +711,10 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
 
     if (currentUserId != null) {
       try {
-        final (_, _, _, _, roleMap) = await _service.fetchMemberWithRoles(serverId, currentUserId);
+        final (_, _, _, _, roleMap) = await _service.fetchMemberWithRoles(
+          serverId,
+          currentUserId,
+        );
         if (roleMap.isNotEmpty) rolesMap = roleMap;
       } catch (e) {
         debugPrint('[fetchRoles] member endpoint failed: $e');
@@ -646,7 +722,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     }
     final current = state.value!;
     state = AsyncData(
-      current.copyWith(rolesByServer: {...current.rolesByServer, serverId: rolesMap}),
+      current.copyWith(
+        rolesByServer: {...current.rolesByServer, serverId: rolesMap},
+      ),
     );
   }
 
@@ -655,7 +733,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     final server = existing.selectedServer;
     if (server == null) return;
     final role = await _service.createRole(server.id, name);
-    final newRoles = Map<String, Map<String, RevoltRole>>.from(existing.rolesByServer);
+    final newRoles = Map<String, Map<String, RevoltRole>>.from(
+      existing.rolesByServer,
+    );
     newRoles[server.id] = {...(newRoles[server.id] ?? {}), role.id: role};
     state = AsyncData(existing.copyWith(rolesByServer: newRoles));
   }
@@ -680,8 +760,12 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
       hoist: hoist,
       permissions: permissions,
     );
-    final newRoles = Map<String, Map<String, RevoltRole>>.from(existing.rolesByServer);
-    final currentRoles = Map<String, RevoltRole>.from(newRoles[server.id] ?? {});
+    final newRoles = Map<String, Map<String, RevoltRole>>.from(
+      existing.rolesByServer,
+    );
+    final currentRoles = Map<String, RevoltRole>.from(
+      newRoles[server.id] ?? {},
+    );
     currentRoles[roleId] = updated;
     newRoles[server.id] = currentRoles;
     state = AsyncData(existing.copyWith(rolesByServer: newRoles));
@@ -692,8 +776,12 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
     final server = existing.selectedServer;
     if (server == null) return;
     await _service.deleteRole(server.id, roleId);
-    final newRoles = Map<String, Map<String, RevoltRole>>.from(existing.rolesByServer);
-    final currentRoles = Map<String, RevoltRole>.from(newRoles[server.id] ?? {});
+    final newRoles = Map<String, Map<String, RevoltRole>>.from(
+      existing.rolesByServer,
+    );
+    final currentRoles = Map<String, RevoltRole>.from(
+      newRoles[server.id] ?? {},
+    );
     currentRoles.remove(roleId);
     newRoles[server.id] = currentRoles;
     state = AsyncData(existing.copyWith(rolesByServer: newRoles));
@@ -715,7 +803,8 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
 
   void markChannelRead(String channelId, String messageId) {
     final existing = state.value!;
-    final newMentions = Map<String, List<String>>.from(existing.channelMentions)..remove(channelId);
+    final newMentions = Map<String, List<String>>.from(existing.channelMentions)
+      ..remove(channelId);
     state = AsyncData(
       existing.copyWith(
         channelUnreads: {...existing.channelUnreads, channelId: messageId},
@@ -726,9 +815,11 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
 
   // -- Invites ----------------------------------------------------------------
 
-  Future<String> createInvite(String channelId) => _service.createInvite(channelId);
+  Future<String> createInvite(String channelId) =>
+      _service.createInvite(channelId);
 
-  Future<List<RevoltInvite>> fetchInvites(String serverId) => _service.fetchInvites(serverId);
+  Future<List<RevoltInvite>> fetchInvites(String serverId) =>
+      _service.fetchInvites(serverId);
 
   Future<void> joinInvite(String code) => _service.joinInvite(code);
 
@@ -740,7 +831,10 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
       final existing = state.value!;
       state = AsyncData(
         existing.copyWith(
-          allChannels: [...existing.allChannels.where((c) => c.serverId != server.id), ...channels],
+          allChannels: [
+            ...existing.allChannels.where((c) => c.serverId != server.id),
+            ...channels,
+          ],
         ),
       );
     } catch (e) {
@@ -757,6 +851,5 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
   }
 }
 
-final serverStateProvider = AsyncNotifierProvider<ServerNotifier, ServerStateData>(
-  ServerNotifier.new,
-);
+final serverStateProvider =
+    AsyncNotifierProvider<ServerNotifier, ServerStateData>(ServerNotifier.new);

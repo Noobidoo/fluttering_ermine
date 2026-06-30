@@ -14,13 +14,19 @@ class ChannelPermissionsScreen extends ConsumerStatefulWidget {
   final RevoltChannel channel;
   final RevoltServer server;
 
-  const ChannelPermissionsScreen({super.key, required this.channel, required this.server});
+  const ChannelPermissionsScreen({
+    super.key,
+    required this.channel,
+    required this.server,
+  });
 
   @override
-  ConsumerState<ChannelPermissionsScreen> createState() => _ChannelPermissionsScreenState();
+  ConsumerState<ChannelPermissionsScreen> createState() =>
+      _ChannelPermissionsScreenState();
 }
 
-class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScreen> {
+class _ChannelPermissionsScreenState
+    extends ConsumerState<ChannelPermissionsScreen> {
   final _rolePermCtrl = TextEditingController();
   final _userPermCtrl = TextEditingController();
   final _defaultPermCtrl = TextEditingController();
@@ -50,7 +56,9 @@ class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScr
       backgroundColor: const Color(0xFF141418),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E1E26),
-        title: Text('Permissions — #${widget.channel.name ?? widget.channel.id}'),
+        title: Text(
+          'Permissions — #${widget.channel.name ?? widget.channel.id}',
+        ),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
@@ -72,7 +80,11 @@ class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScr
             // --- Default permissions ---
             const Text(
               'Default Permissions',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -101,7 +113,11 @@ class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScr
             // --- Role overrides ---
             const Text(
               'Role Permission Overrides',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -110,11 +126,16 @@ class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScr
             ),
             const SizedBox(height: 8),
             if (roles.isEmpty)
-              const Text('No roles defined yet.', style: TextStyle(color: Colors.white38))
+              const Text(
+                'No roles defined yet.',
+                style: TextStyle(color: Colors.white38),
+              )
             else
               ...roles.entries.map((entry) {
                 final role = entry.value;
-                final roleColour = role.colour != null ? Color(role.colour!) : null;
+                final roleColour = role.colour != null
+                    ? Color(role.colour!)
+                    : null;
                 return ExpansionTile(
                   leading: CircleAvatar(
                     radius: 12,
@@ -126,7 +147,10 @@ class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScr
                   ),
                   title: Text(
                     role.name,
-                    style: TextStyle(color: roleColour ?? Colors.white, fontSize: 14),
+                    style: TextStyle(
+                      color: roleColour ?? Colors.white,
+                      fontSize: 14,
+                    ),
                   ),
                   children: kChannelPermissions
                       .map(
@@ -153,7 +177,11 @@ class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScr
             // --- Individual user overrides ---
             const Text(
               'Individual User Overrides',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -168,7 +196,10 @@ class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScr
                 labelText: 'User permissions value (optional)',
                 hintText: 'e.g. 32768',
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
               keyboardType: TextInputType.number,
@@ -186,17 +217,25 @@ class _ChannelPermissionsScreenState extends ConsumerState<ChannelPermissionsScr
       final ss = ref.read(serverStateProvider.notifier);
       await ss.updateChannel(
         widget.channel.id,
-        defaultPermissions: _defaultPermCtrl.text.isNotEmpty ? _defaultPermCtrl.text : null,
-        rolePermissions: _rolePermCtrl.text.isNotEmpty ? _rolePermCtrl.text : null,
-        userPermissions: _userPermCtrl.text.isNotEmpty ? _userPermCtrl.text : null,
+        defaultPermissions: _defaultPermCtrl.text.isNotEmpty
+            ? _defaultPermCtrl.text
+            : null,
+        rolePermissions: _rolePermCtrl.text.isNotEmpty
+            ? _rolePermCtrl.text
+            : null,
+        userPermissions: _userPermCtrl.text.isNotEmpty
+            ? _userPermCtrl.text
+            : null,
       );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Channel permissions updated')),
+      );
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Channel permissions updated')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -212,7 +251,11 @@ class _PermToggle extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _PermToggle({required this.label, required this.value, required this.onChanged});
+  const _PermToggle({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {

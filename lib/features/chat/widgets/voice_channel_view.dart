@@ -12,7 +12,11 @@ class VoiceTabBar extends StatelessWidget {
   final bool showVoice;
   final ValueChanged<bool> onToggle;
 
-  const VoiceTabBar({super.key, required this.showVoice, required this.onToggle});
+  const VoiceTabBar({
+    super.key,
+    required this.showVoice,
+    required this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +37,10 @@ class VoiceTabBar extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: showVoice ? active : inactive, width: 2),
+                    bottom: BorderSide(
+                      color: showVoice ? active : inactive,
+                      width: 2,
+                    ),
                   ),
                 ),
                 child: Row(
@@ -65,13 +72,20 @@ class VoiceTabBar extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: !showVoice ? active : inactive, width: 2),
+                    bottom: BorderSide(
+                      color: !showVoice ? active : inactive,
+                      width: 2,
+                    ),
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.tag, size: 14, color: !showVoice ? active : textInactive),
+                    Icon(
+                      Icons.tag,
+                      size: 14,
+                      color: !showVoice ? active : textInactive,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Chat',
@@ -116,15 +130,22 @@ class VoiceChannelView extends ConsumerWidget {
             icon: Icon(voice.isMuted ? Icons.mic_off : Icons.mic),
             label: Text(voice.isMuted ? 'Unmute' : 'Mute'),
             style: FilledButton.styleFrom(
-              backgroundColor: voice.isMuted ? Colors.redAccent : const Color(0xFF2CB67D),
+              backgroundColor: voice.isMuted
+                  ? Colors.redAccent
+                  : const Color(0xFF2CB67D),
             ),
           ),
           FilledButton.icon(
-            onPressed: () => ref.read(voiceStateProvider.notifier).toggleCamera(),
-            icon: Icon(voice.isCameraEnabled ? Icons.videocam_off : Icons.videocam),
+            onPressed: () =>
+                ref.read(voiceStateProvider.notifier).toggleCamera(),
+            icon: Icon(
+              voice.isCameraEnabled ? Icons.videocam_off : Icons.videocam,
+            ),
             label: Text(voice.isCameraEnabled ? 'Camera Off' : 'Camera On'),
             style: FilledButton.styleFrom(
-              backgroundColor: voice.isCameraEnabled ? Colors.redAccent : const Color(0xFF2CB67D),
+              backgroundColor: voice.isCameraEnabled
+                  ? Colors.redAccent
+                  : const Color(0xFF2CB67D),
             ),
           ),
           FilledButton.icon(
@@ -134,7 +155,10 @@ class VoiceChannelView extends ConsumerWidget {
                 notifier.stopScreenShare();
                 return;
               }
-              if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+              if (!kIsWeb &&
+                  (Platform.isWindows ||
+                      Platform.isLinux ||
+                      Platform.isMacOS)) {
                 final dynamic source = await showDialog(
                   context: context,
                   builder: (context) => ScreenSelectDialog(),
@@ -145,8 +169,14 @@ class VoiceChannelView extends ConsumerWidget {
                 notifier.toggleScreenShare();
               }
             },
-            icon: Icon(voice.isScreenSharing ? Icons.stop_screen_share : Icons.screen_share),
-            label: Text(voice.isScreenSharing ? 'Stop Sharing' : 'Share Screen'),
+            icon: Icon(
+              voice.isScreenSharing
+                  ? Icons.stop_screen_share
+                  : Icons.screen_share,
+            ),
+            label: Text(
+              voice.isScreenSharing ? 'Stop Sharing' : 'Share Screen',
+            ),
             style: FilledButton.styleFrom(
               backgroundColor: voice.isScreenSharing
                   ? Colors.orangeAccent
@@ -154,10 +184,16 @@ class VoiceChannelView extends ConsumerWidget {
             ),
           ),
           OutlinedButton.icon(
-            onPressed: () => ref.read(voiceStateProvider.notifier).leaveVoiceChannel(),
+            onPressed: () =>
+                ref.read(voiceStateProvider.notifier).leaveVoiceChannel(),
             icon: const Icon(Icons.call_end, color: Colors.redAccent),
-            label: const Text('Leave', style: TextStyle(color: Colors.redAccent)),
-            style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent)),
+            label: const Text(
+              'Leave',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.redAccent),
+            ),
           ),
         ],
       );
@@ -172,7 +208,8 @@ class VoiceChannelView extends ConsumerWidget {
       );
     } else {
       controls = FilledButton.icon(
-        onPressed: () => ref.read(voiceStateProvider.notifier).joinVoiceChannel(channel),
+        onPressed: () =>
+            ref.read(voiceStateProvider.notifier).joinVoiceChannel(channel),
         icon: const Icon(Icons.call),
         label: const Text('Join Voice'),
         style: FilledButton.styleFrom(
@@ -231,7 +268,10 @@ class VoiceChannelView extends ConsumerWidget {
                     child: Text(
                       voice.voiceError!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -331,7 +371,10 @@ class _RemoteVideoTile extends ConsumerWidget {
     final audioSource = stream.source == TrackSource.screenShareVideo
         ? TrackSource.screenShareAudio
         : TrackSource.microphone;
-    final currentVolume = voice.getParticipantVolume(identity, source: audioSource);
+    final currentVolume = voice.getParticipantVolume(
+      identity,
+      source: audioSource,
+    );
     double tempVolume = currentVolume;
 
     showDialog(
@@ -339,7 +382,9 @@ class _RemoteVideoTile extends ConsumerWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E26),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
           content: SizedBox(
             width: 280,
@@ -382,12 +427,18 @@ class _RemoteVideoTile extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.volume_down_rounded, size: 18, color: Colors.white38),
+                    const Icon(
+                      Icons.volume_down_rounded,
+                      size: 18,
+                      color: Colors.white38,
+                    ),
                     Expanded(
                       child: SliderTheme(
                         data: SliderTheme.of(ctx).copyWith(
                           trackHeight: 4,
-                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 8,
+                          ),
                         ),
                         child: Slider(
                           value: tempVolume,
@@ -396,14 +447,22 @@ class _RemoteVideoTile extends ConsumerWidget {
                           divisions: 40,
                           onChanged: (v) {
                             setDialogState(() => tempVolume = v);
-                            notifier.setParticipantVolume(identity, v, source: audioSource);
+                            notifier.setParticipantVolume(
+                              identity,
+                              v,
+                              source: audioSource,
+                            );
                           },
                           activeColor: const Color(0xFF7F5AF0),
                           inactiveColor: Colors.white24,
                         ),
                       ),
                     ),
-                    const Icon(Icons.volume_up_rounded, size: 18, color: Colors.white38),
+                    const Icon(
+                      Icons.volume_up_rounded,
+                      size: 18,
+                      color: Colors.white38,
+                    ),
                   ],
                 ),
                 Center(
@@ -417,11 +476,17 @@ class _RemoteVideoTile extends ConsumerWidget {
                   child: TextButton.icon(
                     onPressed: () {
                       setDialogState(() => tempVolume = 1.0);
-                      notifier.setParticipantVolume(identity, 1.0, source: audioSource);
+                      notifier.setParticipantVolume(
+                        identity,
+                        1.0,
+                        source: audioSource,
+                      );
                     },
                     icon: const Icon(Icons.refresh, size: 14),
                     label: const Text('Reset to 100%'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.white60),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white60,
+                    ),
                   ),
                 ),
               ],

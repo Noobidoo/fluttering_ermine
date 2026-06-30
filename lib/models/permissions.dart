@@ -168,7 +168,10 @@ class OverrideField {
   /// or `null`.
   factory OverrideField.fromJson(dynamic json) {
     if (json is Map<String, dynamic>) {
-      return OverrideField(_parseBitfield(json['a']), _parseBitfield(json['d']));
+      return OverrideField(
+        _parseBitfield(json['a']),
+        _parseBitfield(json['d']),
+      );
     }
     // plain int / string — treat as allow-only
     final v = _parseBitfield(json);
@@ -247,7 +250,12 @@ const List<PermissionDef> kServerPermissions = [
     'Remove members from the server',
     Permission.kickMembers,
   ),
-  PermissionDef('ban_members', 'Ban Members', 'Ban members from the server', Permission.banMembers),
+  PermissionDef(
+    'ban_members',
+    'Ban Members',
+    'Ban members from the server',
+    Permission.banMembers,
+  ),
   PermissionDef(
     'timeout_members',
     'Timeout Members',
@@ -272,14 +280,24 @@ const List<PermissionDef> kServerPermissions = [
     "Change or remove other's nicknames",
     Permission.manageNicknames,
   ),
-  PermissionDef('change_avatar', 'Change Avatar', 'Change own avatar', Permission.changeAvatar),
+  PermissionDef(
+    'change_avatar',
+    'Change Avatar',
+    'Change own avatar',
+    Permission.changeAvatar,
+  ),
   PermissionDef(
     'remove_avatars',
     'Remove Avatars',
     "Remove other's avatars",
     Permission.removeAvatars,
   ),
-  PermissionDef('view_channel', 'View Channel', 'View a channel', Permission.viewChannel),
+  PermissionDef(
+    'view_channel',
+    'View Channel',
+    'View a channel',
+    Permission.viewChannel,
+  ),
   PermissionDef(
     'read_message_history',
     'Read Message History',
@@ -316,17 +334,37 @@ const List<PermissionDef> kServerPermissions = [
     'Send embedded content in this channel',
     Permission.sendEmbeds,
   ),
-  PermissionDef('upload_files', 'Upload Files', 'Upload images and files', Permission.uploadFiles),
+  PermissionDef(
+    'upload_files',
+    'Upload Files',
+    'Upload images and files',
+    Permission.uploadFiles,
+  ),
   PermissionDef(
     'masquerade',
     'Masquerade',
     'Masquerade messages using custom nickname and avatar',
     Permission.masquerade,
   ),
-  PermissionDef('react', 'React', 'React to messages with emoji', Permission.react),
-  PermissionDef('connect', 'Connect to Voice', 'Join voice channels', Permission.connect),
+  PermissionDef(
+    'react',
+    'React',
+    'React to messages with emoji',
+    Permission.react,
+  ),
+  PermissionDef(
+    'connect',
+    'Connect to Voice',
+    'Join voice channels',
+    Permission.connect,
+  ),
   PermissionDef('speak', 'Speak', 'Speak in a voice call', Permission.speak),
-  PermissionDef('video', 'Video', 'Share video in a voice call', Permission.video),
+  PermissionDef(
+    'video',
+    'Video',
+    'Share video in a voice call',
+    Permission.video,
+  ),
   PermissionDef(
     'mute_members',
     'Mute Members',
@@ -345,14 +383,24 @@ const List<PermissionDef> kServerPermissions = [
     'Move members between voice channels',
     Permission.moveMembers,
   ),
-  PermissionDef('listen', 'Listen', 'Listen to a voice channel', Permission.listen),
+  PermissionDef(
+    'listen',
+    'Listen',
+    'Listen to a voice channel',
+    Permission.listen,
+  ),
   PermissionDef(
     'mention_everyone',
     'Mention Everyone',
     'Mention @everyone or @online',
     Permission.mentionEveryone,
   ),
-  PermissionDef('mention_roles', 'Mention Roles', 'Mention a role', Permission.mentionRoles),
+  PermissionDef(
+    'mention_roles',
+    'Mention Roles',
+    'Mention a role',
+    Permission.mentionRoles,
+  ),
   PermissionDef(
     'bypass_slowmode',
     'Bypass Slowmode',
@@ -363,7 +411,12 @@ const List<PermissionDef> kServerPermissions = [
 
 /// Channel-relevant permission definitions (for channel override UI).
 const List<PermissionDef> kChannelPermissions = [
-  PermissionDef('view_channel', 'View Channel', 'View a channel', Permission.viewChannel),
+  PermissionDef(
+    'view_channel',
+    'View Channel',
+    'View a channel',
+    Permission.viewChannel,
+  ),
   PermissionDef(
     'read_message_history',
     'Read Message History',
@@ -400,17 +453,37 @@ const List<PermissionDef> kChannelPermissions = [
     'Send embedded content in this channel',
     Permission.sendEmbeds,
   ),
-  PermissionDef('upload_files', 'Upload Files', 'Upload images and files', Permission.uploadFiles),
+  PermissionDef(
+    'upload_files',
+    'Upload Files',
+    'Upload images and files',
+    Permission.uploadFiles,
+  ),
   PermissionDef(
     'masquerade',
     'Masquerade',
     'Masquerade messages using custom nickname and avatar',
     Permission.masquerade,
   ),
-  PermissionDef('react', 'React', 'React to messages with emoji', Permission.react),
-  PermissionDef('connect', 'Connect to Voice', 'Join voice channels', Permission.connect),
+  PermissionDef(
+    'react',
+    'React',
+    'React to messages with emoji',
+    Permission.react,
+  ),
+  PermissionDef(
+    'connect',
+    'Connect to Voice',
+    'Join voice channels',
+    Permission.connect,
+  ),
   PermissionDef('speak', 'Speak', 'Speak in a voice call', Permission.speak),
-  PermissionDef('video', 'Video', 'Share video in a voice call', Permission.video),
+  PermissionDef(
+    'video',
+    'Video',
+    'Share video in a voice call',
+    Permission.video,
+  ),
   PermissionDef(
     'mute_members',
     'Mute Members',
@@ -429,7 +502,12 @@ const List<PermissionDef> kChannelPermissions = [
     'Move members between voice channels',
     Permission.moveMembers,
   ),
-  PermissionDef('listen', 'Listen', 'Listen to a voice channel', Permission.listen),
+  PermissionDef(
+    'listen',
+    'Listen',
+    'Listen to a voice channel',
+    Permission.listen,
+  ),
   PermissionDef(
     'bypass_slowmode',
     'Bypass Slowmode',
@@ -439,10 +517,12 @@ const List<PermissionDef> kChannelPermissions = [
 ];
 
 /// Permissions allowed for a user while in timeout (matching the reference SDK).
-const int allowInTimeout = Permission.viewChannel + Permission.readMessageHistory;
+const int allowInTimeout =
+    Permission.viewChannel + Permission.readMessageHistory;
 
 /// Default permissions if we can only view.
-const int defaultPermissionViewOnly = Permission.viewChannel + Permission.readMessageHistory;
+const int defaultPermissionViewOnly =
+    Permission.viewChannel + Permission.readMessageHistory;
 
 /// Parse a permission bitfield from a string or [OverrideField].
 ///

@@ -15,9 +15,9 @@ void main() {
   group('UserProfileSheet', () {
     testWidgets('shows display name and username', (tester) async {
       final mockService = MockRevoltService();
-      when(() => mockService.fetchUserProfile(any())).thenAnswer(
-        (_) async => UserProfile(content: null, background: null),
-      );
+      when(
+        () => mockService.fetchUserProfile(any()),
+      ).thenAnswer((_) async => UserProfile(content: null, background: null));
 
       final user = RevoltUser(
         id: 'u1',
@@ -25,15 +25,19 @@ void main() {
         discriminator: '0001',
       );
 
-      await tester.pumpWidget(TestApp(
-        mockService: mockService,
-        child: Consumer(builder: (context, ref, _) {
-          return ElevatedButton(
-            onPressed: () => showUserProfileSheet(context, ref, user),
-            child: const Text('Show'),
-          );
-        }),
-      ));
+      await tester.pumpWidget(
+        TestApp(
+          mockService: mockService,
+          child: Consumer(
+            builder: (context, ref, _) {
+              return ElevatedButton(
+                onPressed: () => showUserProfileSheet(context, ref, user),
+                child: const Text('Show'),
+              );
+            },
+          ),
+        ),
+      );
 
       await tester.tap(find.text('Show'));
       await tester.pump();
@@ -44,9 +48,9 @@ void main() {
 
     testWidgets('shows status text when present', (tester) async {
       final mockService = MockRevoltService();
-      when(() => mockService.fetchUserProfile(any())).thenAnswer(
-        (_) async => UserProfile(content: null, background: null),
-      );
+      when(
+        () => mockService.fetchUserProfile(any()),
+      ).thenAnswer((_) async => UserProfile(content: null, background: null));
 
       final user = RevoltUser(
         id: 'u1',
@@ -55,15 +59,19 @@ void main() {
         statusText: 'busy coding',
       );
 
-      await tester.pumpWidget(TestApp(
-        mockService: mockService,
-        child: Consumer(builder: (context, ref, _) {
-          return ElevatedButton(
-            onPressed: () => showUserProfileSheet(context, ref, user),
-            child: const Text('Show'),
-          );
-        }),
-      ));
+      await tester.pumpWidget(
+        TestApp(
+          mockService: mockService,
+          child: Consumer(
+            builder: (context, ref, _) {
+              return ElevatedButton(
+                onPressed: () => showUserProfileSheet(context, ref, user),
+                child: const Text('Show'),
+              );
+            },
+          ),
+        ),
+      );
 
       await tester.tap(find.text('Show'));
       await tester.pump();
@@ -84,15 +92,19 @@ void main() {
         discriminator: '0001',
       );
 
-      await tester.pumpWidget(TestApp(
-        mockService: mockService,
-        child: Consumer(builder: (context, ref, _) {
-          return ElevatedButton(
-            onPressed: () => showUserProfileSheet(context, ref, user),
-            child: const Text('Show'),
-          );
-        }),
-      ));
+      await tester.pumpWidget(
+        TestApp(
+          mockService: mockService,
+          child: Consumer(
+            builder: (context, ref, _) {
+              return ElevatedButton(
+                onPressed: () => showUserProfileSheet(context, ref, user),
+                child: const Text('Show'),
+              );
+            },
+          ),
+        ),
+      );
 
       await tester.tap(find.text('Show'));
       await tester.pump();

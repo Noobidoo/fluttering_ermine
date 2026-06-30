@@ -22,9 +22,10 @@ class TestApp extends StatelessWidget {
     required this.child,
     MockRevoltService? mockService,
     MockVoiceEventService? mockVoiceEvent,
-  })  : mockService = mockService ?? MockRevoltService(),
-        mockVoiceEvent = mockVoiceEvent ?? MockVoiceEventService() {
-    SharedPreferencesAsyncPlatform.instance ??= InMemorySharedPreferencesAsync.empty();
+  }) : mockService = mockService ?? MockRevoltService(),
+       mockVoiceEvent = mockVoiceEvent ?? MockVoiceEventService() {
+    SharedPreferencesAsyncPlatform.instance ??=
+        InMemorySharedPreferencesAsync.empty();
   }
 
   @override
@@ -52,50 +53,39 @@ class TestApp extends StatelessWidget {
 /// Message data for golden test scenarios.
 class TestMessage {
   static RevoltMessage withImageAttachment() => RevoltMessage(
-        id: 'msg-img',
-        channelId: 'chan1',
-        authorId: 'u1',
-        content: 'Check out this image',
-        timestamp: '2026-06-01T12:00:00.000Z',
-        attachments: [
-          RevoltFile(
-            id: 'file1',
-            tag: 'attachments',
-            filename: 'screenshot.png',
-          ),
-        ],
-      );
+    id: 'msg-img',
+    channelId: 'chan1',
+    authorId: 'u1',
+    content: 'Check out this image',
+    timestamp: '2026-06-01T12:00:00.000Z',
+    attachments: [
+      RevoltFile(id: 'file1', tag: 'attachments', filename: 'screenshot.png'),
+    ],
+  );
 
   static RevoltMessage withFileAttachment() => RevoltMessage(
-        id: 'msg-file',
-        channelId: 'chan1',
-        authorId: 'u1',
-        content: 'Here is the document',
-        timestamp: '2026-06-01T12:00:00.000Z',
-        attachments: [
-          RevoltFile(
-            id: 'file2',
-            tag: 'attachments',
-            filename: 'report.pdf',
-          ),
-        ],
-      );
+    id: 'msg-file',
+    channelId: 'chan1',
+    authorId: 'u1',
+    content: 'Here is the document',
+    timestamp: '2026-06-01T12:00:00.000Z',
+    attachments: [
+      RevoltFile(id: 'file2', tag: 'attachments', filename: 'report.pdf'),
+    ],
+  );
 
   static RevoltMessage withReactions() => RevoltMessage(
-        id: 'msg-react',
-        channelId: 'chan1',
-        authorId: 'u1',
-        content: 'Hello everyone!',
-        timestamp: '2026-06-01T12:00:00.000Z',
-        reactions: {
-          '\u{1F44D}': ['u1', 'u2'],
-          '\u{1F525}': ['u2'],
-        },
-      );
+    id: 'msg-react',
+    channelId: 'chan1',
+    authorId: 'u1',
+    content: 'Hello everyone!',
+    timestamp: '2026-06-01T12:00:00.000Z',
+    reactions: {
+      '\u{1F44D}': ['u1', 'u2'],
+      '\u{1F525}': ['u2'],
+    },
+  );
 }
 
-RevoltUser testUser(String id) => RevoltUser(
-      id: id,
-      username: 'testuser_$id',
-      discriminator: '0000',
-    );
+RevoltUser testUser(String id) =>
+    RevoltUser(id: id, username: 'testuser_$id', discriminator: '0000');

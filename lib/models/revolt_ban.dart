@@ -9,7 +9,9 @@ class RevoltBan {
     final idObj = json['_id'] as Map<String, dynamic>?;
     final userId = idObj?['user'] as String? ?? json['user'] as String? ?? '';
     return RevoltBan(
-      id: json['_id'] is String ? json['_id'] as String : (idObj?['server'] as String? ?? ''),
+      id: json['_id'] is String
+          ? json['_id'] as String
+          : (idObj?['server'] as String? ?? ''),
       userId: userId,
       reason: json['reason'] as String?,
     );

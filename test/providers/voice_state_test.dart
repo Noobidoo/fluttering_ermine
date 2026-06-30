@@ -39,7 +39,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
   });
 
   late FakeRevoltService svc;
@@ -47,15 +48,15 @@ void main() {
 
   setUp(() {
     svc = FakeRevoltService();
-    container = ProviderContainer(overrides: [
-      revoltServiceProvider.overrideWithValue(svc),
-      // VoiceNotifier subscribes to voiceEventService internally,
-      // but in tests we inject WS events through the revolt service.
-      // Use a real VoiceEventService connected to our fake svc.
-      voiceEventServiceProvider.overrideWithValue(
-        MockVoiceEventService(),
-      ),
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        revoltServiceProvider.overrideWithValue(svc),
+        // VoiceNotifier subscribes to voiceEventService internally,
+        // but in tests we inject WS events through the revolt service.
+        // Use a real VoiceEventService connected to our fake svc.
+        voiceEventServiceProvider.overrideWithValue(MockVoiceEventService()),
+      ],
+    );
     // Trigger build() which calls subscribeToVoiceEvents()
     container.read(voiceStateProvider);
   });
@@ -132,15 +133,19 @@ void main() {
 
   group('VoiceState – leaveVoiceChannel when not connected', () {
     test('completes without throwing when no room is active', () async {
-      await notifier().leaveVoiceChannel(); // no room active → all awaits are no-ops
+      await notifier()
+          .leaveVoiceChannel(); // no room active → all awaits are no-ops
     });
 
-    test('isInVoice and activeVoiceChannel remain false/null after spurious leave', () async {
-      await notifier().leaveVoiceChannel();
+    test(
+      'isInVoice and activeVoiceChannel remain false/null after spurious leave',
+      () async {
+        await notifier().leaveVoiceChannel();
 
-      expect(state().isInVoice, isFalse);
-      expect(state().activeVoiceChannel, isNull);
-    });
+        expect(state().isInVoice, isFalse);
+        expect(state().activeVoiceChannel, isNull);
+      },
+    );
   });
 
   // -- toggleMute without LiveKit Room ---------------------------------------
@@ -160,15 +165,23 @@ void main() {
       container.dispose();
       final voiceEventService = VoiceEventService(svc);
       voiceEventService.subscribeToWebSocketEvents();
-      container = ProviderContainer(overrides: [
-        revoltServiceProvider.overrideWithValue(svc),
-        voiceEventServiceProvider.overrideWithValue(voiceEventService),
-      ]);
+      container = ProviderContainer(
+        overrides: [
+          revoltServiceProvider.overrideWithValue(svc),
+          voiceEventServiceProvider.overrideWithValue(voiceEventService),
+        ],
+      );
       container.read(voiceStateProvider);
     });
 
     test('clear resets state without throwing when no Room is active', () async {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['u1'],
+          },
+        ),
+      );
       expect(state().voiceParticipantsFor('chan1'), isNotEmpty);
 
       await notifier().clear();
@@ -196,106 +209,198 @@ void main() {
       container.dispose();
       final voiceEventService = VoiceEventService(svc);
       voiceEventService.subscribeToWebSocketEvents();
-      container = ProviderContainer(overrides: [
-        revoltServiceProvider.overrideWithValue(svc),
-        voiceEventServiceProvider.overrideWithValue(voiceEventService),
-      ]);
+      container = ProviderContainer(
+        overrides: [
+          revoltServiceProvider.overrideWithValue(svc),
+          voiceEventServiceProvider.overrideWithValue(voiceEventService),
+        ],
+      );
       container.read(voiceStateProvider);
     });
 
     test('Ready seeds voice membership from voice_states', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['user1'],
+          },
+        ),
+      );
       expect(state().voiceParticipantsFor('chan1'), contains('user1'));
     });
 
     test('Ready seeds publishing state from voice_states', () {
-      svc.push(_readyEvent(
-        voiceMembers: {'chan1': ['u1', 'u2']},
-        publishingUsers: {'u1'},
-      ));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['u1', 'u2'],
+          },
+          publishingUsers: {'u1'},
+        ),
+      );
       expect(state().voicePublishingFor('u1'), isTrue);
       expect(state().voicePublishingFor('u2'), isNull);
     });
 
     test('VoiceChannelJoin adds user to channel participant list', () {
       svc.push(_readyEvent());
-      svc.push({'type': 'VoiceChannelJoin', 'id': 'chan1', 'state': {'id': 'user1'}});
+      svc.push({
+        'type': 'VoiceChannelJoin',
+        'id': 'chan1',
+        'state': {'id': 'user1'},
+      });
       expect(state().voiceParticipantsFor('chan1'), contains('user1'));
     });
 
     test('VoiceChannelJoin is idempotent (no duplicates)', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
-      svc.push({'type': 'VoiceChannelJoin', 'id': 'chan1', 'state': {'id': 'user1'}});
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['user1'],
+          },
+        ),
+      );
+      svc.push({
+        'type': 'VoiceChannelJoin',
+        'id': 'chan1',
+        'state': {'id': 'user1'},
+      });
       expect(state().voiceParticipantsFor('chan1').length, 1);
     });
 
     test('VoiceChannelLeave removes the user from the channel', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1', 'user2']}));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['user1', 'user2'],
+          },
+        ),
+      );
       svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
       expect(state().voiceParticipantsFor('chan1'), isNot(contains('user1')));
       expect(state().voiceParticipantsFor('chan1'), contains('user2'));
     });
 
     test('VoiceChannelLeave on last user empties the channel entry', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['user1'],
+          },
+        ),
+      );
       svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
       expect(state().voiceParticipantsFor('chan1'), isEmpty);
     });
 
     test('VoiceChannelLeave does not affect other channels', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1'], 'chan2': ['user2']}));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['user1'],
+            'chan2': ['user2'],
+          },
+        ),
+      );
       svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
       expect(state().voiceParticipantsFor('chan2'), contains('user2'));
     });
 
     test('VoiceChannelLeave for unknown user is a no-op', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['user2']}));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['user2'],
+          },
+        ),
+      );
       svc.push({'type': 'VoiceChannelLeave', 'id': 'chan1', 'user': 'user1'});
       expect(state().voiceParticipantsFor('chan1'), contains('user2'));
     });
 
-    test('ServerMemberUpdate with VoiceChannel clear removes user from all channels and clears publishing', () {
-      svc.push(_readyEvent(
-        voiceMembers: {'a': ['u1', 'u2'], 'b': ['u1']},
-        publishingUsers: {'u1'},
-      ));
-      expect(state().voicePublishingFor('u1'), isTrue);
-      svc.push({
-        'type': 'ServerMemberUpdate',
-        'id': {'server': 's1', 'user': 'u1'},
-        'clear': ['VoiceChannel'],
-      });
-      // The ServerMemberUpdate is handled by ServerNotifier, but VoiceChannel
-      // clear is handled via onServerProfileUpdated callback in app_bootstrap.
-      // In this test neither server nor messaging notifiers are running, so
-      // the VoiceChannel clear is not processed by VoiceNotifier directly.
-      // Instead, VoiceNotifier listens to VoiceEventService membership events.
-      // The voiceChannelMembers come from the VoiceEventService which translates
-      // WS events; membership events are not changed by this test's push alone.
-      // Check that publishing state is cleaned up indirectly.
-    });
+    test(
+      'ServerMemberUpdate with VoiceChannel clear removes user from all channels and clears publishing',
+      () {
+        svc.push(
+          _readyEvent(
+            voiceMembers: {
+              'a': ['u1', 'u2'],
+              'b': ['u1'],
+            },
+            publishingUsers: {'u1'},
+          ),
+        );
+        expect(state().voicePublishingFor('u1'), isTrue);
+        svc.push({
+          'type': 'ServerMemberUpdate',
+          'id': {'server': 's1', 'user': 'u1'},
+          'clear': ['VoiceChannel'],
+        });
+        // The ServerMemberUpdate is handled by ServerNotifier, but VoiceChannel
+        // clear is handled via onServerProfileUpdated callback in app_bootstrap.
+        // In this test neither server nor messaging notifiers are running, so
+        // the VoiceChannel clear is not processed by VoiceNotifier directly.
+        // Instead, VoiceNotifier listens to VoiceEventService membership events.
+        // The voiceChannelMembers come from the VoiceEventService which translates
+        // WS events; membership events are not changed by this test's push alone.
+        // Check that publishing state is cleaned up indirectly.
+      },
+    );
 
     test('VoiceChannelMove removes from source and adds to destination', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
-      svc.push({'type': 'VoiceChannelMove', 'user': 'user1', 'from': 'chan1', 'to': 'chan2'});
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['user1'],
+          },
+        ),
+      );
+      svc.push({
+        'type': 'VoiceChannelMove',
+        'user': 'user1',
+        'from': 'chan1',
+        'to': 'chan2',
+      });
       expect(state().voiceParticipantsFor('chan1'), isNot(contains('user1')));
       expect(state().voiceParticipantsFor('chan2'), contains('user1'));
     });
 
     test('VoiceChannelMove with null from only adds to destination', () {
       svc.push(_readyEvent(voiceMembers: {'chan2': []}));
-      svc.push({'type': 'VoiceChannelMove', 'user': 'user1', 'from': null, 'to': 'chan2'});
+      svc.push({
+        'type': 'VoiceChannelMove',
+        'user': 'user1',
+        'from': null,
+        'to': 'chan2',
+      });
       expect(state().voiceParticipantsFor('chan2'), contains('user1'));
     });
 
     test('VoiceChannelMove with null to only removes from source', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['user1']}));
-      svc.push({'type': 'VoiceChannelMove', 'user': 'user1', 'from': 'chan1', 'to': null});
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['user1'],
+          },
+        ),
+      );
+      svc.push({
+        'type': 'VoiceChannelMove',
+        'user': 'user1',
+        'from': 'chan1',
+        'to': null,
+      });
       expect(state().voiceParticipantsFor('chan1'), isEmpty);
     });
 
     test('UserVoiceStateUpdate updates publishing state', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['u1'],
+          },
+        ),
+      );
       svc.push({
         'type': 'UserVoiceStateUpdate',
         'id': 'u1',
@@ -305,7 +410,13 @@ void main() {
     });
 
     test('UserVoiceStateUpdate sets false when user stops publishing', () {
-      svc.push(_readyEvent(voiceMembers: {'chan1': ['u1']}));
+      svc.push(
+        _readyEvent(
+          voiceMembers: {
+            'chan1': ['u1'],
+          },
+        ),
+      );
       svc.push({
         'type': 'UserVoiceStateUpdate',
         'id': 'u1',
@@ -327,10 +438,12 @@ void main() {
       // Ensure async _asyncLoadSettings completes before settings tests.
       // Use a new container each time to clear settings state.
       container.dispose();
-      container = ProviderContainer(overrides: [
-        revoltServiceProvider.overrideWithValue(svc),
-        voiceEventServiceProvider.overrideWithValue(MockVoiceEventService()),
-      ]);
+      container = ProviderContainer(
+        overrides: [
+          revoltServiceProvider.overrideWithValue(svc),
+          voiceEventServiceProvider.overrideWithValue(MockVoiceEventService()),
+        ],
+      );
       container.read(voiceStateProvider);
     });
 

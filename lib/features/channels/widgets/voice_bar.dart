@@ -41,9 +41,16 @@ class VoiceBar extends ConsumerWidget {
       child: voice.isJoiningVoice
           ? const Row(
               children: [
-                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
                 SizedBox(width: 8),
-                Text('Connecting to voice…', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                Text(
+                  'Connecting to voice…',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
               ],
             )
           : Column(
@@ -52,7 +59,11 @@ class VoiceBar extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.graphic_eq, size: 16, color: Color(0xFF2CB67D)),
+                    const Icon(
+                      Icons.graphic_eq,
+                      size: 16,
+                      color: Color(0xFF2CB67D),
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Column(
@@ -69,7 +80,10 @@ class VoiceBar extends ConsumerWidget {
                           ),
                           Text(
                             channelName,
-                            style: const TextStyle(color: Colors.white54, fontSize: 11),
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -80,13 +94,17 @@ class VoiceBar extends ConsumerWidget {
                         message: _deepFilterTooltip(voice),
                         child: IconButton(
                           icon: Icon(
-                            voice.deepFilterEnabled ? Icons.noise_aware : Icons.noise_control_off,
+                            voice.deepFilterEnabled
+                                ? Icons.noise_aware
+                                : Icons.noise_control_off,
                             size: 18,
                             color: _deepFilterColor(voice),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          onPressed: () => notifier.setDeepFilterEnabled(!voice.deepFilterEnabled),
+                          onPressed: () => notifier.setDeepFilterEnabled(
+                            !voice.deepFilterEnabled,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -95,7 +113,9 @@ class VoiceBar extends ConsumerWidget {
                       icon: Icon(
                         voice.isMuted ? Icons.mic_off : Icons.mic,
                         size: 18,
-                        color: voice.isMuted ? Colors.redAccent : Colors.white70,
+                        color: voice.isMuted
+                            ? Colors.redAccent
+                            : Colors.white70,
                       ),
                       tooltip: voice.isMuted ? 'Unmute' : 'Mute',
                       padding: EdgeInsets.zero,
@@ -104,7 +124,11 @@ class VoiceBar extends ConsumerWidget {
                     ),
                     const SizedBox(width: 4),
                     IconButton(
-                      icon: const Icon(Icons.call_end, size: 18, color: Colors.redAccent),
+                      icon: const Icon(
+                        Icons.call_end,
+                        size: 18,
+                        color: Colors.redAccent,
+                      ),
                       tooltip: 'Leave voice',
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),

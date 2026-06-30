@@ -38,7 +38,9 @@ class LoginStateData {
     String? autumnBase,
   }) => LoginStateData(
     isLoggedIn: isLoggedIn ?? this.isLoggedIn,
-    currentUser: currentUser == _omit ? this.currentUser : currentUser as RevoltUser?,
+    currentUser: currentUser == _omit
+        ? this.currentUser
+        : currentUser as RevoltUser?,
     apiBase: apiBase ?? this.apiBase,
     autumnBase: autumnBase ?? this.autumnBase,
   );
@@ -77,7 +79,10 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
       }
       final token = await asyncPrefs.getString(_tokenKey);
       if (token == null) {
-        return LoginStateData(apiBase: _service.apiBase, autumnBase: _service.autumnBase);
+        return LoginStateData(
+          apiBase: _service.apiBase,
+          autumnBase: _service.autumnBase,
+        );
       }
       _service.setToken(token);
       try {
@@ -101,7 +106,10 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
     } catch (_) {
       final asyncPrefs = SharedPreferencesAsync();
       await asyncPrefs.remove(_tokenKey);
-      return LoginStateData(apiBase: _service.apiBase, autumnBase: _service.autumnBase);
+      return LoginStateData(
+        apiBase: _service.apiBase,
+        autumnBase: _service.autumnBase,
+      );
     }
   }
 
@@ -119,7 +127,9 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
       return;
     }
     if (event['type'] != 'UserUpdate') return;
-    debugPrint('[Auth/UserUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}');
+    debugPrint(
+      '[Auth/UserUpdate] raw: ${String.fromCharCodes(utf8.encode(event.toString()))}',
+    );
     final id = event['id'] as String?;
     if (id == null || id != state.requireValue.currentUser?.id) return;
     final data = (event['data'] as Map?)?.cast<String, dynamic>();
@@ -143,15 +153,21 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
       return null;
     }
 
-    if (data != null && (data.containsKey('avatar') || clear.contains('avatar'))) {
-      final oldUrl = cached.resolveAvatarUrl(null, _service.autumnBase, _service.apiBase);
+    if (data != null &&
+        (data.containsKey('avatar') || clear.contains('avatar'))) {
+      final oldUrl = cached.resolveAvatarUrl(
+        null,
+        _service.autumnBase,
+        _service.apiBase,
+      );
       PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
     }
 
     final user = RevoltUser(
       id: cached.id,
       username: data?['username'] as String? ?? cached.username,
-      discriminator: (data?['discriminator'] as String? ?? cached.discriminator),
+      discriminator:
+          (data?['discriminator'] as String? ?? cached.discriminator),
       displayName: data?['display_name'] as String? ?? cached.displayName,
       avatar: clear.contains('avatar')
           ? null
@@ -165,7 +181,8 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
           : cached.banner,
       presence: clear.contains('status')
           ? UserPresence.invisible
-          : data?['status'] is Map && (data!['status'] as Map).containsKey('presence')
+          : data?['status'] is Map &&
+                (data!['status'] as Map).containsKey('presence')
           ? parsePresence((data['status'] as Map)['presence'] as String?)
           : cached.presence,
       statusText: clear.contains('status')
@@ -176,7 +193,8 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
       profileContent: clear.contains('profile')
           ? null
           : data?['profile'] is Map
-          ? (data!['profile'] as Map)['content'] as String? ?? cached.profileContent
+          ? (data!['profile'] as Map)['content'] as String? ??
+                cached.profileContent
           : cached.profileContent,
       serverProfiles: cached.serverProfiles,
     );
@@ -188,7 +206,8 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
     final wsUrl = config['ws'] as String? ?? _defaultWsUrl;
     final features = config['features'] as Map<String, dynamic>? ?? {};
     final autumnUrl = features['autumn'] as Map<String, dynamic>? ?? {};
-    final autumnBase = autumnUrl['url'] as String? ?? 'https://autumn.revolt.chat';
+    final autumnBase =
+        autumnUrl['url'] as String? ?? 'https://autumn.revolt.chat';
     final livekit = features['livekit'] as Map<String, dynamic>? ?? {};
     final nodes = livekit['nodes'] as List<dynamic>? ?? [];
     final voiceNode = nodes.isNotEmpty
@@ -261,7 +280,9 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
   Future<void> updateDisplayName(String name) async {
     await _service.updateProfile(displayName: name.isEmpty ? '' : name);
     final current = state.requireValue;
-    final updated = current.currentUser?.copyWith(displayName: name.isEmpty ? '' : name);
+    final updated = current.currentUser?.copyWith(
+      displayName: name.isEmpty ? '' : name,
+    );
     state = AsyncData(current.copyWith(currentUser: updated));
   }
 
@@ -314,7 +335,11 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
     state = AsyncData(current.copyWith(currentUser: updated));
   }
 
-  Future<void> updateServerProfile(String serverId, {String? nickname, String? avatar}) async {
+  Future<void> updateServerProfile(
+    String serverId, {
+    String? nickname,
+    String? avatar,
+  }) async {
     final userId = state.requireValue.currentUser?.id;
     if (userId == null) return;
     final remove = <String>[];
@@ -333,4 +358,6 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
   }
 }
 
-final loginStateProvider = AsyncNotifierProvider<LoginNotifier, LoginStateData>(LoginNotifier.new);
+final loginStateProvider = AsyncNotifierProvider<LoginNotifier, LoginStateData>(
+  LoginNotifier.new,
+);

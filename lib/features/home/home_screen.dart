@@ -44,7 +44,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Expanded(
               child: ChatView(msgCtrl: _msgCtrl, scrollCtrl: _scrollCtrl),
             ),
-            if (selectedServer != null) const SizedBox(width: 280, child: MemberPanel()),
+            if (selectedServer != null)
+              const SizedBox(width: 280, child: MemberPanel()),
           ],
         ),
       );
@@ -67,7 +68,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, RevoltChannel? channel) {
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    RevoltChannel? channel,
+  ) {
     return AppBar(
       backgroundColor: const Color(0xFF16161A),
       title: channel != null
@@ -76,7 +80,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Icon(_channelIcon(channel), size: 18, color: Colors.white54),
                 const SizedBox(width: 6),
                 Text(
-                  ref.read(messagingStateProvider.notifier).channelDisplayName(channel),
+                  ref
+                      .read(messagingStateProvider.notifier)
+                      .channelDisplayName(channel),
                   style: const TextStyle(fontSize: 16),
                 ),
               ],

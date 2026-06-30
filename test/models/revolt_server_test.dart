@@ -20,10 +20,7 @@ void main() {
     });
 
     test('fromJson missing optional fields default to null/empty', () {
-      final json = {
-        '_id': 'server2',
-        'name': 'Minimal',
-      };
+      final json = {'_id': 'server2', 'name': 'Minimal'};
       final server = RevoltServer.fromJson(json);
       expect(server.id, 'server2');
       expect(server.name, 'Minimal');
@@ -33,10 +30,7 @@ void main() {
     });
 
     test('iconUrlFor returns null when no icon', () {
-      final json = {
-        '_id': 's1',
-        'name': 'No Icon',
-      };
+      final json = {'_id': 's1', 'name': 'No Icon'};
       final server = RevoltServer.fromJson(json);
       expect(server.iconUrlFor('https://autumn.test'), isNull);
     });
@@ -45,15 +39,13 @@ void main() {
       final json = {
         '_id': 's1',
         'name': 'With Icon',
-        'icon': {
-          '_id': 'icon1',
-          'tag': 'icons',
-          'filename': 'server.png',
-        },
+        'icon': {'_id': 'icon1', 'tag': 'icons', 'filename': 'server.png'},
       };
       final server = RevoltServer.fromJson(json);
-      expect(server.iconUrlFor('https://autumn.test'),
-          'https://autumn.test/icons/icon1');
+      expect(
+        server.iconUrlFor('https://autumn.test'),
+        'https://autumn.test/icons/icon1',
+      );
     });
   });
 }

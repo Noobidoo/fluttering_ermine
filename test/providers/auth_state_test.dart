@@ -16,7 +16,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
   });
 
   group('LoginNotifier – profile updates', () {
@@ -27,10 +28,12 @@ void main() {
     setUp(() async {
       svc = FakeRevoltService();
       voiceEvent = MockVoiceEventService();
-      container = ProviderContainer(overrides: [
-        revoltServiceProvider.overrideWithValue(svc),
-        voiceEventServiceProvider.overrideWithValue(voiceEvent),
-      ]);
+      container = ProviderContainer(
+        overrides: [
+          revoltServiceProvider.overrideWithValue(svc),
+          voiceEventServiceProvider.overrideWithValue(voiceEvent),
+        ],
+      );
     });
 
     tearDown(() {
@@ -40,62 +43,106 @@ void main() {
 
     Future<void> initWithUser(RevoltUser user) async {
       svc.stubCurrentUser(user);
-      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.withData({
-        'revolt_session_token': 'test-token',
-      });
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.withData({
+            'revolt_session_token': 'test-token',
+          });
       await container.read(loginStateProvider.future);
     }
 
     // -- updateDisplayName --------------------------------------------------
 
-    test('updateDisplayName preserves bio and updates displayName locally', () async {
-      await initWithUser(RevoltUser(
-        id: 'self',
-        username: 'self',
-        discriminator: '0000',
-        displayName: 'OldName',
-        profileContent: 'My bio',
-      ));
+    test(
+      'updateDisplayName preserves bio and updates displayName locally',
+      () async {
+        await initWithUser(
+          RevoltUser(
+            id: 'self',
+            username: 'self',
+            discriminator: '0000',
+            displayName: 'OldName',
+            profileContent: 'My bio',
+          ),
+        );
 
-      final notifier = container.read(loginStateProvider.notifier);
-      await notifier.updateDisplayName('NewDisplay');
+        final notifier = container.read(loginStateProvider.notifier);
+        await notifier.updateDisplayName('NewDisplay');
 
-      expect(svc.updateProfileCalls, hasLength(1));
-      expect(svc.updateProfileCalls.first.displayName, 'NewDisplay');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.displayName, 'NewDisplay');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.profileContent, 'My bio');
-    });
+        expect(svc.updateProfileCalls, hasLength(1));
+        expect(svc.updateProfileCalls.first.displayName, 'NewDisplay');
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.displayName,
+          'NewDisplay',
+        );
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.profileContent,
+          'My bio',
+        );
+      },
+    );
 
     // -- updateStatus --------------------------------------------------------
 
-    test('updateStatus delegates presence and statusText to service and preserves bio', () async {
-      await initWithUser(RevoltUser(
-        id: 'self',
-        username: 'self',
-        discriminator: '0000',
-        presence: UserPresence.online,
-        profileContent: 'My bio',
-      ));
+    test(
+      'updateStatus delegates presence and statusText to service and preserves bio',
+      () async {
+        await initWithUser(
+          RevoltUser(
+            id: 'self',
+            username: 'self',
+            discriminator: '0000',
+            presence: UserPresence.online,
+            profileContent: 'My bio',
+          ),
+        );
 
-      final notifier = container.read(loginStateProvider.notifier);
-      await notifier.updateStatus(presence: 'Idle', statusText: 'busy');
+        final notifier = container.read(loginStateProvider.notifier);
+        await notifier.updateStatus(presence: 'Idle', statusText: 'busy');
 
-      expect(svc.updateProfileCalls, hasLength(1));
-      expect(svc.updateProfileCalls.first.presence, 'Idle');
-      expect(svc.updateProfileCalls.first.statusText, 'busy');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.presence, UserPresence.idle);
-      expect(container.read(loginStateProvider).requireValue.currentUser?.statusText, 'busy');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.profileContent, 'My bio');
-    });
+        expect(svc.updateProfileCalls, hasLength(1));
+        expect(svc.updateProfileCalls.first.presence, 'Idle');
+        expect(svc.updateProfileCalls.first.statusText, 'busy');
+        expect(
+          container.read(loginStateProvider).requireValue.currentUser?.presence,
+          UserPresence.idle,
+        );
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.statusText,
+          'busy',
+        );
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.profileContent,
+          'My bio',
+        );
+      },
+    );
 
     test('updateStatus can omit statusText and preserve bio', () async {
-      await initWithUser(RevoltUser(
-        id: 'self',
-        username: 'self',
-        discriminator: '0000',
-        presence: UserPresence.online,
-        profileContent: 'My bio',
-      ));
+      await initWithUser(
+        RevoltUser(
+          id: 'self',
+          username: 'self',
+          discriminator: '0000',
+          presence: UserPresence.online,
+          profileContent: 'My bio',
+        ),
+      );
 
       final notifier = container.read(loginStateProvider.notifier);
       await notifier.updateStatus(presence: 'Focus');
@@ -103,81 +150,153 @@ void main() {
       expect(svc.updateProfileCalls, hasLength(1));
       expect(svc.updateProfileCalls.first.presence, 'Focus');
       expect(svc.updateProfileCalls.first.statusText, isNull);
-      expect(container.read(loginStateProvider).requireValue.currentUser?.presence, UserPresence.focus);
-      expect(container.read(loginStateProvider).requireValue.currentUser?.profileContent, 'My bio');
+      expect(
+        container.read(loginStateProvider).requireValue.currentUser?.presence,
+        UserPresence.focus,
+      );
+      expect(
+        container
+            .read(loginStateProvider)
+            .requireValue
+            .currentUser
+            ?.profileContent,
+        'My bio',
+      );
     });
 
     // -- updateBio ----------------------------------------------------------
 
-    test('updateBio delegates profileContent to service and caches bio locally', () async {
-      await initWithUser(RevoltUser(
-        id: 'self',
-        username: 'self',
-        discriminator: '0000',
-      ));
+    test(
+      'updateBio delegates profileContent to service and caches bio locally',
+      () async {
+        await initWithUser(
+          RevoltUser(id: 'self', username: 'self', discriminator: '0000'),
+        );
 
-      final notifier = container.read(loginStateProvider.notifier);
-      await notifier.updateBio('My bio');
+        final notifier = container.read(loginStateProvider.notifier);
+        await notifier.updateBio('My bio');
 
-      expect(svc.updateProfileCalls, hasLength(1));
-      expect(svc.updateProfileCalls.first.profileContent, 'My bio');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.profileContent, 'My bio');
-    });
+        expect(svc.updateProfileCalls, hasLength(1));
+        expect(svc.updateProfileCalls.first.profileContent, 'My bio');
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.profileContent,
+          'My bio',
+        );
+      },
+    );
 
     // -- updateAvatar -------------------------------------------------------
 
-    test('updateAvatar uploads file, patches avatar locally, preserves bio', () async {
-      await initWithUser(RevoltUser(
-        id: 'self',
-        username: 'self',
-        discriminator: '0000',
-        profileContent: 'My bio',
-      ));
+    test(
+      'updateAvatar uploads file, patches avatar locally, preserves bio',
+      () async {
+        await initWithUser(
+          RevoltUser(
+            id: 'self',
+            username: 'self',
+            discriminator: '0000',
+            profileContent: 'My bio',
+          ),
+        );
 
-      final notifier = container.read(loginStateProvider.notifier);
-      final bytes = Uint8List.fromList([1, 2, 3]);
-      await notifier.updateAvatar(bytes, 'avatar.png');
+        final notifier = container.read(loginStateProvider.notifier);
+        final bytes = Uint8List.fromList([1, 2, 3]);
+        await notifier.updateAvatar(bytes, 'avatar.png');
 
-      expect(svc.uploadAvatarCalls, hasLength(1));
-      expect(svc.uploadAvatarCalls.first.filename, 'avatar.png');
-      expect(svc.updateProfileCalls, hasLength(1));
-      expect(svc.updateProfileCalls.first.avatar, 'stub-file-id');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.avatar?.id, 'stub-file-id');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.avatar?.tag, 'avatars');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.profileContent, 'My bio');
-    });
+        expect(svc.uploadAvatarCalls, hasLength(1));
+        expect(svc.uploadAvatarCalls.first.filename, 'avatar.png');
+        expect(svc.updateProfileCalls, hasLength(1));
+        expect(svc.updateProfileCalls.first.avatar, 'stub-file-id');
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.avatar
+              ?.id,
+          'stub-file-id',
+        );
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.avatar
+              ?.tag,
+          'avatars',
+        );
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.profileContent,
+          'My bio',
+        );
+      },
+    );
 
     // -- updateBanner -------------------------------------------------------
 
-    test('updateBanner uploads file, patches background locally, preserves bio', () async {
-      await initWithUser(RevoltUser(
-        id: 'self',
-        username: 'self',
-        discriminator: '0000',
-        profileContent: 'My bio',
-      ));
+    test(
+      'updateBanner uploads file, patches background locally, preserves bio',
+      () async {
+        await initWithUser(
+          RevoltUser(
+            id: 'self',
+            username: 'self',
+            discriminator: '0000',
+            profileContent: 'My bio',
+          ),
+        );
 
-      final notifier = container.read(loginStateProvider.notifier);
-      final bytes = Uint8List.fromList([4, 5, 6]);
-      await notifier.updateBanner(bytes, 'banner.png');
+        final notifier = container.read(loginStateProvider.notifier);
+        final bytes = Uint8List.fromList([4, 5, 6]);
+        await notifier.updateBanner(bytes, 'banner.png');
 
-      expect(svc.uploadBackgroundCalls, hasLength(1));
-      expect(svc.uploadBackgroundCalls.first.filename, 'banner.png');
-      expect(svc.updateProfileCalls, hasLength(1));
-      expect(svc.updateProfileCalls.first.background, 'stub-file-id');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.banner?.id, 'stub-file-id');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.banner?.tag, 'backgrounds');
-      expect(container.read(loginStateProvider).requireValue.currentUser?.profileContent, 'My bio');
-    });
+        expect(svc.uploadBackgroundCalls, hasLength(1));
+        expect(svc.uploadBackgroundCalls.first.filename, 'banner.png');
+        expect(svc.updateProfileCalls, hasLength(1));
+        expect(svc.updateProfileCalls.first.background, 'stub-file-id');
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.banner
+              ?.id,
+          'stub-file-id',
+        );
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.banner
+              ?.tag,
+          'backgrounds',
+        );
+        expect(
+          container
+              .read(loginStateProvider)
+              .requireValue
+              .currentUser
+              ?.profileContent,
+          'My bio',
+        );
+      },
+    );
 
     // -- updateServerProfile ------------------------------------------------
 
     test('updateServerProfile delegates nickname to service', () async {
-      await initWithUser(RevoltUser(
-        id: 'self',
-        username: 'self',
-        discriminator: '0000',
-      ));
+      await initWithUser(
+        RevoltUser(id: 'self', username: 'self', discriminator: '0000'),
+      );
 
       final notifier = container.read(loginStateProvider.notifier);
       await notifier.updateServerProfile('srv1', nickname: 'ServerNick');
@@ -190,11 +309,9 @@ void main() {
     });
 
     test('updateServerProfile delegates avatar to service', () async {
-      await initWithUser(RevoltUser(
-        id: 'self',
-        username: 'self',
-        discriminator: '0000',
-      ));
+      await initWithUser(
+        RevoltUser(id: 'self', username: 'self', discriminator: '0000'),
+      );
 
       final notifier = container.read(loginStateProvider.notifier);
       await notifier.updateServerProfile('srv1', avatar: 'file-id');

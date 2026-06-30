@@ -28,7 +28,8 @@ class ServerSettingsDialog extends ConsumerStatefulWidget {
   const ServerSettingsDialog({super.key, required this.srv});
 
   @override
-  ConsumerState<ServerSettingsDialog> createState() => ServerSettingsDialogState();
+  ConsumerState<ServerSettingsDialog> createState() =>
+      ServerSettingsDialogState();
 }
 
 class ServerSettingsDialogState extends ConsumerState<ServerSettingsDialog> {
@@ -107,7 +108,10 @@ class ServerSettingsDialogState extends ConsumerState<ServerSettingsDialog> {
             const SizedBox(height: 12),
             const Divider(color: Color(0xFF2A2A30), height: 1),
             const SizedBox(height: 12),
-            const Text('Existing invites', style: TextStyle(fontSize: 13, color: Colors.white54)),
+            const Text(
+              'Existing invites',
+              style: TextStyle(fontSize: 13, color: Colors.white54),
+            ),
             const SizedBox(height: 8),
             if (_error != null)
               Text(
@@ -117,7 +121,10 @@ class ServerSettingsDialogState extends ConsumerState<ServerSettingsDialog> {
             if (_invites == null)
               const Center(child: CircularProgressIndicator(strokeWidth: 2))
             else if (_invites!.isEmpty)
-              const Text('No invites yet', style: TextStyle(fontSize: 12, color: Colors.white38))
+              const Text(
+                'No invites yet',
+                style: TextStyle(fontSize: 12, color: Colors.white38),
+              )
             else
               ..._invites!.map(
                 (inv) => Padding(
@@ -157,7 +164,10 @@ class ServerSettingsDialogState extends ConsumerState<ServerSettingsDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
       ],
     );
   }
@@ -200,12 +210,21 @@ void createInvite(BuildContext context) async {
               ),
               child: SelectableText(
                 code,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
               ),
             ),
           ],
         ),
-        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   } catch (e) {
@@ -240,7 +259,10 @@ void showCreateChannelDialog(BuildContext context) {
                 labelText: 'Channel name',
                 labelStyle: TextStyle(color: Colors.white54),
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               style: const TextStyle(fontSize: 14),
               autofocus: true,
@@ -252,7 +274,10 @@ void showCreateChannelDialog(BuildContext context) {
                 labelText: 'Description (optional)',
                 labelStyle: TextStyle(color: Colors.white54),
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               style: const TextStyle(fontSize: 14),
               maxLines: 2,
@@ -260,7 +285,10 @@ void showCreateChannelDialog(BuildContext context) {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Text('Voice channel', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                const Text(
+                  'Voice channel',
+                  style: TextStyle(fontSize: 14, color: Colors.white70),
+                ),
                 const Spacer(),
                 Switch(
                   value: isVoice,
@@ -272,7 +300,10 @@ void showCreateChannelDialog(BuildContext context) {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
@@ -288,16 +319,25 @@ void showCreateChannelDialog(BuildContext context) {
   );
 }
 
-void doCreateChannel(BuildContext context, String name, String description, bool isVoice) async {
+void doCreateChannel(
+  BuildContext context,
+  String name,
+  String description,
+  bool isVoice,
+) async {
   try {
-    final notifier = ProviderScope.containerOf(context).read(serverStateProvider.notifier);
+    final notifier = ProviderScope.containerOf(
+      context,
+    ).read(serverStateProvider.notifier);
     await notifier.createChannel(
       name,
       description: description.isNotEmpty ? description : null,
       isVoice: isVoice,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Channel #$name created')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Channel #$name created')));
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
@@ -346,11 +386,19 @@ void showEditServerDialog(BuildContext context, RevoltServer srv) {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
         TextButton(
           onPressed: () {
             Navigator.pop(ctx);
-            doEditServer(context, srv.id, nameCtrl.text.trim(), descCtrl.text.trim());
+            doEditServer(
+              context,
+              srv.id,
+              nameCtrl.text.trim(),
+              descCtrl.text.trim(),
+            );
           },
           child: const Text('Save'),
         ),
@@ -359,16 +407,25 @@ void showEditServerDialog(BuildContext context, RevoltServer srv) {
   );
 }
 
-void doEditServer(BuildContext context, String serverId, String name, String description) async {
+void doEditServer(
+  BuildContext context,
+  String serverId,
+  String name,
+  String description,
+) async {
   if (name.isEmpty) return;
   try {
-    final notifier = ProviderScope.containerOf(context).read(serverStateProvider.notifier);
+    final notifier = ProviderScope.containerOf(
+      context,
+    ).read(serverStateProvider.notifier);
     await notifier.updateSelectedServer(
       name: name,
       description: description.isNotEmpty ? description : null,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Server updated')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Server updated')));
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
@@ -388,13 +445,19 @@ void confirmDeleteServer(BuildContext context, RevoltServer srv) {
         style: const TextStyle(color: Colors.white70),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
         TextButton(
           onPressed: () {
             Navigator.pop(ctx);
             doDeleteServer(context);
           },
-          child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+          child: const Text(
+            'Delete',
+            style: TextStyle(color: Colors.redAccent),
+          ),
         ),
       ],
     ),
@@ -403,10 +466,14 @@ void confirmDeleteServer(BuildContext context, RevoltServer srv) {
 
 void doDeleteServer(BuildContext context) async {
   try {
-    final notifier = ProviderScope.containerOf(context).read(serverStateProvider.notifier);
+    final notifier = ProviderScope.containerOf(
+      context,
+    ).read(serverStateProvider.notifier);
     await notifier.deleteSelectedServer();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Server deleted')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Server deleted')));
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
@@ -420,7 +487,9 @@ void doDeleteServer(BuildContext context) async {
 // =============================================================================
 
 void showRoleManager(BuildContext context, RevoltServer srv) {
-  Navigator.of(context).push(MaterialPageRoute(builder: (_) => RoleManagerScreen(server: srv)));
+  Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => RoleManagerScreen(server: srv)));
 }
 
 // =============================================================================

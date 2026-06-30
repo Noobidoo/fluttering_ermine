@@ -71,12 +71,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.chat_bubble_rounded, size: 64, color: Color(0xFF7F5AF0)),
+                const Icon(
+                  Icons.chat_bubble_rounded,
+                  size: 64,
+                  color: Color(0xFF7F5AF0),
+                ),
                 const SizedBox(height: 16),
                 const Text(
                   'Fluttering Ermine',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 const Text(
                   'Revolt Chat',
@@ -92,7 +100,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       Text(
                         'Custom server',
-                        style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(120)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withAlpha(120),
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
@@ -141,7 +152,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     prefixIcon: const Icon(Icons.lock_outline),
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(
+                        _obscure ? Icons.visibility_off : Icons.visibility,
+                      ),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
@@ -150,7 +163,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red.withAlpha(30),
                       borderRadius: BorderRadius.circular(8),
@@ -158,7 +174,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     child: Text(
                       _error!,
-                      style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -171,22 +190,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF7F5AF0),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: _isLoading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
-                      : const Text('Sign In', style: TextStyle(fontSize: 16, color: Colors.white)),
+                      : const Text(
+                          'Sign In',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
 
                 const SizedBox(height: 12),
                 Text(
                   'Sign in with your Stoat account credentials.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(100),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),

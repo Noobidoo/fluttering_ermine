@@ -15,9 +15,9 @@ void main() {
 
   setUp(() async {
     svc = FakeRevoltService();
-    container = ProviderContainer(overrides: [
-      revoltServiceProvider.overrideWithValue(svc),
-    ]);
+    container = ProviderContainer(
+      overrides: [revoltServiceProvider.overrideWithValue(svc)],
+    );
     container.read(serverStateProvider.notifier);
     container.read(messagingStateProvider);
     await Future<void>.delayed(Duration.zero);
@@ -28,7 +28,8 @@ void main() {
     container.dispose();
   });
 
-  MessagingNotifier notifier() => container.read(messagingStateProvider.notifier);
+  MessagingNotifier notifier() =>
+      container.read(messagingStateProvider.notifier);
   MessagingStateData state() => container.read(messagingStateProvider);
 
   // -- Service delegation ----------------------------------------------------
@@ -70,7 +71,9 @@ void main() {
     });
 
     test('sendMessage passes replyToId and clears reply target', () async {
-      container.read(serverStateProvider.notifier).selectChannel(textChan('chan1'));
+      container
+          .read(serverStateProvider.notifier)
+          .selectChannel(textChan('chan1'));
       svc.push(msgEvent(id: 'orig', channel: 'chan1'));
       notifier().setReplyTarget(state().messages['chan1']!.first);
 

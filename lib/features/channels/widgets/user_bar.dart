@@ -31,7 +31,9 @@ class UserBar extends ConsumerWidget {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundImage: NetworkImage(user.resolveAvatarUrl(null, autumnBase, apiBase)),
+                  backgroundImage: NetworkImage(
+                    user.resolveAvatarUrl(null, autumnBase, apiBase),
+                  ),
                   backgroundColor: const Color(0xFF7F5AF0),
                   onBackgroundImageError: (e, stack) {},
                 ),
@@ -44,7 +46,10 @@ class UserBar extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: presenceColor(user.presence),
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF0D0D0F), width: 2),
+                      border: Border.all(
+                        color: const Color(0xFF0D0D0F),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -58,13 +63,19 @@ class UserBar extends ConsumerWidget {
                 children: [
                   Text(
                     user.resolveDisplayName(null),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (user.statusText != null && user.statusText!.isNotEmpty)
                     Text(
                       user.statusText!,
-                      style: const TextStyle(fontSize: 11, color: Colors.white38),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white38,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],

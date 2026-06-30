@@ -15,9 +15,12 @@ class AppBootstrap extends ConsumerWidget {
     ref.watch(voiceStateProvider);
 
     final messagingNotifier = ref.read(messagingStateProvider.notifier);
-    ref.read(serverStateProvider.notifier).setUsersFetchedCallback(messagingNotifier.cacheUsers);
-    ref.read(serverStateProvider.notifier).setServerProfileUpdatedCallback(
-        messagingNotifier.updateServerProfile);
+    ref
+        .read(serverStateProvider.notifier)
+        .setUsersFetchedCallback(messagingNotifier.cacheUsers);
+    ref
+        .read(serverStateProvider.notifier)
+        .setServerProfileUpdatedCallback(messagingNotifier.updateServerProfile);
 
     return child;
   }

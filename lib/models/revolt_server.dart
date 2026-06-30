@@ -32,9 +32,12 @@ class RevoltServer {
       ownerId: json['owner'] as String? ?? '',
       defaultPermissions: int.tryParse('${json['default_permissions']}') ?? 0,
       channelIds: (json['channels'] as List<dynamic>?)?.cast<String>() ?? [],
-      icon: json['icon'] != null ? RevoltFile.fromJson(json['icon'] as Map<String, dynamic>) : null,
+      icon: json['icon'] != null
+          ? RevoltFile.fromJson(json['icon'] as Map<String, dynamic>)
+          : null,
       roles: rolesJson?.map(
-        (k, v) => MapEntry(k, RevoltRole.fromJson(k, v as Map<String, dynamic>)),
+        (k, v) =>
+            MapEntry(k, RevoltRole.fromJson(k, v as Map<String, dynamic>)),
       ),
     );
   }

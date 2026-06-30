@@ -15,9 +15,7 @@ void main() {
   }
 
   runApp(
-    ProviderScope(
-      child: AppBootstrap(child: const FlutteringErmineApp()),
-    ),
+    ProviderScope(child: AppBootstrap(child: const FlutteringErmineApp())),
   );
 }
 
@@ -56,9 +54,12 @@ class FlutteringErmineApp extends ConsumerWidget {
       home: ref
           .watch(loginStateProvider)
           .when(
-            loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+            loading: () => const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
             error: (e, st) => const LoginScreen(),
-            data: (auth) => auth.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+            data: (auth) =>
+                auth.isLoggedIn ? const HomeScreen() : const LoginScreen(),
           ),
     );
   }

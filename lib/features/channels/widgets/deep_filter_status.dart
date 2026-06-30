@@ -24,7 +24,10 @@ class DeepFilterStatus extends ConsumerWidget {
           const SizedBox(width: 3),
           Text(
             isReal ? 'DeepFilter' : 'DeepFilter (stub)',
-            style: TextStyle(fontSize: 10, color: isReal ? Colors.white38 : Colors.orange),
+            style: TextStyle(
+              fontSize: 10,
+              color: isReal ? Colors.white38 : Colors.orange,
+            ),
           ),
           const SizedBox(width: 8),
           Icon(

@@ -31,7 +31,11 @@ class MessageList extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Colors.redAccent,
+              ),
               const SizedBox(height: 12),
               Text(
                 error,
@@ -40,10 +44,14 @@ class MessageList extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: () => ref.read(messagingStateProvider.notifier).retryLoadMessages(),
+                onPressed: () => ref
+                    .read(messagingStateProvider.notifier)
+                    .retryLoadMessages(),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7F5AF0)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF7F5AF0),
+                ),
               ),
             ],
           ),

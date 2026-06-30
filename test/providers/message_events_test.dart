@@ -15,9 +15,9 @@ void main() {
 
   setUp(() async {
     svc = FakeRevoltService();
-    container = ProviderContainer(overrides: [
-      revoltServiceProvider.overrideWithValue(svc),
-    ]);
+    container = ProviderContainer(
+      overrides: [revoltServiceProvider.overrideWithValue(svc)],
+    );
     // Trigger both notifiers' build() to subscribe to service events
     container.read(serverStateProvider.notifier);
     container.read(messagingStateProvider);
@@ -31,8 +31,9 @@ void main() {
 
   // Push WS messages THEN select channel - _onServerStateChanged sees
   // _messages already has the key → skips _loadMessages → currentMessages works.
-  void selectAfterPush(String channelId) =>
-      container.read(serverStateProvider.notifier).selectChannel(textChan(channelId));
+  void selectAfterPush(String channelId) => container
+      .read(serverStateProvider.notifier)
+      .selectChannel(textChan(channelId));
 
   MessagingStateData state() => container.read(messagingStateProvider);
 
@@ -51,18 +52,29 @@ void main() {
     test('message with replies field is stored', () {
       svc.push(msgEvent(id: 'msg1', channel: 'chan1', replies: ['orig']));
       // GetMessageById requires messages to be in the map for that channel
-      expect(state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').replies, contains('orig'));
+      expect(
+        state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').replies,
+        contains('orig'),
+      );
     });
 
     test('message with reactions field is stored', () {
-      svc.push(msgEvent(
+      svc.push(
+        msgEvent(
           id: 'msg1',
           channel: 'chan1',
-          reactions: {'\u{1F44D}': ['u1']}));
+          reactions: {
+            '\u{1F44D}': ['u1'],
+          },
+        ),
+      );
 
       expect(
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions['\u{1F44D}'],
-          contains('u1'));
+        state().messages['chan1']
+            ?.firstWhere((m) => m.id == 'msg1')
+            .reactions['\u{1F44D}'],
+        contains('u1'),
+      );
     });
 
     test('duplicate message ID is ignored', () {
@@ -95,10 +107,7 @@ void main() {
         'type': 'MessageUpdate',
         'id': 'msg1',
         'channel': 'chan1',
-        'data': {
-          'content': 'Edited',
-          'edited': '2024-06-01T00:00:00.000Z',
-        },
+        'data': {'content': 'Edited', 'edited': '2024-06-01T00:00:00.000Z'},
       });
 
       final msg = state().messages['chan1']?.firstWhere((m) => m.id == 'msg1');
@@ -114,7 +123,10 @@ void main() {
         'data': {'content': 'Should not appear'},
       });
 
-      expect(state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').content, 'Hello');
+      expect(
+        state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').content,
+        'Hello',
+      );
     });
 
     test('no-op for unknown message ID in known channel', () {
@@ -125,7 +137,10 @@ void main() {
         'data': {'content': 'Should not appear'},
       });
 
-      expect(state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').content, 'Hello');
+      expect(
+        state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').content,
+        'Hello',
+      );
     });
   });
 
@@ -152,8 +167,11 @@ void main() {
     });
 
     test('no-op for unknown channel', () {
-      svc.push(
-          {'type': 'MessageDelete', 'id': 'msg1', 'channel': 'ghost-chan'});
+      svc.push({
+        'type': 'MessageDelete',
+        'id': 'msg1',
+        'channel': 'ghost-chan',
+      });
 
       expect(state().messages['chan1']?.any((m) => m.id == 'msg1'), isTrue);
     });

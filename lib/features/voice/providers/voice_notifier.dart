@@ -82,7 +82,6 @@ class VoiceStateData {
   final int leaveCalledAmount;
 
   const VoiceStateData({
-
     this.activeVoiceChannel,
     this.isInVoice = false,
     this.isMuted = false,
@@ -109,7 +108,8 @@ class VoiceStateData {
 
   // -- Query methods (only state fields) ------------------------------------
 
-  bool isScreenShareSubscribed(String identity) => subscribedScreenShares.contains(identity);
+  bool isScreenShareSubscribed(String identity) =>
+      subscribedScreenShares.contains(identity);
 
   List<String> voiceParticipantsFor(String channelId) =>
       List.unmodifiable(voiceChannelMembers[channelId] ?? []);
@@ -171,8 +171,10 @@ class VoiceStateData {
         : selectedAudioInputId as String?,
     participantVolumes: participantVolumes ?? this.participantVolumes,
     deepFilterEnabled: deepFilterEnabled ?? this.deepFilterEnabled,
-    deepFilterIsApmAttached: deepFilterIsApmAttached ?? this.deepFilterIsApmAttached,
-    subscribedScreenShares: subscribedScreenShares ?? this.subscribedScreenShares,
+    deepFilterIsApmAttached:
+        deepFilterIsApmAttached ?? this.deepFilterIsApmAttached,
+    subscribedScreenShares:
+        subscribedScreenShares ?? this.subscribedScreenShares,
     voiceParticipants: voiceParticipants ?? this.voiceParticipants,
     remoteVideoStreams: remoteVideoStreams ?? this.remoteVideoStreams,
     localCameraTrack: localCameraTrack == _omit
@@ -266,7 +268,9 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
       final audioMuted = p.trackPublications.values
           .where((pub) => pub.kind == TrackType.AUDIO)
           .every((pub) => pub.muted);
-      final hasScreenShare = p.trackPublications.values.any((pub) => pub.isScreenShare);
+      final hasScreenShare = p.trackPublications.values.any(
+        (pub) => pub.isScreenShare,
+      );
       result.add(
         VoiceParticipant(
           identity: p.identity,
@@ -288,7 +292,8 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
     for (final p in room.remoteParticipants.values) {
       for (final pub in p.trackPublications.values) {
         if (pub.track is VideoTrack &&
-            (pub.source == TrackSource.camera || pub.source == TrackSource.screenShareVideo)) {
+            (pub.source == TrackSource.camera ||
+                pub.source == TrackSource.screenShareVideo)) {
           streams.add(
             RemoteVideoStream(
               track: pub.track as VideoTrack,
@@ -324,36 +329,57 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
   }
 
   bool _shouldSubscribeTrack(RemoteTrackPublication publication) =>
-      !publication.isScreenShare || state.isScreenShareSubscribed(publication.participant.identity);
+      !publication.isScreenShare ||
+      state.isScreenShareSubscribed(publication.participant.identity);
 
   // -- Voice Event Subscription (via VoiceEventService) --------------------
 
   void subscribeToVoiceEvents() {
     _membershipSub?.cancel();
     _publishingSub?.cancel();
-    _membershipSub = _voiceEventService.membershipEvents.listen(_handleMembershipEvent);
-    _publishingSub = _voiceEventService.publishingEvents.listen(_handlePublishingEvent);
+    _membershipSub = _voiceEventService.membershipEvents.listen(
+      _handleMembershipEvent,
+    );
+    _publishingSub = _voiceEventService.publishingEvents.listen(
+      _handlePublishingEvent,
+    );
   }
 
   void _handleMembershipEvent(dynamic event) {
     if (event is VoiceChannelMembershipResetEvent) {
       state = state.copyWith(
-        voiceChannelMembers: Map<String, List<String>>.from(event.channelMembers),
+        voiceChannelMembers: Map<String, List<String>>.from(
+          event.channelMembers,
+        ),
         voicePublishing: Map<String, bool>.from(event.publishingState),
       );
-      debugPrint('[VoiceState] VoiceChannelMembershipReset: ${state.voiceChannelMembers}');
+      debugPrint(
+        '[VoiceState] VoiceChannelMembershipReset: ${state.voiceChannelMembers}',
+      );
     } else if (event is VoiceChannelJoinEvent) {
-      debugPrint('[VoiceState] VoiceChannelJoin channel=${event.channelId} user=${event.userId}');
-      final newMembers = Map<String, List<String>>.from(state.voiceChannelMembers);
+      debugPrint(
+        '[VoiceState] VoiceChannelJoin channel=${event.channelId} user=${event.userId}',
+      );
+      final newMembers = Map<String, List<String>>.from(
+        state.voiceChannelMembers,
+      );
       newMembers.putIfAbsent(event.channelId, () => []);
       if (!newMembers[event.channelId]!.contains(event.userId)) {
-        newMembers[event.channelId] = [...newMembers[event.channelId]!, event.userId];
+        newMembers[event.channelId] = [
+          ...newMembers[event.channelId]!,
+          event.userId,
+        ];
       }
       state = state.copyWith(voiceChannelMembers: newMembers);
     } else if (event is VoiceChannelLeaveEvent) {
-      debugPrint('[VoiceState] VoiceChannelLeave channel=${event.channelId} user=${event.userId}');
-      final newMembers = Map<String, List<String>>.from(state.voiceChannelMembers);
-      final newPublishing = Map<String, bool>.from(state.voicePublishing)..remove(event.userId);
+      debugPrint(
+        '[VoiceState] VoiceChannelLeave channel=${event.channelId} user=${event.userId}',
+      );
+      final newMembers = Map<String, List<String>>.from(
+        state.voiceChannelMembers,
+      );
+      final newPublishing = Map<String, bool>.from(state.voicePublishing)
+        ..remove(event.userId);
       if (event.channelId == null) {
         for (final list in newMembers.values) {
           list.remove(event.userId);
@@ -363,12 +389,17 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
         newMembers[event.channelId]?.remove(event.userId);
         newMembers.removeWhere((_, list) => list.isEmpty);
       }
-      state = state.copyWith(voiceChannelMembers: newMembers, voicePublishing: newPublishing);
+      state = state.copyWith(
+        voiceChannelMembers: newMembers,
+        voicePublishing: newPublishing,
+      );
     } else if (event is VoiceChannelMoveEvent) {
       debugPrint(
         '[VoiceState] VoiceChannelMove user=${event.userId} from=${event.fromChannelId} to=${event.toChannelId}',
       );
-      final newMembers = Map<String, List<String>>.from(state.voiceChannelMembers);
+      final newMembers = Map<String, List<String>>.from(
+        state.voiceChannelMembers,
+      );
       if (event.fromChannelId != null) {
         newMembers[event.fromChannelId]?.remove(event.userId);
         newMembers.removeWhere((_, list) => list.isEmpty);
@@ -376,7 +407,10 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
       if (event.toChannelId != null) {
         newMembers.putIfAbsent(event.toChannelId!, () => []);
         if (!newMembers[event.toChannelId]!.contains(event.userId)) {
-          newMembers[event.toChannelId!] = [...newMembers[event.toChannelId!]!, event.userId];
+          newMembers[event.toChannelId!] = [
+            ...newMembers[event.toChannelId!]!,
+            event.userId,
+          ];
         }
       }
       state = state.copyWith(voiceChannelMembers: newMembers);
@@ -385,7 +419,10 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
 
   void _handlePublishingEvent(VoicePublishingStateChangeEvent event) {
     state = state.copyWith(
-      voicePublishing: {...state.voicePublishing, event.userId: event.isPublishing},
+      voicePublishing: {
+        ...state.voicePublishing,
+        event.userId: event.isPublishing,
+      },
     );
   }
 
@@ -445,7 +482,9 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
           );
           debugPrint('[voice:event] _voiceRoom assigned');
           _voiceRoom = e.room;
-          final newMembers = Map<String, List<String>>.from(state.voiceChannelMembers);
+          final newMembers = Map<String, List<String>>.from(
+            state.voiceChannelMembers,
+          );
           newMembers.putIfAbsent(channel.id, () => []);
           for (final p in e.room.remoteParticipants.values) {
             if (!newMembers[channel.id]!.contains(p.identity)) {
@@ -503,7 +542,9 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
               state = state.copyWith(voiceError: 'Network error');
               break;
             case DisconnectReason.reconnectAttemptsExceeded:
-              state = state.copyWith(voiceError: 'Network error, reconnect attempts exceeded');
+              state = state.copyWith(
+                voiceError: 'Network error, reconnect attempts exceeded',
+              );
               break;
             case DisconnectReason.duplicateIdentity:
               state = state.copyWith(voiceError: 'Logged in elsewhere');
@@ -515,19 +556,27 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
         })
         ..on<RoomReconnectingEvent>((e) {
           debugPrint('[voice:event] RoomReconnectingEvent room=${room.name}');
-          state = state.copyWith(voiceError: 'Reconnecting...', isJoiningVoice: true);
+          state = state.copyWith(
+            voiceError: 'Reconnecting...',
+            isJoiningVoice: true,
+          );
         })
         ..on<RoomReconnectedEvent>((e) {
           debugPrint('[voice:event] RoomReconnectedEvent room=${room.name}');
           state = _withRoomValues(
-            state.copyWith(voiceError: null, isInVoice: true, isJoiningVoice: false),
+            state.copyWith(
+              voiceError: null,
+              isInVoice: true,
+              isJoiningVoice: false,
+            ),
           );
         })
         ..on<TrackSubscribedEvent>((e) {
           debugPrint(
             '[voice:event] TrackSubscribedEvent participant=${e.participant.identity} kind=${e.publication.kind} source=${e.publication.source}',
           );
-          if (e.track is RemoteAudioTrack && e.publication.source == TrackSource.screenShareAudio) {
+          if (e.track is RemoteAudioTrack &&
+              e.publication.source == TrackSource.screenShareAudio) {
             e.track.events.listen((trackEvent) {
               if (trackEvent is AudioReceiverStatsEvent) {
                 final s = trackEvent.stats;
@@ -544,11 +593,17 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
               }
             });
           }
-          if (e.track is RemoteAudioTrack && e.publication.kind == TrackType.AUDIO) {
-            final storedVolume =
-                state.participantVolumes['${e.participant.identity}:${e.publication.source.name}'];
+          if (e.track is RemoteAudioTrack &&
+              e.publication.kind == TrackType.AUDIO) {
+            final storedVolume = state
+                .participantVolumes['${e.participant.identity}:${e.publication.source.name}'];
             if (storedVolume != null) {
-              unawaited(NativeAudioManagement.setVolume(storedVolume, e.track.mediaStreamTrack));
+              unawaited(
+                NativeAudioManagement.setVolume(
+                  storedVolume,
+                  e.track.mediaStreamTrack,
+                ),
+              );
             }
           }
           state = _withRoomValues(state);
@@ -589,13 +644,22 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
           state = _withRoomValues(state);
         })
         ..on<ParticipantConnectedEvent>((e) {
-          debugPrint('[voice:event] ParticipantConnectedEvent id=${e.participant.identity}');
-          final newMembers = Map<String, List<String>>.from(state.voiceChannelMembers);
+          debugPrint(
+            '[voice:event] ParticipantConnectedEvent id=${e.participant.identity}',
+          );
+          final newMembers = Map<String, List<String>>.from(
+            state.voiceChannelMembers,
+          );
           newMembers.putIfAbsent(channel.id, () => []);
           if (!newMembers[channel.id]!.contains(e.participant.identity)) {
-            newMembers[channel.id] = [...newMembers[channel.id]!, e.participant.identity];
+            newMembers[channel.id] = [
+              ...newMembers[channel.id]!,
+              e.participant.identity,
+            ];
           }
-          state = _withRoomValues(state.copyWith(voiceChannelMembers: newMembers));
+          state = _withRoomValues(
+            state.copyWith(voiceChannelMembers: newMembers),
+          );
         })
         ..on<ParticipantDisconnectedEvent>((e) {
           debugPrint(
@@ -606,13 +670,19 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
             channel.id,
             e.participant.identity,
           );
-          state = _withRoomValues(state.copyWith(voiceChannelMembers: newMembers));
+          state = _withRoomValues(
+            state.copyWith(voiceChannelMembers: newMembers),
+          );
         })
         ..on<ActiveSpeakersChangedEvent>((_) {
           state = _withRoomValues(state);
         });
 
-      await room.connect(url, token, connectOptions: const ConnectOptions(autoSubscribe: false));
+      await room.connect(
+        url,
+        token,
+        connectOptions: const ConnectOptions(autoSubscribe: false),
+      );
 
       state = state.copyWith(isMuted: false);
       final lp = room.localParticipant;
@@ -626,7 +696,9 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
 
       if (state.deepFilterEnabled) {
         await _liveKitDeepFilter.enable(enabled: true);
-        state = state.copyWith(deepFilterIsApmAttached: _liveKitDeepFilter.isProcessing);
+        state = state.copyWith(
+          deepFilterIsApmAttached: _liveKitDeepFilter.isProcessing,
+        );
       }
 
       try {
@@ -640,7 +712,9 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
             processor: _liveKitDeepFilter.processor,
           ),
         );
-        debugPrint('[voice] mic enabled, published tracks: ${lp.trackPublications.length}');
+        debugPrint(
+          '[voice] mic enabled, published tracks: ${lp.trackPublications.length}',
+        );
       } catch (micErr) {
         debugPrint('[voice] mic enable failed: $micErr');
         state = state.copyWith(voiceError: 'Failed to access microphone');
@@ -651,14 +725,18 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
       await _applyParticipantVolumes();
     } catch (e) {
       debugPrint('[voice] join failed: $e');
-      state = state.copyWith(voiceError: e.toString().replaceAll('Exception: ', ''));
+      state = state.copyWith(
+        voiceError: e.toString().replaceAll('Exception: ', ''),
+      );
     } finally {
       state = state.copyWith(isJoiningVoice: false);
     }
   }
 
   Future<void> leaveVoiceChannel() async {
-    debugPrint('[voice:leave] leaveVoiceChannel called, room=${_voiceRoom?.name}');
+    debugPrint(
+      '[voice:leave] leaveVoiceChannel called, room=${_voiceRoom?.name}',
+    );
     state = state.copyWith(leaveCalledAmount: state.leaveCalledAmount + 1);
     debugPrint('[voice:leave] _leaveCalledAmount=${state.leaveCalledAmount}');
 
@@ -762,7 +840,10 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
         await lp.setCameraEnabled(newEnabled);
       } catch (e) {
         debugPrint('[voice] camera toggle failed: $e');
-        state = state.copyWith(isCameraEnabled: !newEnabled, voiceError: 'Failed to toggle camera');
+        state = state.copyWith(
+          isCameraEnabled: !newEnabled,
+          voiceError: 'Failed to toggle camera',
+        );
         return;
       }
     }
@@ -779,7 +860,10 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
         await lp.setCameraEnabled(enabled);
       } catch (e) {
         debugPrint('[voice] camera set failed: $e');
-        state = state.copyWith(isCameraEnabled: !enabled, voiceError: 'Failed to set camera');
+        state = state.copyWith(
+          isCameraEnabled: !enabled,
+          voiceError: 'Failed to set camera',
+        );
         return;
       }
     }
@@ -792,14 +876,20 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
     if (_voiceRoom?.localParticipant == null) return;
     try {
       final tracks = await LocalVideoTrack.createScreenShareTracksWithAudio(
-        ScreenShareCaptureOptions(sourceId: sourceId, captureScreenAudio: true, maxFrameRate: 15.0),
+        ScreenShareCaptureOptions(
+          sourceId: sourceId,
+          captureScreenAudio: true,
+          maxFrameRate: 15.0,
+        ),
       );
       _screenShareTrack = null;
       final publishFutures = <Future>[];
       for (final track in tracks) {
         if (track is LocalVideoTrack) {
           _screenShareTrack = track;
-          publishFutures.add(_voiceRoom!.localParticipant!.publishVideoTrack(track));
+          publishFutures.add(
+            _voiceRoom!.localParticipant!.publishVideoTrack(track),
+          );
         } else if (track is LocalAudioTrack) {
           track.events.listen((event) {
             if (event is AudioSenderStatsEvent) {
@@ -827,7 +917,9 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
     } catch (e) {
       debugPrint('[voice] screen share failed: $e');
       _screenShareTrack = null;
-      state = state.copyWith(voiceError: e.toString().replaceAll('Exception: ', ''));
+      state = state.copyWith(
+        voiceError: e.toString().replaceAll('Exception: ', ''),
+      );
     }
   }
 
@@ -839,7 +931,9 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
       state = _withRoomValues(state.copyWith(isScreenSharing: false));
     } catch (e) {
       debugPrint('[voice] stop screen share failed: $e');
-      state = state.copyWith(voiceError: e.toString().replaceAll('Exception: ', ''));
+      state = state.copyWith(
+        voiceError: e.toString().replaceAll('Exception: ', ''),
+      );
     }
   }
 
@@ -887,19 +981,29 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
 
   Future<void> _asyncLoadSettings() async {
     final asyncPrefs = SharedPreferencesAsync();
-    final outputVolume = await asyncPrefs.getDouble('voice_output_volume') ?? 1.0;
-    final noiseSuppression = await asyncPrefs.getBool('voice_noise_suppression') ?? true;
-    final echoCancellation = await asyncPrefs.getBool('voice_echo_cancellation') ?? true;
-    final autoGainControl = await asyncPrefs.getBool('voice_auto_gain_control') ?? true;
-    final deepFilterEnabled = await asyncPrefs.getBool('voice_deep_filter_enabled') ?? true;
-    final selectedAudioInputId = await asyncPrefs.getString('voice_selected_audio_input_id');
-    final isCameraEnabled = await asyncPrefs.getBool('voice_camera_enabled') ?? false;
+    final outputVolume =
+        await asyncPrefs.getDouble('voice_output_volume') ?? 1.0;
+    final noiseSuppression =
+        await asyncPrefs.getBool('voice_noise_suppression') ?? true;
+    final echoCancellation =
+        await asyncPrefs.getBool('voice_echo_cancellation') ?? true;
+    final autoGainControl =
+        await asyncPrefs.getBool('voice_auto_gain_control') ?? true;
+    final deepFilterEnabled =
+        await asyncPrefs.getBool('voice_deep_filter_enabled') ?? true;
+    final selectedAudioInputId = await asyncPrefs.getString(
+      'voice_selected_audio_input_id',
+    );
+    final isCameraEnabled =
+        await asyncPrefs.getBool('voice_camera_enabled') ?? false;
     final volumesJson = await asyncPrefs.getString('voice_participant_volumes');
     Map<String, double> participantVolumes = const {};
     if (volumesJson != null) {
       try {
         final decoded = jsonDecode(volumesJson) as Map<String, dynamic>;
-        participantVolumes = decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
+        participantVolumes = decoded.map(
+          (k, v) => MapEntry(k, (v as num).toDouble()),
+        );
       } catch (_) {}
     }
     if (_disposed) return;
@@ -917,7 +1021,10 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
 
   Future<void> _saveParticipantVolumes() async {
     final asyncPrefs = SharedPreferencesAsync();
-    await asyncPrefs.setString('voice_participant_volumes', jsonEncode(state.participantVolumes));
+    await asyncPrefs.setString(
+      'voice_participant_volumes',
+      jsonEncode(state.participantVolumes),
+    );
   }
 
   Future<String?> _getSelectedAudioInputId() async {
@@ -1000,7 +1107,10 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
     state = state.copyWith(deepFilterEnabled: value);
     final asyncPrefs = SharedPreferencesAsync();
     await asyncPrefs.setBool('voice_deep_filter_enabled', value);
-    if (value && _voiceRoom != null && state.isInVoice && !_liveKitDeepFilter.isEnabled) {
+    if (value &&
+        _voiceRoom != null &&
+        state.isInVoice &&
+        !_liveKitDeepFilter.isEnabled) {
       await _liveKitDeepFilter.enable(enabled: true);
       final audioTrack = _voiceRoom!.localParticipant?.trackPublications.values
           .where((pub) => pub.kind == TrackType.AUDIO)
@@ -1012,10 +1122,16 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
     } else {
       _liveKitDeepFilter.setEnabled(value);
     }
-    state = state.copyWith(deepFilterIsApmAttached: _liveKitDeepFilter.isProcessing);
+    state = state.copyWith(
+      deepFilterIsApmAttached: _liveKitDeepFilter.isProcessing,
+    );
   }
 
-  Future<void> setParticipantVolume(String identity, double volume, {TrackSource? source}) async {
+  Future<void> setParticipantVolume(
+    String identity,
+    double volume, {
+    TrackSource? source,
+  }) async {
     final clamped = volume.clamp(0.0, 2.0);
     final key = source != null ? '$identity:${source.name}' : identity;
     final newVolumes = Map<String, double>.from(state.participantVolumes);
@@ -1026,10 +1142,14 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
       final participant = _voiceRoom!.remoteParticipants[identity];
       if (participant != null) {
         for (final pub in participant.trackPublications.values) {
-          if (pub.kind == TrackType.AUDIO && (source == null || pub.source == source)) {
+          if (pub.kind == TrackType.AUDIO &&
+              (source == null || pub.source == source)) {
             final track = pub.track;
             if (track is RemoteAudioTrack) {
-              await NativeAudioManagement.setVolume(clamped, track.mediaStreamTrack);
+              await NativeAudioManagement.setVolume(
+                clamped,
+                track.mediaStreamTrack,
+              );
             }
           }
         }
@@ -1048,10 +1168,14 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
       final participant = _voiceRoom!.remoteParticipants[identity];
       if (participant != null) {
         for (final pub in participant.trackPublications.values) {
-          if (pub.kind == TrackType.AUDIO && (source == null || pub.source == source)) {
+          if (pub.kind == TrackType.AUDIO &&
+              (source == null || pub.source == source)) {
             final track = pub.track;
             if (track is RemoteAudioTrack) {
-              await NativeAudioManagement.setVolume(entry.value, track.mediaStreamTrack);
+              await NativeAudioManagement.setVolume(
+                entry.value,
+                track.mediaStreamTrack,
+              );
             }
           }
         }
@@ -1066,7 +1190,10 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
         if (pub.kind == TrackType.AUDIO) {
           final track = pub.track;
           if (track is RemoteAudioTrack) {
-            await NativeAudioManagement.setVolume(state.outputVolume, track.mediaStreamTrack);
+            await NativeAudioManagement.setVolume(
+              state.outputVolume,
+              track.mediaStreamTrack,
+            );
           }
         }
       }
@@ -1085,4 +1212,6 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
   }
 }
 
-final voiceStateProvider = NotifierProvider<VoiceNotifier, VoiceStateData>(VoiceNotifier.new);
+final voiceStateProvider = NotifierProvider<VoiceNotifier, VoiceStateData>(
+  VoiceNotifier.new,
+);

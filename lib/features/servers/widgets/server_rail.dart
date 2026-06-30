@@ -10,7 +10,8 @@ class ServerRail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final server = ref.watch(serverStateProvider).value;
-    final authData = ref.read(loginStateProvider).value ?? const LoginStateData();
+    final authData =
+        ref.read(loginStateProvider).value ?? const LoginStateData();
 
     return Container(
       width: 68,
@@ -51,7 +52,8 @@ class ServerRail extends ConsumerWidget {
                             width: 44,
                             height: 44,
                             fit: BoxFit.cover,
-                            errorBuilder: (ctx, err, stack) => _Initials(srv.name),
+                            errorBuilder: (ctx, err, stack) =>
+                                _Initials(srv.name),
                           ),
                         )
                       : _Initials(srv.name),
@@ -63,13 +65,21 @@ class ServerRail extends ConsumerWidget {
             tooltip: 'Settings',
             selected: false,
             onTap: () => SettingsScreen.show(context),
-            child: const Icon(Icons.settings_outlined, size: 20, color: Colors.white54),
+            child: const Icon(
+              Icons.settings_outlined,
+              size: 20,
+              color: Colors.white54,
+            ),
           ),
           _RailIcon(
             tooltip: 'Create Server',
             selected: false,
             onTap: () => _showCreateServerDialog(context),
-            child: const Icon(Icons.add_box_rounded, size: 18, color: Color(0xFF7F5AF0)),
+            child: const Icon(
+              Icons.add_box_rounded,
+              size: 18,
+              color: Color(0xFF7F5AF0),
+            ),
           ),
           _RailIcon(
             tooltip: 'Join Server',
@@ -125,7 +135,10 @@ void _showCreateServerDialog(BuildContext context) {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
         TextButton(
           onPressed: () async {
             final name = nameCtrl.text.trim();
@@ -137,17 +150,19 @@ void _showCreateServerDialog(BuildContext context) {
                   .read(serverStateProvider.notifier)
                   .createServer(
                     name,
-                    description: descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : null,
+                    description: descCtrl.text.trim().isNotEmpty
+                        ? descCtrl.text.trim()
+                        : null,
                   );
               if (!context.mounted) return;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Server "$name" created!')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Server "$name" created!')),
+              );
             } catch (e) {
               if (!context.mounted) return;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Failed to create server: $e')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to create server: $e')),
+              );
             }
           },
           child: const Text('Create'),
@@ -193,14 +208,19 @@ void _showJoinDialog(BuildContext context) {
         },
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.of(dialogCtx).pop(),
+          child: const Text('Cancel'),
+        ),
         TextButton(
           onPressed: () async {
             final code = controller.text.trim();
             if (code.isEmpty) return;
             Navigator.of(dialogCtx).pop();
             try {
-              await container.read(serverStateProvider.notifier).joinInvite(code);
+              await container
+                  .read(serverStateProvider.notifier)
+                  .joinInvite(code);
               if (!context.mounted) return;
               ScaffoldMessenger.of(
                 context,
@@ -251,7 +271,9 @@ class _RailIcon extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: selected ? const Color(0xFF7F5AF0) : const Color(0xFF1E1E26),
+                color: selected
+                    ? const Color(0xFF7F5AF0)
+                    : const Color(0xFF1E1E26),
                 borderRadius: BorderRadius.circular(selected ? 12 : 22),
               ),
               child: Center(child: child),
@@ -263,7 +285,10 @@ class _RailIcon extends StatelessWidget {
                 child: Container(
                   width: 12,
                   height: 12,
-                  decoration: const BoxDecoration(color: Color(0xFF2CB67D), shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2CB67D),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
           ],
@@ -279,8 +304,15 @@ class _Initials extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = name.split(' ').map((w) => w.isNotEmpty ? w[0] : '').take(2).join();
-    return Text(initials, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold));
+    final initials = name
+        .split(' ')
+        .map((w) => w.isNotEmpty ? w[0] : '')
+        .take(2)
+        .join();
+    return Text(
+      initials,
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+    );
   }
 }
 

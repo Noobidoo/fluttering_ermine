@@ -15,9 +15,9 @@ void main() {
 
   setUp(() async {
     svc = FakeRevoltService();
-    container = ProviderContainer(overrides: [
-      revoltServiceProvider.overrideWithValue(svc),
-    ]);
+    container = ProviderContainer(
+      overrides: [revoltServiceProvider.overrideWithValue(svc)],
+    );
     container.read(serverStateProvider.notifier);
     container.read(messagingStateProvider);
     await Future<void>.delayed(Duration.zero);
@@ -37,16 +37,8 @@ void main() {
         'servers': [],
         'channels': [],
         'users': [
-          {
-            '_id': 'u1',
-            'username': 'alice',
-            'discriminator': '0001',
-          },
-          {
-            '_id': 'u2',
-            'username': 'bob',
-            'discriminator': '0002',
-          },
+          {'_id': 'u1', 'username': 'alice', 'discriminator': '0001'},
+          {'_id': 'u2', 'username': 'bob', 'discriminator': '0002'},
         ],
       });
 
@@ -60,12 +52,9 @@ void main() {
     });
 
     test('getUser returns cached user from Message event', () async {
-      svc.push(msgEvent(
-        id: 'msg1',
-        channel: 'chan1',
-        author: 'u1',
-        content: 'Hi',
-      ));
+      svc.push(
+        msgEvent(id: 'msg1', channel: 'chan1', author: 'u1', content: 'Hi'),
+      );
 
       // _ensureUserCached uses .then() - let microtask resolve
       await Future<void>.delayed(Duration.zero);
@@ -80,20 +69,13 @@ void main() {
         'servers': [],
         'channels': [],
         'users': [
-          {
-            '_id': 'u1',
-            'username': 'alice',
-            'discriminator': '0001',
-          },
+          {'_id': 'u1', 'username': 'alice', 'discriminator': '0001'},
         ],
       });
 
-      svc.push(msgEvent(
-        id: 'msg1',
-        channel: 'chan1',
-        author: 'u2',
-        content: 'Hello',
-      ));
+      svc.push(
+        msgEvent(id: 'msg1', channel: 'chan1', author: 'u2', content: 'Hello'),
+      );
 
       // _ensureUserCached uses .then() - let microtask resolve
       await Future<void>.delayed(Duration.zero);

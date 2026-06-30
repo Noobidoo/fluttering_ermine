@@ -27,7 +27,11 @@ class VoiceChannelMoveEvent {
   final String? fromChannelId;
   final String? toChannelId;
 
-  const VoiceChannelMoveEvent({required this.userId, this.fromChannelId, this.toChannelId});
+  const VoiceChannelMoveEvent({
+    required this.userId,
+    this.fromChannelId,
+    this.toChannelId,
+  });
 }
 
 /// Voice channel membership was cleared (e.g., on Ready event).
@@ -48,7 +52,10 @@ class VoicePublishingStateChangeEvent {
   final String userId;
   final bool isPublishing;
 
-  const VoicePublishingStateChangeEvent({required this.userId, required this.isPublishing});
+  const VoicePublishingStateChangeEvent({
+    required this.userId,
+    required this.isPublishing,
+  });
 }
 
 // -- Room Connection Events ---------------------------------------------------
@@ -80,7 +87,10 @@ class VoiceParticipantConnectedEvent {
   final String participantId;
   final String? participantName;
 
-  const VoiceParticipantConnectedEvent({required this.participantId, this.participantName});
+  const VoiceParticipantConnectedEvent({
+    required this.participantId,
+    this.participantName,
+  });
 }
 
 /// A participant disconnected from the room.
@@ -88,7 +98,10 @@ class VoiceParticipantDisconnectedEvent {
   final String participantId;
   final String channelId;
 
-  const VoiceParticipantDisconnectedEvent({required this.participantId, required this.channelId});
+  const VoiceParticipantDisconnectedEvent({
+    required this.participantId,
+    required this.channelId,
+  });
 }
 
 // -- Track Events -------------------------------------------------------------

@@ -21,9 +21,8 @@ class VoiceEventService {
   // Event stream controllers (sync: true so events are delivered immediately,
   // which makes unit tests predictable without requiring Future.delayed waits)
   final _membershipController = StreamController<dynamic>.broadcast(sync: true);
-  final _publishingController = StreamController<VoicePublishingStateChangeEvent>.broadcast(
-    sync: true,
-  );
+  final _publishingController =
+      StreamController<VoicePublishingStateChangeEvent>.broadcast(sync: true);
 
   // Public event streams
   /// Emits VoiceChannelJoinEvent, VoiceChannelLeaveEvent, VoiceChannelMoveEvent,
@@ -31,7 +30,8 @@ class VoiceEventService {
   Stream<dynamic> get membershipEvents => _membershipController.stream;
 
   /// Emits VoicePublishingStateChangeEvent when a user mutes/unmutes.
-  Stream<VoicePublishingStateChangeEvent> get publishingEvents => _publishingController.stream;
+  Stream<VoicePublishingStateChangeEvent> get publishingEvents =>
+      _publishingController.stream;
 
   // -- Initialization --------------------------------------------------------
 
@@ -102,10 +102,14 @@ class VoiceEventService {
     final state = event['state'] as Map<String, dynamic>?;
     final userId = state?['id'] as String?;
 
-    debugPrint('[VoiceEventService] VoiceChannelJoin channel=$channelId user=$userId');
+    debugPrint(
+      '[VoiceEventService] VoiceChannelJoin channel=$channelId user=$userId',
+    );
 
     if (channelId != null && userId != null) {
-      _membershipController.add(VoiceChannelJoinEvent(channelId: channelId, userId: userId));
+      _membershipController.add(
+        VoiceChannelJoinEvent(channelId: channelId, userId: userId),
+      );
     }
   }
 
@@ -113,10 +117,14 @@ class VoiceEventService {
     final channelId = event['id'] as String?;
     final userId = event['user'] as String?;
 
-    debugPrint('[VoiceEventService] VoiceChannelLeave channel=$channelId user=$userId');
+    debugPrint(
+      '[VoiceEventService] VoiceChannelLeave channel=$channelId user=$userId',
+    );
 
     if (channelId != null && userId != null) {
-      _membershipController.add(VoiceChannelLeaveEvent(channelId: channelId, userId: userId));
+      _membershipController.add(
+        VoiceChannelLeaveEvent(channelId: channelId, userId: userId),
+      );
     }
   }
 
@@ -125,11 +133,17 @@ class VoiceEventService {
     final from = event['from'] as String?;
     final to = event['to'] as String?;
 
-    debugPrint('[VoiceEventService] VoiceChannelMove user=$userId from=$from to=$to');
+    debugPrint(
+      '[VoiceEventService] VoiceChannelMove user=$userId from=$from to=$to',
+    );
 
     if (userId != null) {
       _membershipController.add(
-        VoiceChannelMoveEvent(userId: userId, fromChannelId: from, toChannelId: to),
+        VoiceChannelMoveEvent(
+          userId: userId,
+          fromChannelId: from,
+          toChannelId: to,
+        ),
       );
     }
   }
@@ -142,7 +156,10 @@ class VoiceEventService {
     final isPublishing = data['is_publishing'] as bool?;
     if (isPublishing != null) {
       _publishingController.add(
-        VoicePublishingStateChangeEvent(userId: userId, isPublishing: isPublishing),
+        VoicePublishingStateChangeEvent(
+          userId: userId,
+          isPublishing: isPublishing,
+        ),
       );
     }
   }
@@ -154,15 +171,21 @@ class VoiceEventService {
 
     final cleared = (event['clear'] as List<dynamic>?)?.cast<String>();
     if (cleared?.contains('VoiceChannel') == true) {
-      debugPrint('[VoiceEventService] ServerMemberUpdate: user $userId cleared from voice');
-      _membershipController.add(VoiceChannelLeaveEvent(channelId: null, userId: userId));
+      debugPrint(
+        '[VoiceEventService] ServerMemberUpdate: user $userId cleared from voice',
+      );
+      _membershipController.add(
+        VoiceChannelLeaveEvent(channelId: null, userId: userId),
+      );
       return;
     }
 
     final data = event['data'] as Map<String, dynamic>?;
     final newChannel = data?['voice_channel'] as String?;
     if (newChannel != null) {
-      _membershipController.add(VoiceChannelJoinEvent(channelId: newChannel, userId: userId));
+      _membershipController.add(
+        VoiceChannelJoinEvent(channelId: newChannel, userId: userId),
+      );
     }
   }
 

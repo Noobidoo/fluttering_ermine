@@ -15,9 +15,9 @@ void main() {
 
   setUp(() async {
     svc = FakeRevoltService();
-    container = ProviderContainer(overrides: [
-      revoltServiceProvider.overrideWithValue(svc),
-    ]);
+    container = ProviderContainer(
+      overrides: [revoltServiceProvider.overrideWithValue(svc)],
+    );
     container.read(serverStateProvider.notifier);
     container.read(messagingStateProvider);
     await Future<void>.delayed(Duration.zero);
@@ -47,8 +47,11 @@ void main() {
       });
 
       expect(
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions[emoji],
-          contains('u1'));
+        state().messages['chan1']
+            ?.firstWhere((m) => m.id == 'msg1')
+            .reactions[emoji],
+        contains('u1'),
+      );
     });
 
     test('adds second user to existing emoji key', () {
@@ -68,8 +71,11 @@ void main() {
       });
 
       expect(
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions[emoji],
-          containsAll(['u1', 'u2']));
+        state().messages['chan1']
+            ?.firstWhere((m) => m.id == 'msg1')
+            .reactions[emoji],
+        containsAll(['u1', 'u2']),
+      );
     });
 
     test('duplicate react from same user is idempotent', () {
@@ -84,7 +90,12 @@ void main() {
       }
 
       expect(
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions[emoji]?.length, 1);
+        state().messages['chan1']
+            ?.firstWhere((m) => m.id == 'msg1')
+            .reactions[emoji]
+            ?.length,
+        1,
+      );
     });
 
     test('no-op for unknown message ID (no throw)', () {
@@ -104,10 +115,15 @@ void main() {
     const emoji = '\u{1F44D}';
 
     setUp(() {
-      svc.push(msgEvent(
+      svc.push(
+        msgEvent(
           id: 'msg1',
           channel: 'chan1',
-          reactions: {emoji: ['u1', 'u2']}));
+          reactions: {
+            emoji: ['u1', 'u2'],
+          },
+        ),
+      );
     });
 
     test('removes userId from reaction', () {
@@ -119,8 +135,9 @@ void main() {
         'emoji_id': emoji,
       });
 
-      final reactors =
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions[emoji];
+      final reactors = state().messages['chan1']
+          ?.firstWhere((m) => m.id == 'msg1')
+          .reactions[emoji];
       expect(reactors, isNot(contains('u1')));
       expect(reactors, contains('u2'));
     });
@@ -137,8 +154,12 @@ void main() {
       }
 
       expect(
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions.containsKey(emoji),
-          isFalse);
+        state().messages['chan1']
+            ?.firstWhere((m) => m.id == 'msg1')
+            .reactions
+            .containsKey(emoji),
+        isFalse,
+      );
     });
 
     test('no-op for unknown emoji key (no throw, original unchanged)', () {
@@ -151,8 +172,11 @@ void main() {
       });
 
       expect(
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions[emoji],
-          hasLength(2));
+        state().messages['chan1']
+            ?.firstWhere((m) => m.id == 'msg1')
+            .reactions[emoji],
+        hasLength(2),
+      );
     });
   });
 
@@ -162,13 +186,16 @@ void main() {
     const emoji = '\u{1F44D}';
 
     setUp(() {
-      svc.push(msgEvent(
+      svc.push(
+        msgEvent(
           id: 'msg1',
           channel: 'chan1',
           reactions: {
             emoji: ['u1', 'u2', 'u3'],
             '\u2764': ['u4'],
-          }));
+          },
+        ),
+      );
     });
 
     test('removes entire emoji entry regardless of reactor count', () {
@@ -180,8 +207,12 @@ void main() {
       });
 
       expect(
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions.containsKey(emoji),
-          isFalse);
+        state().messages['chan1']
+            ?.firstWhere((m) => m.id == 'msg1')
+            .reactions
+            .containsKey(emoji),
+        isFalse,
+      );
     });
 
     test('leaves other emoji entries untouched', () {
@@ -193,8 +224,12 @@ void main() {
       });
 
       expect(
-          state().messages['chan1']?.firstWhere((m) => m.id == 'msg1').reactions.containsKey('\u2764'),
-          isTrue);
+        state().messages['chan1']
+            ?.firstWhere((m) => m.id == 'msg1')
+            .reactions
+            .containsKey('\u2764'),
+        isTrue,
+      );
     });
   });
 }

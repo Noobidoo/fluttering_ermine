@@ -21,7 +21,9 @@ class ChatHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final displayName = ref.read(messagingStateProvider.notifier).channelDisplayName(channel);
+    final displayName = ref
+        .read(messagingStateProvider.notifier)
+        .channelDisplayName(channel);
 
     return Container(
       height: 48,
@@ -40,18 +42,25 @@ class ChatHeader extends ConsumerWidget {
                 Flexible(
                   child: Text(
                     displayName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (channel.description != null && channel.description!.isNotEmpty) ...[
+                if (channel.description != null &&
+                    channel.description!.isNotEmpty) ...[
                   const SizedBox(width: 12),
                   Container(width: 1, height: 20, color: Colors.white24),
                   const SizedBox(width: 12),
                   Flexible(
                     child: Text(
                       channel.description!,
-                      style: const TextStyle(color: Colors.white38, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

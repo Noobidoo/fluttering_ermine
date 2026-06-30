@@ -69,7 +69,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : _roles.isEmpty
           ? const Center(
-              child: Text('No roles yet', style: TextStyle(color: Colors.white38)),
+              child: Text(
+                'No roles yet',
+                style: TextStyle(color: Colors.white38),
+              ),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(8),
@@ -79,8 +82,11 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                 return _RoleCard(
                   role: entry.value,
                   onEdit: () => _showEditDialog(entry.value),
-                  onDelete: entry.key != 'default' ? () => _confirmDelete(entry.key) : null,
-                  onAssign: () => _showMemberPickerForRole(entry.key, entry.value),
+                  onDelete: entry.key != 'default'
+                      ? () => _confirmDelete(entry.key)
+                      : null,
+                  onAssign: () =>
+                      _showMemberPickerForRole(entry.key, entry.value),
                 );
               },
             ),
@@ -107,7 +113,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Role name',
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
                 style: const TextStyle(fontSize: 14),
                 autofocus: true,
@@ -117,7 +126,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                 children: [
                   const Text('Colour', style: TextStyle(fontSize: 14)),
                   const Spacer(),
-                  _ColourPicker(selected: colour, onChanged: (c) => setDlg(() => colour = c)),
+                  _ColourPicker(
+                    selected: colour,
+                    onChanged: (c) => setDlg(() => colour = c),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -132,7 +144,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
                       style: const TextStyle(fontSize: 14),
                       onChanged: (v) => rank = int.tryParse(v) ?? 0,
@@ -143,7 +158,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
             TextButton(
               onPressed: () {
                 final n = nameCtrl.text.trim();
@@ -207,7 +225,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Role name',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   style: const TextStyle(fontSize: 14),
                 ),
@@ -216,7 +237,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                   children: [
                     const Text('Colour', style: TextStyle(fontSize: 14)),
                     const Spacer(),
-                    _ColourPicker(selected: colour, onChanged: (c) => setDlg(() => colour = c)),
+                    _ColourPicker(
+                      selected: colour,
+                      onChanged: (c) => setDlg(() => colour = c),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -227,14 +251,20 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                     SizedBox(
                       width: 80,
                       child: TextField(
-                        controller: TextEditingController(text: rank.toString()),
+                        controller: TextEditingController(
+                          text: rank.toString(),
+                        ),
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                         ),
                         style: const TextStyle(fontSize: 14),
-                        onChanged: (v) => setDlg(() => rank = int.tryParse(v) ?? 0),
+                        onChanged: (v) =>
+                            setDlg(() => rank = int.tryParse(v) ?? 0),
                       ),
                     ),
                   ],
@@ -242,7 +272,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Text('Show separately in member list', style: TextStyle(fontSize: 14)),
+                    const Text(
+                      'Show separately in member list',
+                      style: TextStyle(fontSize: 14),
+                    ),
                     const Spacer(),
                     Switch(
                       value: hoist,
@@ -261,10 +294,16 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
                   (perm) => CheckboxListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(perm.label, style: const TextStyle(fontSize: 13)),
+                    title: Text(
+                      perm.label,
+                      style: const TextStyle(fontSize: 13),
+                    ),
                     subtitle: Text(
                       perm.description,
-                      style: const TextStyle(fontSize: 11, color: Colors.white38),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white38,
+                      ),
                     ),
                     value: (permMask & perm.bit) != 0,
                     activeColor: const Color(0xFF7F5AF0),
@@ -281,13 +320,19 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
             TextButton(
               onPressed: () {
                 final n = nameCtrl.text.trim();
                 if (n.isEmpty) return;
                 Navigator.pop(ctx);
-                _doUpdate(role.id, n, colour, rank, hoist, {'a': permMask, 'd': 0});
+                _doUpdate(role.id, n, colour, rank, hoist, {
+                  'a': permMask,
+                  'd': 0,
+                });
               },
               child: const Text('Save'),
             ),
@@ -338,13 +383,19 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _doDelete(roleId);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -367,7 +418,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
 
   /// Shows a sheet to pick a member and toggle roles on them.
   void _showMemberRoleSheet() {
-    final memberIds = ref.read(serverStateProvider).value?.currentServerMemberIds;
+    final memberIds = ref
+        .read(serverStateProvider)
+        .value
+        ?.currentServerMemberIds;
     if (memberIds == null || memberIds.isEmpty) {
       _snack('No members loaded');
       return;
@@ -399,7 +453,10 @@ class _RoleManagerScreenState extends ConsumerState<RoleManagerScreen> {
 
   /// Shows a member picker for assigning a specific role.
   void _showMemberPickerForRole(String roleId, RevoltRole role) {
-    final memberIds = ref.read(serverStateProvider).value?.currentServerMemberIds;
+    final memberIds = ref
+        .read(serverStateProvider)
+        .value
+        ?.currentServerMemberIds;
     if (memberIds == null || memberIds.isEmpty) return;
     ref.read(messagingStateProvider.notifier).ensureUsersCached(memberIds);
 
@@ -462,12 +519,19 @@ class _RoleCard extends StatelessWidget {
           radius: 14,
           child: Text(
             role.name.isNotEmpty ? role.name[0].toUpperCase() : '?',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
         title: Text(
           role.name,
-          style: TextStyle(color: colour ?? Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: colour ?? Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         subtitle: Text(
           'Rank ${role.rank} · ${role.isAdmin ? 'Admin' : _permSummary(role.permissions)}',
@@ -477,13 +541,21 @@ class _RoleCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.person_add_outlined, size: 18, color: Colors.white54),
+              icon: const Icon(
+                Icons.person_add_outlined,
+                size: 18,
+                color: Colors.white54,
+              ),
               tooltip: 'Assign to members',
               onPressed: onAssign,
             ),
             if (onDelete != null)
               IconButton(
-                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: Colors.redAccent,
+                ),
                 onPressed: onDelete,
               ),
           ],
@@ -606,7 +678,9 @@ class _MemberRoleTile extends ConsumerWidget {
         ),
         children: roles.entries.map((entry) {
           final isAssigned = assignedRoleIds.contains(entry.key);
-          final colour = entry.value.colour != null ? Color(entry.value.colour!) : null;
+          final colour = entry.value.colour != null
+              ? Color(entry.value.colour!)
+              : null;
           return CheckboxListTile(
             dense: true,
             contentPadding: const EdgeInsets.only(left: 16),
@@ -627,7 +701,9 @@ class _MemberRoleTile extends ConsumerWidget {
                 onChanged();
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Failed: $e')));
               }
             },
           );
@@ -667,11 +743,18 @@ class _RoleMemberToggleSheet extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              const Icon(Icons.person_add_outlined, size: 18, color: Colors.white70),
+              const Icon(
+                Icons.person_add_outlined,
+                size: 18,
+                color: Colors.white70,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Assign "$roleName"',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
               const Spacer(),
               IconButton(
@@ -690,7 +773,9 @@ class _RoleMemberToggleSheet extends ConsumerWidget {
               final uid = memberIds[i];
               final user = messaging.userCache[uid];
               final name = user?.resolveDisplayName(serverId) ?? uid;
-              final hasRole = user?.serverProfiles[serverId]?.roles.contains(roleId) ?? false;
+              final hasRole =
+                  user?.serverProfiles[serverId]?.roles.contains(roleId) ??
+                  false;
               return CheckboxListTile(
                 dense: true,
                 title: Text(name, style: const TextStyle(fontSize: 14)),
@@ -759,9 +844,13 @@ class _ColourPicker extends StatelessWidget {
             decoration: BoxDecoration(
               color: Color(c),
               shape: BoxShape.circle,
-              border: isSelected ? Border.all(color: Colors.white, width: 2) : null,
+              border: isSelected
+                  ? Border.all(color: Colors.white, width: 2)
+                  : null,
             ),
-            child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+            child: isSelected
+                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                : null,
           ),
         );
       }).toList(),

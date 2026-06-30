@@ -27,7 +27,10 @@ class VoiceParticipantRow extends ConsumerWidget {
   void _showVolumeMenu(BuildContext context, WidgetRef ref) {
     final voice = ref.read(voiceStateProvider);
     final notifier = ref.read(voiceStateProvider.notifier);
-    final currentVolume = voice.getParticipantVolume(identity, source: TrackSource.microphone);
+    final currentVolume = voice.getParticipantVolume(
+      identity,
+      source: TrackSource.microphone,
+    );
     double tempVolume = currentVolume;
 
     showDialog(
@@ -35,7 +38,9 @@ class VoiceParticipantRow extends ConsumerWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E26),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
           content: SizedBox(
             width: 280,
@@ -72,12 +77,18 @@ class VoiceParticipantRow extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.volume_down_rounded, size: 18, color: Colors.white38),
+                    const Icon(
+                      Icons.volume_down_rounded,
+                      size: 18,
+                      color: Colors.white38,
+                    ),
                     Expanded(
                       child: SliderTheme(
                         data: SliderTheme.of(ctx).copyWith(
                           trackHeight: 4,
-                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 8,
+                          ),
                         ),
                         child: Slider(
                           value: tempVolume,
@@ -97,7 +108,11 @@ class VoiceParticipantRow extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const Icon(Icons.volume_up_rounded, size: 18, color: Colors.white38),
+                    const Icon(
+                      Icons.volume_up_rounded,
+                      size: 18,
+                      color: Colors.white38,
+                    ),
                   ],
                 ),
                 Center(
@@ -121,7 +136,9 @@ class VoiceParticipantRow extends ConsumerWidget {
                       },
                       icon: const Icon(Icons.refresh, size: 14),
                       label: const Text('Reset'),
-                      style: TextButton.styleFrom(foregroundColor: Colors.white60),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white60,
+                      ),
                     ),
                     if (isMuted != null)
                       TextButton.icon(
@@ -133,9 +150,14 @@ class VoiceParticipantRow extends ConsumerWidget {
                           );
                           Navigator.pop(ctx);
                         },
-                        icon: Icon(isMuted == true ? Icons.mic : Icons.mic_off, size: 14),
+                        icon: Icon(
+                          isMuted == true ? Icons.mic : Icons.mic_off,
+                          size: 14,
+                        ),
                         label: Text(isMuted == true ? 'Unmute' : 'Mute'),
-                        style: TextButton.styleFrom(foregroundColor: Colors.white60),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white60,
+                        ),
                       ),
                   ],
                 ),
@@ -168,18 +190,30 @@ class VoiceParticipantRow extends ConsumerWidget {
                   width: 2,
                 ),
                 boxShadow: isSpeaking
-                    ? [BoxShadow(color: speakingColor.withValues(alpha: 0.5), blurRadius: 6)]
+                    ? [
+                        BoxShadow(
+                          color: speakingColor.withValues(alpha: 0.5),
+                          blurRadius: 6,
+                        ),
+                      ]
                     : null,
               ),
               child: CircleAvatar(
                 radius: 10,
-                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+                backgroundImage: avatarUrl != null
+                    ? NetworkImage(avatarUrl!)
+                    : null,
                 backgroundColor: const Color(0xFF7F5AF0),
                 onBackgroundImageError: avatarUrl != null ? (_, _) {} : null,
                 child: avatarUrl == null
                     ? Text(
-                        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 9, color: Colors.white),
+                        displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.white,
+                        ),
                       )
                     : null,
               ),
@@ -206,7 +240,10 @@ class VoiceParticipantRow extends ConsumerWidget {
               GestureDetector(
                 onTap: () => notifier.toggleScreenShareSubscription(identity),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: voiceData.isScreenShareSubscribed(identity)
                         ? const Color(0xFF7F5AF0)
@@ -232,7 +269,9 @@ class VoiceParticipantRow extends ConsumerWidget {
                       ),
                       const SizedBox(width: 3),
                       Text(
-                        voiceData.isScreenShareSubscribed(identity) ? 'Hide' : 'Watch',
+                        voiceData.isScreenShareSubscribed(identity)
+                            ? 'Hide'
+                            : 'Watch',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,

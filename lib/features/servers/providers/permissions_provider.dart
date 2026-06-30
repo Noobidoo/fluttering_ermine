@@ -6,7 +6,10 @@ import 'current_user_id_provider.dart';
 import 'server_notifier.dart';
 import '../../messaging/providers/messaging_providers.dart';
 
-final effectivePermissionsProvider = Provider.family<int, String>((ref, serverId) {
+final effectivePermissionsProvider = Provider.family<int, String>((
+  ref,
+  serverId,
+) {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return 0;
 

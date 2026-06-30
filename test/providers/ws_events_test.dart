@@ -21,19 +21,18 @@ Map<String, dynamic> readyEvent({
     'channels': [],
     'users': users,
     'voice_states': voiceMembers.entries
-        .map((e) => {
-              'id': e.key,
-              'participants': e.value.map((uid) => {'id': uid}).toList(),
-            })
+        .map(
+          (e) => {
+            'id': e.key,
+            'participants': e.value.map((uid) => {'id': uid}).toList(),
+          },
+        )
         .toList(),
   };
 }
 
-RevoltUser fakeUser(String id, {String username = 'user'}) => RevoltUser(
-      id: id,
-      username: username,
-      discriminator: '0001',
-    );
+RevoltUser fakeUser(String id, {String username = 'user'}) =>
+    RevoltUser(id: id, username: username, discriminator: '0001');
 
 // -- Tests --------------------------------------------------------------------
 
@@ -49,9 +48,9 @@ void main() {
 
     setUp(() async {
       svc = FakeRevoltService();
-      container = ProviderContainer(overrides: [
-        revoltServiceProvider.overrideWithValue(svc),
-      ]);
+      container = ProviderContainer(
+        overrides: [revoltServiceProvider.overrideWithValue(svc)],
+      );
       container.read(serverStateProvider.notifier);
       container.read(messagingStateProvider);
       await Future<void>.delayed(Duration.zero);
@@ -62,22 +61,31 @@ void main() {
       container.dispose();
     });
 
-    MessagingNotifier notifier() => container.read(messagingStateProvider.notifier);
+    MessagingNotifier notifier() =>
+        container.read(messagingStateProvider.notifier);
     MessagingStateData state() => container.read(messagingStateProvider);
 
     test('UserUpdate with empty data preserves cached bio', () async {
       // Prime cache via Ready (user without bio, as API delivers)
-      svc.push(readyEvent(users: [
-        {'_id': 'user1', 'username': 'user1', 'discriminator': '0001'},
-      ]));
+      svc.push(
+        readyEvent(
+          users: [
+            {'_id': 'user1', 'username': 'user1', 'discriminator': '0001'},
+          ],
+        ),
+      );
       await Future<void>.delayed(Duration.zero);
       expect(state().userCache['user1']?.profileContent, isNull);
 
       // Simulate LoginNotifier.cacheUser after saving a bio
-      notifier().cacheUser(RevoltUser(
-        id: 'user1', username: 'user1', discriminator: '0001',
-        profileContent: 'My bio',
-      ));
+      notifier().cacheUser(
+        RevoltUser(
+          id: 'user1',
+          username: 'user1',
+          discriminator: '0001',
+          profileContent: 'My bio',
+        ),
+      );
       expect(state().userCache['user1']?.profileContent, 'My bio');
 
       // Inject UserUpdate with empty data (as server sends for bio changes)
@@ -90,13 +98,22 @@ void main() {
 
     test('UserUpdate merges non-empty data into cached user', () async {
       // Prime cache via Ready
-      svc.push(readyEvent(users: [
-        {'_id': 'user1', 'username': 'OldName', 'discriminator': '0001'},
-      ]));
+      svc.push(
+        readyEvent(
+          users: [
+            {'_id': 'user1', 'username': 'OldName', 'discriminator': '0001'},
+          ],
+        ),
+      );
       expect(state().userCache['user1']?.username, 'OldName');
 
       // Inject UserUpdate with data
-      svc.push({'type': 'UserUpdate', 'id': 'user1', 'data': {'display_name': 'NewDisplay'}, 'clear': []});
+      svc.push({
+        'type': 'UserUpdate',
+        'id': 'user1',
+        'data': {'display_name': 'NewDisplay'},
+        'clear': [],
+      });
 
       await Future<void>.delayed(Duration.zero);
 
@@ -124,18 +141,25 @@ void main() {
       expect(state().userCache['u2']?.username, 'Bob');
     });
 
-    test('ensureUsersCached skips already-cached users (no duplicate fetch)', () async {
-      svc.push(readyEvent(users: [
-        {'_id': 'u1', 'username': 'Cached', 'discriminator': '0001'},
-      ]));
+    test(
+      'ensureUsersCached skips already-cached users (no duplicate fetch)',
+      () async {
+        svc.push(
+          readyEvent(
+            users: [
+              {'_id': 'u1', 'username': 'Cached', 'discriminator': '0001'},
+            ],
+          ),
+        );
 
-      // Stub a different value – should NOT be loaded since u1 is already cached
-      svc.stubUser(fakeUser('u1', username: 'ShouldNotAppear'));
+        // Stub a different value – should NOT be loaded since u1 is already cached
+        svc.stubUser(fakeUser('u1', username: 'ShouldNotAppear'));
 
-      notifier().ensureUsersCached(['u1']);
-      await Future<void>.delayed(Duration.zero);
+        notifier().ensureUsersCached(['u1']);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(state().userCache['u1']?.username, 'Cached');
-    });
+        expect(state().userCache['u1']?.username, 'Cached');
+      },
+    );
   });
 }
