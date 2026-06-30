@@ -743,8 +743,14 @@ class VoiceNotifier extends Notifier<VoiceStateData> {
   Future<void> toggleMute() async {
     if (_voiceRoom == null) return;
     final newMuted = !state.isMuted;
+    try {
+      await _voiceRoom!.localParticipant?.setMicrophoneEnabled(!newMuted);
+    } catch (e) {
+      debugPrint('[voice] mute toggle failed: $e');
+      state = state.copyWith(voiceError: 'Failed to toggle mute');
+      return;
+    }
     state = state.copyWith(isMuted: newMuted);
-    await _voiceRoom!.localParticipant?.setMicrophoneEnabled(!newMuted);
   }
 
   Future<void> toggleCamera() async {
