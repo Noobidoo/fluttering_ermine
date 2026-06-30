@@ -225,7 +225,6 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
     final asyncPrefs = SharedPreferencesAsync();
     await asyncPrefs.setString(_tokenKey, token);
     final user = await _service.fetchSelf();
-    _connectWebSocket();
     state = AsyncData(
       (state.value ?? const LoginStateData()).copyWith(
         isLoggedIn: true,
@@ -234,6 +233,7 @@ class LoginNotifier extends AsyncNotifier<LoginStateData> {
         autumnBase: _service.autumnBase,
       ),
     );
+    _connectWebSocket();
   }
 
   Future<void> logout() async {
