@@ -644,9 +644,9 @@ class ServerNotifier extends AsyncNotifier<ServerStateData> {
         debugPrint('[fetchRoles] member endpoint failed: $e');
       }
     }
-
+    final current = state.value!;
     state = AsyncData(
-      existing.copyWith(rolesByServer: {...existing.rolesByServer, serverId: rolesMap}),
+      current.copyWith(rolesByServer: {...current.rolesByServer, serverId: rolesMap}),
     );
   }
 
