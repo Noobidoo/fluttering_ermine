@@ -1,6 +1,13 @@
 import 'permissions.dart';
 
-enum ChannelType { textChannel, voiceChannel, directMessage, group, savedMessages, unknown }
+enum ChannelType {
+  textChannel,
+  voiceChannel,
+  directMessage,
+  group,
+  savedMessages,
+  unknown,
+}
 
 class RevoltChannel {
   final String id;
@@ -58,7 +65,8 @@ class RevoltChannel {
           ? OverrideField.fromJson(json['default_permissions'])
           : null,
       rolePermissions: parseRolePerms(
-          json['role_permissions'] as Map<String, dynamic>?),
+        json['role_permissions'] as Map<String, dynamic>?,
+      ),
     );
   }
 

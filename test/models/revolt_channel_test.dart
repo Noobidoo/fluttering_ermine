@@ -48,27 +48,19 @@ void main() {
     });
 
     test('fromJson parses SavedMessages', () {
-      final json = {
-        '_id': 'saved1',
-        'channel_type': 'SavedMessages',
-      };
+      final json = {'_id': 'saved1', 'channel_type': 'SavedMessages'};
       final c = RevoltChannel.fromJson(json);
       expect(c.type, ChannelType.savedMessages);
     });
 
     test('fromJson unknown channel_type defaults to unknown', () {
-      final json = {
-        '_id': 'unknown1',
-        'channel_type': 'FooBar',
-      };
+      final json = {'_id': 'unknown1', 'channel_type': 'FooBar'};
       final c = RevoltChannel.fromJson(json);
       expect(c.type, ChannelType.unknown);
     });
 
     test('fromJson missing channel_type defaults to unknown', () {
-      final json = {
-        '_id': 'no-type',
-      };
+      final json = {'_id': 'no-type'};
       final c = RevoltChannel.fromJson(json);
       expect(c.type, ChannelType.unknown);
     });
@@ -85,18 +77,22 @@ void main() {
 
     test('isTextBased returns true for text, DM, group, saved messages', () {
       expect(
-          RevoltChannel(id: 't', type: ChannelType.textChannel).isTextBased,
-          true);
+        RevoltChannel(id: 't', type: ChannelType.textChannel).isTextBased,
+        true,
+      );
       expect(
-          RevoltChannel(id: 'd', type: ChannelType.directMessage).isTextBased,
-          true);
-      expect(RevoltChannel(id: 'g', type: ChannelType.group).isTextBased,
-          true);
+        RevoltChannel(id: 'd', type: ChannelType.directMessage).isTextBased,
+        true,
+      );
+      expect(RevoltChannel(id: 'g', type: ChannelType.group).isTextBased, true);
       expect(
-          RevoltChannel(id: 's', type: ChannelType.savedMessages).isTextBased,
-          true);
-      expect(RevoltChannel(id: 'u', type: ChannelType.unknown).isTextBased,
-          false);
+        RevoltChannel(id: 's', type: ChannelType.savedMessages).isTextBased,
+        true,
+      );
+      expect(
+        RevoltChannel(id: 'u', type: ChannelType.unknown).isTextBased,
+        false,
+      );
     });
   });
 }

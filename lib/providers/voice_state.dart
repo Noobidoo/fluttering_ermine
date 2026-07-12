@@ -80,7 +80,6 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   String? _selectedAudioInputId;
   final Map<String, double> _participantVolumes = {};
 
-
   // -- DeepFilterNet noise suppression ---------------------------------------
   final _liveKitDeepFilter = LiveKitDeepFilter();
   bool _deepFilterEnabled = true;
@@ -114,9 +113,12 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
   String? get selectedAudioInputId => _selectedAudioInputId;
 
   double getParticipantVolume(String identity, {TrackSource? source}) {
-    if (source != null) return _participantVolumes['$identity:${source.name}'] ?? 1.0;
+    if (source != null) {
+      return _participantVolumes['$identity:${source.name}'] ?? 1.0;
+    }
     return _participantVolumes[identity] ?? 1.0;
   }
+
   Future<List<MediaDevice>> get audioInputDeviceIds async {
     try {
       List<MediaDevice> devices = await Hardware.instance.audioInputs();
@@ -149,6 +151,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
     return null;
   }
+
 
   // Returns true if the given participant's screen share is currently subscribed.
   bool isScreenShareSubscribed(String identity) =>
@@ -361,8 +364,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           // for a WebSocket VoiceChannelJoinEvent.
           _voiceChannelMembers.putIfAbsent(channel.id, () => []);
           for (final p in e.room.remoteParticipants.values) {
-            if (!_voiceChannelMembers[channel.id]!
-                .contains(p.identity)) {
+            if (!_voiceChannelMembers[channel.id]!.contains(p.identity)) {
               _voiceChannelMembers[channel.id]!.add(p.identity);
             }
           }
@@ -440,10 +442,17 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
               }
             });
           }
-          if (e.track is RemoteAudioTrack && e.publication.kind == TrackType.AUDIO) {
-            final storedVolume = _participantVolumes['${e.participant.identity}:${e.publication.source.name}'];
+          if (e.track is RemoteAudioTrack &&
+              e.publication.kind == TrackType.AUDIO) {
+            final storedVolume =
+                _participantVolumes['${e.participant.identity}:${e.publication.source.name}'];
             if (storedVolume != null) {
-              unawaited(NativeAudioManagement.setVolume(storedVolume, e.track.mediaStreamTrack));
+              unawaited(
+                NativeAudioManagement.setVolume(
+                  storedVolume,
+                  e.track.mediaStreamTrack,
+                ),
+              );
             }
           }
           notifyListeners();
@@ -492,8 +501,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
           // Add to channel panel data source so the participant shows up
           // immediately, even if the WebSocket Join event is delayed.
           _voiceChannelMembers.putIfAbsent(channel.id, () => []);
-          if (!_voiceChannelMembers[channel.id]!
-              .contains(e.participant.identity)) {
+          if (!_voiceChannelMembers[channel.id]!.contains(e.participant.identity)) {
             _voiceChannelMembers[channel.id]!.add(e.participant.identity);
           }
           notifyListeners();
@@ -521,7 +529,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       debugPrint('[voice] localParticipant identity=${lp.identity}');
       // Enumerate devices first to get the selected audio input deviceId
       await setSelectedAudioInput(await _getSelectedAudioInputId());
-      
+
       // Initialize DeepFilterNet before enabling the mic so the processor
       // can be passed via AudioCaptureOptions. The SDK handles init/onPublish.
       if (_deepFilterEnabled) {
@@ -812,7 +820,9 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
       try {
         final Map<String, dynamic> decoded = jsonDecode(volumesJson);
         _participantVolumes.clear();
-        _participantVolumes.addAll(decoded.map((k, v) => MapEntry(k, (v as num).toDouble())));
+        _participantVolumes.addAll(
+          decoded.map((k, v) => MapEntry(k, (v as num).toDouble())),
+        );
       } catch (_) {}
     }
     notifyListeners();
@@ -820,19 +830,26 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
 
   Future<void> _saveParticipantVolumes() async {
     final asyncPrefs = SharedPreferencesAsync();
-    await asyncPrefs.setString('voice_participant_volumes', jsonEncode(_participantVolumes));
+    await asyncPrefs.setString(
+      'voice_participant_volumes',
+      jsonEncode(_participantVolumes),
+    );
   }
 
   /// Returns the deviceId of the currently selected audio input, or first if not found or on error.
   Future<String?> _getSelectedAudioInputId() async {
     try {
       final devices = await Hardware.instance.audioInputs();
-      return devices.firstWhere(
-        (d) => _selectedAudioInputId != '' && d.deviceId == _selectedAudioInputId,
-        orElse: () => devices.isNotEmpty
-            ? devices.first
-            : throw Exception('No audio input devices found'),
-      ).deviceId;
+      return devices
+          .firstWhere(
+            (d) =>
+                _selectedAudioInputId != '' &&
+                d.deviceId == _selectedAudioInputId,
+            orElse: () => devices.isNotEmpty
+                ? devices.first
+                : throw Exception('No audio input devices found'),
+          )
+          .deviceId;
     } catch (e) {
       debugPrint('[voice] Failed to enumerate devices: $e');
     }
@@ -880,10 +897,7 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     if (_selectedAudioInputId == deviceId) return;
     _selectedAudioInputId = deviceId;
     final asyncPrefs = SharedPreferencesAsync();
-    await asyncPrefs.setString(
-      'voice_selected_audio_input_id',
-      deviceId ?? '',
-    );
+    await asyncPrefs.setString('voice_selected_audio_input_id', deviceId ?? '');
     notifyListeners();
     if (_voiceRoom != null && _isInVoice) {
       final lp = _voiceRoom!.localParticipant;
@@ -903,15 +917,19 @@ class VoiceState extends ChangeNotifier with DiagnosticableTreeMixin {
     }
   }
 
-Future<void> setDeepFilterEnabled(bool value) async {
+  Future<void> setDeepFilterEnabled(bool value) async {
     _deepFilterEnabled = value;
     final asyncPrefs = SharedPreferencesAsync();
     await asyncPrefs.setBool('voice_deep_filter_enabled', value);
-    if (value && _voiceRoom != null && _isInVoice && !_liveKitDeepFilter.isEnabled) {
+    if (value &&
+        _voiceRoom != null &&
+        _isInVoice &&
+        !_liveKitDeepFilter.isEnabled) {
       await _liveKitDeepFilter.enable(enabled: true);
       final audioTrack = _voiceRoom!.localParticipant?.trackPublications.values
           .where((pub) => pub.kind == TrackType.AUDIO)
-          .firstOrNull?.track;
+          .firstOrNull
+          ?.track;
       if (audioTrack is LocalAudioTrack) {
         await _liveKitDeepFilter.attachToTrack(audioTrack);
       }
@@ -921,7 +939,11 @@ Future<void> setDeepFilterEnabled(bool value) async {
     notifyListeners();
   }
 
-  Future<void> setParticipantVolume(String identity, double volume, {TrackSource? source}) async {
+  Future<void> setParticipantVolume(
+    String identity,
+    double volume, {
+    TrackSource? source,
+  }) async {
     final clamped = volume.clamp(0.0, 2.0);
     final key = source != null ? '$identity:${source.name}' : identity;
     _participantVolumes[key] = clamped;
@@ -934,7 +956,10 @@ Future<void> setDeepFilterEnabled(bool value) async {
               (source == null || pub.source == source)) {
             final track = pub.track;
             if (track is RemoteAudioTrack) {
-              await NativeAudioManagement.setVolume(clamped, track.mediaStreamTrack);
+              await NativeAudioManagement.setVolume(
+                clamped,
+                track.mediaStreamTrack,
+              );
             }
           }
         }
@@ -948,7 +973,9 @@ Future<void> setDeepFilterEnabled(bool value) async {
     for (final entry in _participantVolumes.entries) {
       final parts = entry.key.split(':');
       final identity = parts[0];
-      final source = parts.length > 1 ? TrackSource.values.where((s) => s.name == parts[1]).firstOrNull : null;
+      final source = parts.length > 1
+          ? TrackSource.values.where((s) => s.name == parts[1]).firstOrNull
+          : null;
       final participant = _voiceRoom!.remoteParticipants[identity];
       if (participant != null) {
         for (final pub in participant.trackPublications.values) {
@@ -956,7 +983,10 @@ Future<void> setDeepFilterEnabled(bool value) async {
               (source == null || pub.source == source)) {
             final track = pub.track;
             if (track is RemoteAudioTrack) {
-              await NativeAudioManagement.setVolume(entry.value, track.mediaStreamTrack);
+              await NativeAudioManagement.setVolume(
+                entry.value,
+                track.mediaStreamTrack,
+              );
             }
           }
         }
@@ -971,7 +1001,10 @@ Future<void> setDeepFilterEnabled(bool value) async {
         if (pub.kind == TrackType.AUDIO) {
           final track = pub.track;
           if (track is RemoteAudioTrack) {
-            await NativeAudioManagement.setVolume(_outputVolume, track.mediaStreamTrack);
+            await NativeAudioManagement.setVolume(
+              _outputVolume,
+              track.mediaStreamTrack,
+            );
           }
         }
       }

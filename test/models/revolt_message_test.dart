@@ -15,14 +15,13 @@ Map<String, dynamic> _baseJson({
   String author = 'u1',
   String content = 'Hello',
   String timestamp = '2024-01-01T00:00:00.000Z',
-}) =>
-    {
-      '_id': id,
-      'channel': channel,
-      'author': author,
-      'content': content,
-      'timestamp': timestamp,
-    };
+}) => {
+  '_id': id,
+  'channel': channel,
+  'author': author,
+  'content': content,
+  'timestamp': timestamp,
+};
 
 // -- Tests ---------------------------------------------------------------------
 
@@ -63,15 +62,13 @@ void main() {
     });
 
     test('parses edited field', () {
-      final json = _baseJson()
-        ..['edited'] = '2024-06-01T12:00:00.000Z';
+      final json = _baseJson()..['edited'] = '2024-06-01T12:00:00.000Z';
       final msg = RevoltMessage.fromJson(json);
       expect(msg.edited, '2024-06-01T12:00:00.000Z');
     });
 
     test('parses replies list', () {
-      final json = _baseJson()
-        ..['replies'] = ['replyA', 'replyB'];
+      final json = _baseJson()..['replies'] = ['replyA', 'replyB'];
       final msg = RevoltMessage.fromJson(json);
       expect(msg.replies, ['replyA', 'replyB']);
     });
@@ -126,7 +123,9 @@ void main() {
         content: 'Original',
         timestamp: '2024-01-01T00:00:00.000Z',
         replies: ['replyId'],
-        reactions: {'\u{1F44D}': ['u1']},
+        reactions: {
+          '\u{1F44D}': ['u1'],
+        },
       );
     });
 
@@ -148,7 +147,9 @@ void main() {
     });
 
     test('copyWith reactions replaces reactions map', () {
-      final newReactions = {'\u2764': ['u2', 'u3']};
+      final newReactions = {
+        '\u2764': ['u2', 'u3'],
+      };
       final updated = original.copyWith(reactions: newReactions);
 
       expect(updated.reactions, newReactions);
@@ -174,9 +175,14 @@ void main() {
   group('RevoltFile', () {
     test('urlFor builds correct Autumn URL', () {
       final file = RevoltFile(
-          id: 'abc123', tag: 'attachments', filename: 'image.png');
-      expect(file.urlFor('https://autumn.example.test'),
-          'https://autumn.example.test/attachments/abc123');
+        id: 'abc123',
+        tag: 'attachments',
+        filename: 'image.png',
+      );
+      expect(
+        file.urlFor('https://autumn.example.test'),
+        'https://autumn.example.test/attachments/abc123',
+      );
     });
 
     test('fromJson parses all fields', () {

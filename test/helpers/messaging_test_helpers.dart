@@ -12,19 +12,18 @@ import 'package:fluttering_ermine/services/revolt_service.dart';
 // -- Fake RevoltService --------------------------------------------------------
 
 class FakeRevoltService extends RevoltService {
-  final _ctrl =
-      StreamController<Map<String, dynamic>>.broadcast(sync: true);
+  final _ctrl = StreamController<Map<String, dynamic>>.broadcast(sync: true);
 
   final List<String> typingCalls = [];
-  final List<({String channelId, String messageId, String content})>
-      editCalls = [];
+  final List<({String channelId, String messageId, String content})> editCalls =
+      [];
   final List<({String channelId, String messageId})> deleteCalls = [];
   final List<({String channelId, String messageId, String emoji})>
-      addReactionCalls = [];
+  addReactionCalls = [];
   final List<({String channelId, String messageId, String emoji})>
-      removeReactionCalls = [];
+  removeReactionCalls = [];
   final List<({String channelId, String content, String? replyToId})>
-      sendMessageCalls = [];
+  sendMessageCalls = [];
 
   final Map<String, RevoltUser> _userStubs = {};
   RevoltMessage? sendMessageResult;
@@ -53,9 +52,10 @@ class FakeRevoltService extends RevoltService {
 
   /// Never completes ΓÇö prevents _loadMessages from overwriting WS-pushed messages.
   @override
-  Future<List<RevoltMessage>> fetchMessages(String channelId,
-          {int limit = 50}) =>
-      Completer<List<RevoltMessage>>().future;
+  Future<List<RevoltMessage>> fetchMessages(
+    String channelId, {
+    int limit = 50,
+  }) => Completer<List<RevoltMessage>>().future;
 
   @override
   void sendTyping(String channelId) => typingCalls.add(channelId);
@@ -67,8 +67,11 @@ class FakeRevoltService extends RevoltService {
     String? replyToId,
     List<String> attachmentIds = const [],
   }) async {
-    sendMessageCalls.add(
-        (channelId: channelId, content: content, replyToId: replyToId));
+    sendMessageCalls.add((
+      channelId: channelId,
+      content: content,
+      replyToId: replyToId,
+    ));
     return sendMessageResult ??
         RevoltMessage(
           id: 'stub-msg',
@@ -81,9 +84,15 @@ class FakeRevoltService extends RevoltService {
 
   @override
   Future<void> editMessage(
-      String channelId, String messageId, String content) async {
-    editCalls
-        .add((channelId: channelId, messageId: messageId, content: content));
+    String channelId,
+    String messageId,
+    String content,
+  ) async {
+    editCalls.add((
+      channelId: channelId,
+      messageId: messageId,
+      content: content,
+    ));
   }
 
   @override
@@ -93,16 +102,28 @@ class FakeRevoltService extends RevoltService {
 
   @override
   Future<void> addReaction(
-      String channelId, String messageId, String emoji) async {
-    addReactionCalls
-        .add((channelId: channelId, messageId: messageId, emoji: emoji));
+    String channelId,
+    String messageId,
+    String emoji,
+  ) async {
+    addReactionCalls.add((
+      channelId: channelId,
+      messageId: messageId,
+      emoji: emoji,
+    ));
   }
 
   @override
   Future<void> removeReaction(
-      String channelId, String messageId, String emoji) async {
-    removeReactionCalls
-        .add((channelId: channelId, messageId: messageId, emoji: emoji));
+    String channelId,
+    String messageId,
+    String emoji,
+  ) async {
+    removeReactionCalls.add((
+      channelId: channelId,
+      messageId: messageId,
+      emoji: emoji,
+    ));
   }
 
   @override
@@ -114,9 +135,13 @@ class FakeRevoltService extends RevoltService {
   void stubChannel(RevoltChannel channel) =>
       _channelStubs[channel.id] = channel;
 
+  final List<List<String>> fetchChannelsCalls = [];
+
   @override
-  Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async =>
-      channelIds.map((id) => _channelStubs[id]!).toList();
+  Future<List<RevoltChannel>> fetchChannels(List<String> channelIds) async {
+    fetchChannelsCalls.add([...channelIds]);
+    return channelIds.map((id) => _channelStubs[id]!).toList();
+  }
 
   // -- Ack / Unread ----------------------------------------------------------
 
@@ -129,16 +154,50 @@ class FakeRevoltService extends RevoltService {
 
   // -- Members ---------------------------------------------------------------
 
-  final Map<String, List<({String userId, String? nickname, List<String> roles, RevoltFile? avatar})>> _memberStubs = {};
+  final Map<
+    String,
+    List<
+      ({
+        String userId,
+        String? nickname,
+        List<String> roles,
+        RevoltFile? avatar,
+      })
+    >
+  >
+  _memberStubs = {};
   bool fetchMembersThrows = false;
 
-  void stubMembers(String serverId, List<({String userId, String? nickname, List<String> roles, RevoltFile? avatar})> members) {
+  void stubMembers(
+    String serverId,
+    List<
+      ({
+        String userId,
+        String? nickname,
+        List<String> roles,
+        RevoltFile? avatar,
+      })
+    >
+    members,
+  ) {
     _memberStubs[serverId] = members;
   }
 
   @override
-  Future<(List<({String userId, String? nickname, List<String> roles, RevoltFile? avatar})>, List<RevoltUser>)> fetchServerMembers(
-      String serverId) async {
+  Future<
+    (
+      List<
+        ({
+          String userId,
+          String? nickname,
+          List<String> roles,
+          RevoltFile? avatar,
+        })
+      >,
+      List<RevoltUser>,
+    )
+  >
+  fetchServerMembers(String serverId) async {
     if (fetchMembersThrows) throw Exception('fetch failed');
     final members = _memberStubs[serverId] ?? [];
     return (members, List<RevoltUser>.empty());
@@ -171,14 +230,17 @@ class FakeRevoltService extends RevoltService {
 
   // -- Profile updates (Phase 3) ---------------------------------------------
 
-  final List<({
-    String? displayName,
-    String? presence,
-    String? statusText,
-    String? profileContent,
-    String? avatar,
-    String? background,
-  })> updateProfileCalls = [];
+  final List<
+    ({
+      String? displayName,
+      String? presence,
+      String? statusText,
+      String? profileContent,
+      String? avatar,
+      String? background,
+    })
+  >
+  updateProfileCalls = [];
 
   RevoltUser? _currentUserStub;
 
@@ -212,8 +274,16 @@ class FakeRevoltService extends RevoltService {
 
   // -- Server member updates --------------------------------------------------
 
-  final List<({String serverId, String userId, String? nickname, String? avatar, List<String> remove})>
-      updateServerMemberCalls = [];
+  final List<
+    ({
+      String serverId,
+      String userId,
+      String? nickname,
+      String? avatar,
+      List<String> remove,
+    })
+  >
+  updateServerMemberCalls = [];
 
   @override
   Future<void> updateServerMember(
@@ -263,24 +333,18 @@ Map<String, dynamic> msgEvent({
   String content = 'Hello',
   List<String>? replies,
   Map<String, List<String>>? reactions,
-}) =>
-    {
-      'type': 'Message',
-      '_id': id,
-      'channel': channel,
-      'author': author,
-      'content': content,
-      'timestamp': '2024-01-01T00:00:00.000Z',
-      'replies': ?replies,
-      if (reactions != null)
-        'reactions': {
-          for (final e in reactions.entries) e.key: e.value,
-        },
-    };
+}) => {
+  'type': 'Message',
+  '_id': id,
+  'channel': channel,
+  'author': author,
+  'content': content,
+  'timestamp': '2024-01-01T00:00:00.000Z',
+  'replies': ?replies,
+  if (reactions != null)
+    'reactions': {for (final e in reactions.entries) e.key: e.value},
+};
 
 /// Minimal text channel for selecting in ServerState.
-RevoltChannel textChan(String id) => RevoltChannel(
-      id: id,
-      type: ChannelType.textChannel,
-      name: 'test',
-    );
+RevoltChannel textChan(String id) =>
+    RevoltChannel(id: id, type: ChannelType.textChannel, name: 'test');

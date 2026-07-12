@@ -10,11 +10,7 @@ void main() {
         'username': 'testuser',
         'discriminator': '1234',
         'display_name': 'Test User',
-        'avatar': {
-          '_id': 'avatar1',
-          'tag': 'avatars',
-          'filename': 'pic.png',
-        },
+        'avatar': {'_id': 'avatar1', 'tag': 'avatars', 'filename': 'pic.png'},
       };
       final user = RevoltUser.fromJson(json);
       expect(user.id, 'user1');
@@ -27,10 +23,7 @@ void main() {
     });
 
     test('fromJson missing discriminator defaults to 0000', () {
-      final json = {
-        '_id': 'user2',
-        'username': 'nodisc',
-      };
+      final json = {'_id': 'user2', 'username': 'nodisc'};
       final user = RevoltUser.fromJson(json);
       expect(user.discriminator, '0000');
       expect(user.avatar, isNull);
@@ -47,11 +40,7 @@ void main() {
     });
 
     test('displayUsername falls back to username when no displayName', () {
-      final user = RevoltUser(
-        id: 'u1',
-        username: 'raw',
-        discriminator: '0000',
-      );
+      final user = RevoltUser(id: 'u1', username: 'raw', discriminator: '0000');
       expect(user.displayUsername, 'raw');
     });
 
@@ -62,8 +51,10 @@ void main() {
         discriminator: '0000',
         avatar: RevoltFile(id: 'av1', tag: 'avatars', filename: 'pic.png'),
       );
-      expect(user.avatarUrlFor('https://autumn.test', 'https://api.test'),
-          'https://autumn.test/avatars/av1');
+      expect(
+        user.avatarUrlFor('https://autumn.test', 'https://api.test'),
+        'https://autumn.test/avatars/av1',
+      );
     });
 
     test('avatarUrlFor falls back to default when no avatar', () {
@@ -72,8 +63,10 @@ void main() {
         username: 'test',
         discriminator: '0000',
       );
-      expect(user.avatarUrlFor('https://autumn.test', 'https://api.test'),
-          'https://api.test/users/u1/default_avatar');
+      expect(
+        user.avatarUrlFor('https://autumn.test', 'https://api.test'),
+        'https://api.test/users/u1/default_avatar',
+      );
     });
   });
 }

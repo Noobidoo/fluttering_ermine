@@ -7,8 +7,9 @@ import 'package:fluttering_ermine/services/revolt_service.dart';
 import 'package:fluttering_ermine/services/voice_event_service.dart';
 
 class MockRevoltService extends Mock implements RevoltService {
-  final _eventCtrl =
-      StreamController<Map<String, dynamic>>.broadcast(sync: true);
+  final _eventCtrl = StreamController<Map<String, dynamic>>.broadcast(
+    sync: true,
+  );
 
   @override
   Stream<Map<String, dynamic>> get events => _eventCtrl.stream;

@@ -358,12 +358,7 @@ const List<PermissionDef> kServerPermissions = [
     'Join voice channels',
     Permission.connect,
   ),
-  PermissionDef(
-    'speak',
-    'Speak',
-    'Speak in a voice call',
-    Permission.speak,
-  ),
+  PermissionDef('speak', 'Speak', 'Speak in a voice call', Permission.speak),
   PermissionDef(
     'video',
     'Video',
@@ -482,12 +477,7 @@ const List<PermissionDef> kChannelPermissions = [
     'Join voice channels',
     Permission.connect,
   ),
-  PermissionDef(
-    'speak',
-    'Speak',
-    'Speak in a voice call',
-    Permission.speak,
-  ),
+  PermissionDef('speak', 'Speak', 'Speak in a voice call', Permission.speak),
   PermissionDef(
     'video',
     'Video',
