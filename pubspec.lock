@@ -346,9 +346,11 @@ packages:
   flutter_webrtc:
     dependency: "direct main"
     description:
-      path: "J:\\Development\\flutter-webrtc"
-      relative: false
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: bfbb467ec789c6e65e1f0ec7e452ba89dcf652dd
+      url: "https://github.com/flutter-webrtc/flutter-webrtc.git"
+    source: git
     version: "1.5.2"
   freezed_annotation:
     dependency: transitive
